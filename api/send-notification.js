@@ -7,7 +7,6 @@ const private_key = process.env.FCM_PRIVATE_KEY;
 
 module.exports = async (req, res) => {
     // --- CORS Headers ---
-    res.setHeader('Access-Control-Origin', '*'); // For development, specific domain later
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -15,6 +14,25 @@ module.exports = async (req, res) => {
     // Handle Preflight request
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
+    }
+
+    // --- Diagnostic GET Handler ---
+    if (req.method === 'GET') {
+        const pk = private_key || '';
+        return res.status(200).json({
+            success: true,
+            diagnostics: {
+                projectId: !!project_id,
+                clientEmail: !!client_email,
+                privateKeySet: !!pk,
+                privateKeyLength: pk.length,
+                hasBeginHeader: pk.includes('-----BEGIN PRIVATE KEY-----'),
+                hasEndFooter: pk.includes('-----END PRIVATE KEY-----'),
+                hasLiteralNewlines: pk.includes('\\n'),
+                hasRealNewlines: pk.includes('\n'),
+                startsWithQuote: pk.startsWith('"') || pk.startsWith("'"),
+            }
+        });
     }
 
     // Only allow POST requests for the actual notification
@@ -27,40 +45,50 @@ module.exports = async (req, res) => {
         console.error("Missing Environment Variables on Vercel!");
         return res.status(500).json({
             success: false,
-            error: 'Backend Configuration Error: Missing Environment Variables in Vercel. Please add FCM_PROJECT_ID, FCM_CLIENT_EMAIL, and FCM_PRIVATE_KEY in Vercel Settings.'
+            error: 'Missing Environment Variables. Please add FCM_PROJECT_ID, FCM_CLIENT_EMAIL, and FCM_PRIVATE_KEY in Vercel.'
         });
     }
 
     // Initialize Firebase Admin safely
     try {
         if (!admin.apps.length) {
-            // --- Bulletproof PEM Normalization ---
-            // 1. Remove all quotes (single or double)
-            // 2. Replace literal \n with real newlines
-            // 3. Trim whitespace
             let pk = private_key.trim();
-            if (pk.startsWith('"') || pk.startsWith("'")) pk = pk.substring(1);
-            if (pk.endsWith('"') || pk.endsWith("'")) pk = pk.substring(0, pk.length - 1);
 
-            // Critical: Re-insert newlines if they were flattened by Vercel or manual copying
+            // 1. Try to parse as JSON if it's a quoted string from a JSON file
+            try {
+                if (pk.startsWith('"')) {
+                    pk = JSON.parse(pk);
+                }
+            } catch (e) {
+                // If it fails, just strip quotes manually
+                pk = pk.replace(/^["']|["']$/g, '');
+            }
+
+            // 2. Normalize newlines (handle both literal \n and actual newlines)
             pk = pk.replace(/\\n/g, '\n');
 
-            // If the key is missing headers (rare but happens), wrap it
+            // 3. Ensure it has correct headers - standard PEM format
             if (!pk.includes('-----BEGIN PRIVATE KEY-----')) {
+                // Clean any accidental whitespace between segments if it was flattened
+                pk = pk.replace(/\s+/g, '');
                 pk = `-----BEGIN PRIVATE KEY-----\n${pk}\n-----END PRIVATE KEY-----`;
             }
 
             admin.initializeApp({
                 credential: admin.credential.cert({
-                    projectId: project_id,
-                    clientEmail: client_email,
+                    projectId: project_id.trim(),
+                    clientEmail: client_email.trim(),
                     privateKey: pk,
                 }),
             });
         }
     } catch (initError) {
         console.error("Firebase Admin Init Error:", initError);
-        return res.status(500).json({ success: false, error: 'Firebase Auth Error: ' + initError.message });
+        return res.status(500).json({
+            success: false,
+            error: 'Firebase Auth Error: ' + initError.message,
+            hint: 'Check if FCM_PRIVATE_KEY is a valid PEM key starting with -----BEGIN PRIVATE KEY-----'
+        });
     }
 
     const { token, title, body } = req.body;
