@@ -27,8 +27,9 @@ module.exports = async (req, res) => {
                 credential: admin.credential.cert({
                     projectId: project_id,
                     clientEmail: client_email,
-                    // Handle key formatting and remove potential double quotes
-                    privateKey: private_key.replace(/\\n/g, '\n').replace(/"/u, ''),
+                    // Standard PEM parsing: Replace literal \n with real newlines, 
+                    // and remove any accidental quotes at the start/end.
+                    privateKey: private_key.replace(/\\n/g, '\n').replace(/^"|"$/g, ''),
                 }),
             });
         }
