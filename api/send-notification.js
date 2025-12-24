@@ -6,7 +6,18 @@ const client_email = process.env.FCM_CLIENT_EMAIL;
 const private_key = process.env.FCM_PRIVATE_KEY;
 
 module.exports = async (req, res) => {
-    // Only allow POST requests
+    // --- CORS Headers ---
+    res.setHeader('Access-Control-Origin', '*'); // For development, specific domain later
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    // Handle Preflight request
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
+    // Only allow POST requests for the actual notification
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method Not Allowed' });
     }
@@ -23,21 +34,27 @@ module.exports = async (req, res) => {
     // Initialize Firebase Admin safely
     try {
         if (!admin.apps.length) {
-            // Robust PEM normalization
-            // 1. Remove double quotes if present
-            // 2. Replace literal '\n' sequences with real newlines
-            // 3. Ensure the key has proper headers
-            let normalizedKey = private_key.trim();
-            if (normalizedKey.startsWith('"') && normalizedKey.endsWith('"')) {
-                normalizedKey = normalizedKey.substring(1, normalizedKey.length - 1);
+            // --- Bulletproof PEM Normalization ---
+            // 1. Remove all quotes (single or double)
+            // 2. Replace literal \n with real newlines
+            // 3. Trim whitespace
+            let pk = private_key.trim();
+            if (pk.startsWith('"') || pk.startsWith("'")) pk = pk.substring(1);
+            if (pk.endsWith('"') || pk.endsWith("'")) pk = pk.substring(0, pk.length - 1);
+
+            // Critical: Re-insert newlines if they were flattened by Vercel or manual copying
+            pk = pk.replace(/\\n/g, '\n');
+
+            // If the key is missing headers (rare but happens), wrap it
+            if (!pk.includes('-----BEGIN PRIVATE KEY-----')) {
+                pk = `-----BEGIN PRIVATE KEY-----\n${pk}\n-----END PRIVATE KEY-----`;
             }
-            normalizedKey = normalizedKey.replace(/\\n/g, '\n');
 
             admin.initializeApp({
                 credential: admin.credential.cert({
                     projectId: project_id,
                     clientEmail: client_email,
-                    privateKey: normalizedKey,
+                    privateKey: pk,
                 }),
             });
         }
@@ -59,7 +76,7 @@ module.exports = async (req, res) => {
             token: token,
             webpush: {
                 fcm_options: {
-                    link: "https://" + req.headers.host // Dynamically use the current host
+                    link: "https://salah-tracker-app.vercel.app" // Main app link
                 }
             }
         };
@@ -72,4 +89,5 @@ module.exports = async (req, res) => {
         return res.status(500).json({ success: false, error: 'FCM Error: ' + error.message });
     }
 };
+
 
