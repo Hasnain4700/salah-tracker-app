@@ -15,9 +15,10 @@ import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/fireb
 // --- FCM Backend Call ---
 async function sendFCMNotificationv1(token, title, body) {
   try {
-    // Calling our Vercel Serverless Function instead of direct FCM API
-    // This keeps our Private Key hidden on the server.
-    const response = await fetch('/api/send-notification', {
+    // Use the absolute URL of your Vercel deployment so it works from GitHub/Localhost/APK
+    const BACKEND_URL = 'https://salah-tracker-app.vercel.app/api/send-notification';
+
+    const response = await fetch(BACKEND_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, title, body })
