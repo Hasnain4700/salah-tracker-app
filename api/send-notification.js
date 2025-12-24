@@ -1,38 +1,56 @@
 const admin = require('firebase-admin');
 
-// Service Account JSON will be passed through Environment Variables
-// to keep it secure and hidden from GitHub.
-if (!admin.apps.length) {
-    admin.initializeApp({
-        credential: admin.credential.cert({
-            projectId: process.env.FCM_PROJECT_ID,
-            clientEmail: process.env.FCM_CLIENT_EMAIL,
-            privateKey: process.env.FCM_PRIVATE_KEY.replace(/\\n/g, '\n'),
-        }),
-    });
-}
-
-const messaging = admin.messaging();
+// Validate environment variables early
+const project_id = process.env.FCM_PROJECT_ID;
+const client_email = process.env.FCM_CLIENT_EMAIL;
+const private_key = process.env.FCM_PRIVATE_KEY;
 
 module.exports = async (req, res) => {
     // Only allow POST requests
     if (req.method !== 'POST') {
-        return res.status(405).send('Method Not Allowed');
+        return res.status(405).json({ success: false, error: 'Method Not Allowed' });
+    }
+
+    // Check if env variables are missing
+    if (!project_id || !client_email || !private_key) {
+        console.error("Missing Environment Variables on Vercel!");
+        return res.status(500).json({
+            success: false,
+            error: 'Backend Configuration Error: Missing Environment Variables in Vercel. Please add FCM_PROJECT_ID, FCM_CLIENT_EMAIL, and FCM_PRIVATE_KEY in Vercel Settings.'
+        });
+    }
+
+    // Initialize Firebase Admin safely
+    try {
+        if (!admin.apps.length) {
+            admin.initializeApp({
+                credential: admin.credential.cert({
+                    projectId: project_id,
+                    clientEmail: client_email,
+                    // Handle key formatting and remove potential double quotes
+                    privateKey: private_key.replace(/\\n/g, '\n').replace(/"/u, ''),
+                }),
+            });
+        }
+    } catch (initError) {
+        console.error("Firebase Admin Init Error:", initError);
+        return res.status(500).json({ success: false, error: 'Firebase Auth Error: ' + initError.message });
     }
 
     const { token, title, body } = req.body;
 
     if (!token || !title || !body) {
-        return res.status(400).send('Missing required fields: token, title, body');
+        return res.status(400).json({ success: false, error: 'Missing required fields: token, title, body' });
     }
 
     try {
+        const messaging = admin.messaging();
         const message = {
             notification: { title, body },
             token: token,
             webpush: {
                 fcm_options: {
-                    link: "https://salah-tracker-app.vercel.app/" // You can change this
+                    link: "https://" + req.headers.host // Dynamically use the current host
                 }
             }
         };
@@ -41,8 +59,8 @@ module.exports = async (req, res) => {
         console.log('Successfully sent message:', response);
         return res.status(200).json({ success: true, messageId: response });
     } catch (error) {
-        console.error('Error sending message:', error);
-        return res.status(500).json({ success: false, error: error.message });
+        console.error('FCM Send Error:', error);
+        return res.status(500).json({ success: false, error: 'FCM Error: ' + error.message });
     }
 };
 
