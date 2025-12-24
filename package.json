@@ -1,0 +1,9 @@
+{
+    "name": "salah-tracker-v1",
+    "version": "1.0.0",
+    "description": "Salah Tracker with Vercel Backend",
+    "main": "app.js",
+    "dependencies": {
+        "firebase-admin": "^11.11.0"
+    }
+}

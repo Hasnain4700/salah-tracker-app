@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Salah Tracker</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    import { getDatabase, ref, set, get, onValue, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+    window.FirebaseExports = {
+      initializeApp, getAnalytics, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut,
+      getDatabase, ref, set, get, onValue, update
+    };
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.6.1/jsrsasign-all-min.js"></script>
+
+</head>
+
+<body>
+  <button id="logout-btn"
+    style="position:fixed;top:18px;right:18px;z-index:1001;display:none;background:#222;color:#6ee7b7;border:none;border-radius:16px;padding:8px 18px;font-size:1em;font-weight:600;box-shadow:0 2px 8px #0002;cursor:pointer;">Logout</button>
+  <div class="container" id="home-section">
+    <!-- Date Section -->
+    <div class="date-section card">
+      <button class="calendar-arrow" id="prev-date">&#8592;</button>
+      <div class="dates">
+        <div class="gregorian-date" id="gregorian-date">Monday, 1 Jan 2024</div>
+        <div class="hijri-date" id="hijri-date">19 Jumada II 1445</div>
+      </div>
+      <button class="calendar-arrow" id="next-date">&#8594;</button>
+    </div>
+
+    <!-- Partner Status Widget (Deen Twins) -->
+    <div id="home-partner-widget" class="card"
+      style="display:none;background:linear-gradient(135deg, #1e293b, #0f172a);border-left:4px solid #6ee7b7;cursor:pointer;margin-bottom:12px;"
+      onclick="navBtns[4].click(); setTimeout(()=>{openSubFeature('twins')}, 100);">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div id="hp-avatar" style="font-size:1.5em;">👤</div>
+          <div style="text-align:left;">
+            <div id="hp-name" style="font-weight:600;font-size:0.95em;color:#fff;">Partner</div>
+            <div id="hp-status" style="font-size:0.8em;color:#94a3b8;">Waiting...</div>
+          </div>
+        </div>
+        <div style="font-size:1.2em;color:#6ee7b7;">🤝</div>
+      </div>
+    </div>
+
+    <!-- Countdown Timer -->
+    <div class="countdown-section card">
+      <svg class="countdown-svg" width="120" height="120">
+        <circle class="countdown-bg" cx="60" cy="60" r="54" />
+        <circle class="countdown-progress" cx="60" cy="60" r="54" />
+      </svg>
+      <div class="countdown-label">
+        <span id="next-prayer-name">Fajr</span>
+        <span id="countdown-timer">01:23:45</span>
+      </div>
+      <button id="mark-prayer-btn" style="display:none;margin-top:12px;" class="thirty-day-btn">Mark as Prayed</button>
+      <button id="mark-missed-btn" style="display:none;margin-top:12px;margin-left:8px;background:#ff6b6b;color:#fff;"
+        class="thirty-day-btn">Mark as Missed</button>
+      <div id="prayer-status-label" style="margin-top:10px;font-weight:600;font-size:1.1em;"></div>
+    </div>
+
+    <!-- Prayer Times List -->
+    <div class="prayer-list card">
+      <div class="prayer-item active">
+        <span class="prayer-name">Tahajjud</span>
+        <span class="prayer-time">02:30</span>
+        <button class="bell-btn" title="Toggle notification">
+          <span class="bell-icon">🔔</span>
+        </button>
+      </div>
+      <div class="prayer-item">
+        <span class="prayer-name">Fajr</span>
+        <span class="prayer-time">05:12</span>
+        <button class="bell-btn" title="Toggle notification">
+          <span class="bell-icon">🔔</span>
+        </button>
+      </div>
+      <div class="prayer-item">
+        <span class="prayer-name">Dhuhr</span>
+        <span class="prayer-time">12:45</span>
+        <button class="bell-btn" title="Toggle notification">
+          <span class="bell-icon">🔔</span>
+        </button>
+      </div>
+      <div class="prayer-item">
+        <span class="prayer-name">Asr</span>
+        <span class="prayer-time">16:10</span>
+        <button class="bell-btn" title="Toggle notification">
+          <span class="bell-icon">🔔</span>
+        </button>
+      </div>
+      <div class="prayer-item">
+        <span class="prayer-name">Maghrib</span>
+        <span class="prayer-time">18:55</span>
+        <button class="bell-btn" title="Toggle notification">
+          <span class="bell-icon">🔔</span>
+        </button>
+      </div>
+      <div class="prayer-item">
+        <span class="prayer-name">Isha</span>
+        <span class="prayer-time">20:15</span>
+        <button class="bell-btn" title="Toggle notification">
+          <span class="bell-icon">🔔</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Bottom Section -->
+    <div class="bottom-section card">
+      <button class="thirty-day-btn">30-Day Prayer Times</button>
+      <div class="last-third">Last Third of Night: <span id="last-third-time">02:30 - 05:12</span></div>
+    </div>
+  </div>
+
+  <!-- Donate Section (replaces Mosque) -->
+  <div class="container" id="donate-section" style="display:none">
+    <div class="card donate-card" style="text-align:center;">
+      <h2 style="font-size:2em;margin-bottom:0.2em;">🤲 Donate for Poor</h2>
+      <div style="font-size:2.2em;margin-bottom:0.2em;color:#ff6b81;">❤️</div>
+      <div style="margin-bottom:14px;font-size:1.13em;line-height:1.5;">Har week sirf <b>100 rupay</b> kisi ki zindagi
+        badal sakte hain! Sadqa dein, barakat paayen.</div>
+      <div id="donate-status" style="margin-bottom:12px;font-weight:600;font-size:1.08em;"></div>
+      <div class="donate-pay-box"
+        style="background:#222c;padding:16px 10px 10px 10px;border-radius:16px;margin-bottom:16px;box-shadow:0 2px 12px #0002;">
+        <div id="donate-sadapay" style="margin-bottom:8px;font-size:1.13em;">
+          <b>Sadapay:</b> <span id="sadapay-number">03284700500</span>
+          <button id="copy-sadapay-btn"
+            style="margin-left:6px;padding:2px 10px;border-radius:8px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.98em;">Copy</button>
+        </div>
+        <div id="donate-jazzcash" style="margin-bottom:2px;font-size:1.13em;">
+          <b>JazzCash:</b> <span id="jazzcash-number">03284700500</span>
+          <button id="copy-jazzcash-btn"
+            style="margin-left:6px;padding:2px 10px;border-radius:8px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.98em;">Copy</button>
+        </div>
+      </div>
+      <button id="donate-mark-btn" class="thirty-day-btn"
+        style="margin-bottom:14px;width:100%;background:#6ee7b7;color:#222;">I have donated (Mark as Done)</button>
+      <div id="donate-streak" style="margin:10px 0 4px 0;font-size:1.08em;color:#6ee7b7;"></div>
+      <div id="donate-badges" style="margin-bottom:4px;"></div>
+      <div style="margin-top:12px;font-size:1.01em;color:#a7f3d0;">"Jo shakhs kisi mohtaj ki madad karta hai, Allah uski
+        madad karta hai." (Muslim)</div>
+    </div>
+  </div>
+
+  <!-- Quran Audio Section (replaces Qibla) -->
+  <div class="container" id="quran-section" style="display:none">
+    <div class="card" style="text-align:center;">
+      <h2>📖 Quran Audio</h2>
+      <div id="quran-audio-list" style="margin-bottom:18px;"></div>
+      <audio id="quran-audio-player" controls style="width:100%;outline:none;">
+        <source id="quran-audio-source" src="" type="audio/mp3">
+        Your browser does not support the audio element.
+      </audio>
+      <div id="quran-xp-progress" style="margin-top:12px;font-size:1.08em;color:#6ee7b7;"></div>
+    </div>
+  </div>
+
+  <!-- Tracker Section -->
+  <div class="container" id="tracker-section" style="display:none">
+    <!-- Top Level Card -->
+    <div class="stat-card-premium tier-1">
+      <div class="level-header">
+        <div class="level-icon">🏅</div>
+        <div class="level-title-row">
+          <span class="level-label">Level <span id="level-num">1</span></span>
+        </div>
+      </div>
+      <div class="xp-bar-container-premium">
+        <div id="xp-progress" class="xp-bar-fill-premium"></div>
+      </div>
+      <div class="xp-footer">
+        <div id="streak-badges-row" style="font-size: 0.85em; color: #fcd34d;">🔥 <span id="streak-count">0</span> Day
+          Streak</div>
+        <span id="xp-points">0</span> XP
+      </div>
+    </div>
+
+    <!-- 2-Column Grid -->
+    <div class="stats-grid-2col">
+      <div class="stat-card-premium mini">
+        <div class="mini-header">
+          <span class="mini-icon">⚡</span>
+          <span class="mini-label">XP PROGRESS</span>
+        </div>
+        <div class="mini-desc">Complete prayers to earn XP</div>
+        <div class="mini-progress-row">
+          <div class="mini-bar-bg">
+            <div id="xp-progress-mini" class="mini-bar-fill"></div>
+          </div>
+          <span class="mini-value-small"><span id="xp-points-mini">0</span> XP</span>
+        </div>
+      </div>
+
+      <div class="stat-card-premium mini">
+        <div class="mini-header">
+          <span class="mini-icon">🎁</span>
+          <span class="mini-label">TOTAL REWARDS</span>
+        </div>
+        <div class="mini-desc">Equivalent to good deeds performed</div>
+        <div class="reward-large-value" id="rewards-points">0</div>
+      </div>
+    </div>
+
+    <!-- History Card -->
+    <div class="stat-card-premium history-card-wrap">
+      <div class="history-card-header">
+        <div class="history-title-side">
+          <span class="history-ico">📅</span>
+          <span class="history-txt">Prayer History (Last 7 Days)</span>
+        </div>
+        <div class="history-menu-dots">•••</div>
+      </div>
+      <div class="history-table-container">
+        <table id="tracker-log-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Tahaj.</th>
+              <th>Fajr</th>
+              <th>Dhuhr</th>
+              <th>Asr</th>
+              <th>Magh.</th>
+              <th>Isha</th>
+            </tr>
+          </thead>
+          <tbody id="tracker-log-table-body">
+            <!-- Filled by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Good Deed Button -->
+    <button id="good-deed-btn" class="good-deed-btn-premium">
+      <span class="gd-icon">🌟</span> Good Deed Cards
+    </button>
+  </div>
+
+  <!-- Auth Modal -->
+  <div id="auth-modal">
+    <div
+      style="background:#18243a;padding:32px 24px;border-radius:20px;max-width:340px;width:90vw;box-shadow:0 8px 32px #0008;text-align:center;">
+      <h2 id="auth-modal-title">Login</h2>
+      <div style="margin-bottom:12px;">
+        <input id="auth-email" type="email" placeholder="Email"
+          style="width:100%;padding:10px 12px;border-radius:12px;border:none;margin-bottom:10px;font-size:1em;" />
+        <input id="auth-password" type="password" placeholder="Password"
+          style="width:100%;padding:10px 12px;border-radius:12px;border:none;font-size:1em;" />
+      </div>
+      <div id="auth-error" style="color:#ff6b6b;font-size:0.98em;height:1.5em;margin-bottom:8px;"></div>
+      <button id="auth-submit" class="thirty-day-btn" style="width:100%;margin-bottom:8px;">Login</button>
+      <div>
+        <span id="auth-switch-text">Don't have an account?</span>
+        <button id="auth-switch-btn"
+          style="background:none;border:none;color:#6ee7b7;cursor:pointer;font-weight:600;">Sign up</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Good Deed Card Modal -->
+  <div id="good-deed-modal"
+    style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);z-index:2001;align-items:center;justify-content:center;">
+    <div
+      style="background:#18243a;padding:28px 18px 18px 18px;border-radius:20px;max-width:340px;width:90vw;box-shadow:0 8px 32px #0008;text-align:center;position:relative;">
+      <button id="good-deed-modal-close"
+        style="position:absolute;top:10px;right:14px;background:none;border:none;color:#fff;font-size:1.3em;cursor:pointer;">&times;</button>
+      <h3 id="good-deed-card-title" style="margin-bottom:8px;color:#6ee7b7;"></h3>
+      <div id="good-deed-card-desc" style="margin-bottom:14px;font-size:1.08em;"></div>
+      <button id="good-deed-complete-btn" class="thirty-day-btn" style="margin-bottom:10px;width:100%;">Mark as
+        Completed</button>
+      <div style="margin:10px 0 6px 0;font-size:0.98em;">Reflection (optional):</div>
+      <textarea id="good-deed-reflection" rows="2"
+        style="width:100%;border-radius:10px;padding:8px 10px;font-size:1em;"></textarea>
+      <button id="good-deed-save-reflection" class="thirty-day-btn"
+        style="margin-top:8px;width:100%;background:#6ee7b7;color:#222;">Save Reflection</button>
+    </div>
+  </div>
+
+  <!-- Notification Popup -->
+  <div id="app-notif-modal"
+    style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);z-index:2002;align-items:center;justify-content:center;">
+    <div
+      style="background:#18243a;padding:28px 18px 18px 18px;border-radius:20px;max-width:340px;width:90vw;box-shadow:0 8px 32px #0008;text-align:center;position:relative;">
+      <button id="app-notif-close"
+        style="position:absolute;top:10px;right:14px;background:none;border:none;color:#fff;font-size:1.3em;cursor:pointer;">&times;</button>
+      <h3 id="app-notif-title" style="margin-bottom:8px;color:#6ee7b7;"></h3>
+      <div id="app-notif-body" style="margin-bottom:8px;font-size:1.08em;"></div>
+    </div>
+  </div>
+
+  <!-- More Section (New Features) -->
+  <div class="container" id="more-section" style="display:none">
+
+    <!-- Mood-Based Quran (Dil Ki Dawa) - Always Visible at Top -->
+    <div class="card" style="text-align:center;margin-bottom:16px;">
+      <h2 style="display:flex;align-items:center;gap:8px;justify-content:center;"><span
+          style="font-size:1.3em;">💖</span> <span>Dil Ki Dawa</span></h2>
+      <p style="margin-bottom:12px;color:#a7f3d0;font-size:0.95em;">Aaj aap kaisa feel kar rahe hain?</p>
+
+      <div id="mood-buttons" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+        <button class="thirty-day-btn mood-btn" data-mood="sad" style="background:#334155;">😢 Sad</button>
+        <button class="thirty-day-btn mood-btn" data-mood="anxious" style="background:#334155;">😰 Anxious</button>
+        <button class="thirty-day-btn mood-btn" data-mood="happy" style="background:#334155;">😊 Happy</button>
+        <button class="thirty-day-btn mood-btn" data-mood="angry" style="background:#334155;">😡 Angry</button>
+        <button class="thirty-day-btn mood-btn" data-mood="lazy" style="background:#334155;">😴 Lazy</button>
+        <button class="thirty-day-btn mood-btn" data-mood="lonely" style="background:#334155;">💔 Lonely</button>
+      </div>
+
+      <div id="mood-result"
+        style="display:none;background:#1a253a;border:1px solid #34d399;border-radius:12px;padding:14px;animation:fadeIn 0.5s;">
+        <div id="mood-verse-arabic"
+          style="font-size:1.4em;margin-bottom:8px;font-family:'Traditional Arabic', serif;color:#6ee7b7;"></div>
+        <div id="mood-verse-urdu" style="font-size:1.05em;margin-bottom:6px;"></div>
+        <div id="mood-verse-ref" style="font-size:0.85em;color:#94a3b8;"></div>
+      </div>
+    </div>
+
+    <!-- Features Menu List -->
+    <div id="more-features-menu">
+      <div class="card" onclick="openSubFeature('tree')"
+        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
+        <div
+          style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
+          🌳</div>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:600;font-size:1.05em;">Jannat ka Darakht</div>
+          <div style="font-size:0.85em;color:#aaa;">Your Deeds Tree</div>
+        </div>
+        <div style="color:#6ee7b7;">&#8594;</div>
+      </div>
+      <div class="card" onclick="openSubFeature('twins')"
+        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
+        <div
+          style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
+          🤝</div>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:600;font-size:1.05em;">Deen Twins</div>
+          <div style="font-size:0.85em;color:#aaa;">Salah Accountability Partner</div>
+        </div>
+        <div style="color:#6ee7b7;">&#8594;</div>
+      </div>
+      <div class="card" onclick="openSubFeature('qaza')"
+        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
+        <div
+          style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
+          📅</div>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:600;font-size:1.05em;">Qaza-e-Umri Tracker</div>
+          <div style="font-size:0.85em;color:#aaa;">Track your missed prayers</div>
+        </div>
+        <div style="color:#6ee7b7;">&#8594;</div>
+      </div>
+      <!-- Placeholder for future features -->
+      <!-- <div class="card" ...> ... </div> -->
+    </div>
+
+    <!-- Deen Twins (Sub Feature) -->
+    <div id="feature-twins" class="sub-feature-view" style="display:none;">
+      <div class="card" style="text-align:center;">
+        <div style="display:flex;align-items:center;margin-bottom:12px;">
+          <button onclick="closeSubFeature()"
+            style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding:0 8px 0 0;">&#8592;</button>
+          <h2 style="margin:0;font-size:1.3em;">Deen Twins</h2>
+        </div>
+
+        <!-- Lobby View -->
+        <div id="twins-lobby" style="padding:20px 0;">
+          <div style="font-size:4em;margin-bottom:12px;">🤝</div>
+          <p style="font-size:1.1em;margin-bottom:8px;">Find a Prayer Partner</p>
+          <p style="color:#94a3b8;font-size:0.9em;margin-bottom:20px;">
+            Connect with a random user for a 7-day challenge. Motivate each other to never miss a Salah!
+          </p>
+          <button id="find-partner-btn" class="thirty-day-btn"
+            style="width:100%;background:#6ee7b7;color:#222;font-weight:bold;">Find Partner</button>
+          <div id="twins-loading" style="display:none;margin-top:20px;color:#6ee7b7;">
+            Searching for partner... ⏳
+          </div>
+        </div>
+
+        <!-- Active Pair View -->
+        <div id="twins-active" style="display:none;">
+          <!-- Partner Profile -->
+          <div
+            style="background:#334155;border-radius:16px;padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:14px;">
+            <div
+              style="width:50px;height:50px;background:#1e293b;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5em;"
+              id="partner-avatar">👤</div>
+            <div style="flex:1;text-align:left;">
+              <div id="partner-name" style="font-weight:600;font-size:1.1em;color:#fff;">Partner Name</div>
+              <div id="partner-status" style="font-size:0.9em;color:#94a3b8;">Status: Waiting...</div>
+            </div>
+            <button id="twins-nudge-btn"
+              style="background:#f59e0b;color:#222;border:none;border-radius:50%;width:40px;height:40px;font-size:1.2em;cursor:pointer;box-shadow:0 4px 12px #f59e0b40;">🔔</button>
+          </div>
+
+          <!-- Challenge Progress -->
+          <div style="margin-bottom:8px;font-weight:600;text-align:left;">7-Day Streak Challenge</div>
+          <div style="height:10px;width:100%;background:#222;border-radius:8px;margin-bottom:20px;overflow:hidden;">
+            <div id="twins-progress" style="height:100%;width:14%;background:#6ee7b7;transition:width 0.5s;"></div>
+          </div>
+
+          <div style="background:#1e293b;padding:12px;border-radius:12px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+              <span>Today's Goal</span>
+              <span id="twins-today-status" style="color:#fcd34d;">In Progress</span>
+            </div>
+            <div style="font-size:0.85em;color:#94a3b8;text-align:left;">
+              Both of you must pray all 5 Salahs to complete the day streak.
+            </div>
+          </div>
+
+          <button id="twins-leave-btn"
+            style="margin-top:24px;background:none;border:none;color:#ff6b6b;text-decoration:underline;cursor:pointer;font-size:0.9em;">Leave
+            Challenge</button>
+        </div>
+
+      </div>
+    </div>
+    <!-- Jannat ka Darakht (Sub Feature) -->
+    <div id="feature-tree" class="sub-feature-view" style="display:none;">
+      <div class="card" style="text-align:center;">
+        <div style="display:flex;align-items:center;margin-bottom:4px;">
+          <button onclick="closeSubFeature()"
+            style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding:0 8px 0 0;">&#8592;</button>
+          <h2 style="margin:0;font-size:1.3em;">Jannat ka Darakht</h2>
+        </div>
+        <p style="margin-bottom:16px;color:#94a3b8;font-size:0.9em;">Aapke aamaal se ye darakht badhta hai.</p>
+
+        <!-- Tree Visualization -->
+        <div
+          style="position:relative;width:100%;height:300px;background:linear-gradient(to bottom, #1e293b, #0f172a);border-radius:16px;overflow:hidden;margin-bottom:12px;box-shadow:inset 0 0 20px #0008;">
+          <!-- Sun/Moon -->
+          <div id="tree-sky-orb"
+            style="position:absolute;top:20px;right:20px;width:40px;height:40px;background:#fbbf24;border-radius:50%;box-shadow:0 0 15px #fbbf24;">
+          </div>
+
+          <!-- Tree SVG -->
+          <svg id="tree-svg" width="100%" height="100%" viewBox="0 0 200 300" preserveAspectRatio="xMidYMax">
+            <!-- Ground -->
+            <path d="M0,280 Q100,260 200,280 L200,300 L0,300 Z" fill="#3f6212" />
+            <!-- Trunk -->
+            <path id="tree-trunk" d="M95,280 Q90,200 95,150 Q100,200 105,280" fill="#78350f" stroke="#78350f"
+              stroke-width="2" />
+            <!-- Branches (Hidden/Shown based on health) -->
+            <g id="tree-branches" stroke="#78350f" stroke-width="2" fill="none" style="display:none;">
+              <path d="M95,180 Q60,140 50,100" />
+              <path d="M105,180 Q140,140 150,100" />
+              <path d="M95,150 Q70,110 80,80" />
+              <path d="M105,150 Q130,110 120,80" />
+            </g>
+            <!-- Leaves Group -->
+            <g id="tree-leaves"></g>
+          </svg>
+
+          <!-- Health Text Overlay -->
+          <div id="tree-health-text"
+            style="position:absolute;bottom:10px;left:0;width:100%;text-align:center;color:#fff;text-shadow:0 1px 4px #000;font-weight:600;font-size:0.9em;">
+            Health: 50%
+          </div>
+        </div>
+
+        <div id="tree-status-msg" style="font-size:1.05em;color:#6ee7b7;margin-bottom:8px;"></div>
+        <div style="font-size:0.85em;color:#94a3b8;line-height:1.4;">
+          Rule: Namaz (+), Good Deeds (+)<br>Missed Namaz (---) damages the tree.
+        </div>
+      </div>
+    </div>
+
+    <!-- Qaza-e-Umri Tracker (Sub Feature) -->
+    <div id="feature-qaza" class="sub-feature-view" style="display:none;">
+      <div class="card" style="text-align:center;">
+        <div style="display:flex;align-items:center;margin-bottom:16px;">
+          <button onclick="closeSubFeature()"
+            style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding:0 8px 0 0;">&#8592;</button>
+          <h2 style="margin:0;font-size:1.3em;">Qaza Tracker</h2>
+        </div>
+
+        <!-- Setup View -->
+        <div id="qaza-setup-view">
+          <p style="margin-bottom:12px;color:#a7f3d0;font-size:0.95em;">Calculate your missed prayers estimate.</p>
+          <div style="margin-bottom:12px;text-align:left;">
+            <label style="display:block;margin-bottom:4px;font-size:0.9em;">Total Years Missed (approx):</label>
+            <input type="number" id="qaza-years-input" placeholder="e.g. 5"
+              style="width:100%;padding:10px;border-radius:10px;border:none;background:#334155;color:#fff;font-size:1em;">
+          </div>
+          <button id="qaza-calc-btn" class="thirty-day-btn" style="width:100%;background:#6ee7b7;color:#222;">Calculate
+            & Start Tracking</button>
+        </div>
+
+        <!-- Tracker View -->
+        <div id="qaza-tracker-view" style="display:none;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+            <!-- Prayer Counters -->
+            <div class="qaza-card" style="background:#334155;padding:10px;border-radius:12px;">
+              <div style="font-weight:600;margin-bottom:4px;">Fajr</div>
+              <div class="qaza-count" id="qaza-count-fajr" style="font-size:1.2em;color:#6ee7b7;">0</div>
+              <button class="qaza-minus-btn" data-prayer="Fajr"
+                style="margin-top:4px;padding:4px 8px;border-radius:6px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.85em;">Prayed
+                1</button>
+            </div>
+            <div class="qaza-card" style="background:#334155;padding:10px;border-radius:12px;">
+              <div style="font-weight:600;margin-bottom:4px;">Dhuhr</div>
+              <div class="qaza-count" id="qaza-count-dhuhr" style="font-size:1.2em;color:#6ee7b7;">0</div>
+              <button class="qaza-minus-btn" data-prayer="Dhuhr"
+                style="margin-top:4px;padding:4px 8px;border-radius:6px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.85em;">Prayed
+                1</button>
+            </div>
+            <div class="qaza-card" style="background:#334155;padding:10px;border-radius:12px;">
+              <div style="font-weight:600;margin-bottom:4px;">Asr</div>
+              <div class="qaza-count" id="qaza-count-asr" style="font-size:1.2em;color:#6ee7b7;">0</div>
+              <button class="qaza-minus-btn" data-prayer="Asr"
+                style="margin-top:4px;padding:4px 8px;border-radius:6px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.85em;">Prayed
+                1</button>
+            </div>
+            <div class="qaza-card" style="background:#334155;padding:10px;border-radius:12px;">
+              <div style="font-weight:600;margin-bottom:4px;">Maghrib</div>
+              <div class="qaza-count" id="qaza-count-maghrib" style="font-size:1.2em;color:#6ee7b7;">0</div>
+              <button class="qaza-minus-btn" data-prayer="Maghrib"
+                style="margin-top:4px;padding:4px 8px;border-radius:6px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.85em;">Prayed
+                1</button>
+            </div>
+            <div class="qaza-card" style="background:#334155;padding:10px;border-radius:12px;">
+              <div style="font-weight:600;margin-bottom:4px;">Isha</div>
+              <div class="qaza-count" id="qaza-count-isha" style="font-size:1.2em;color:#6ee7b7;">0</div>
+              <button class="qaza-minus-btn" data-prayer="Isha"
+                style="margin-top:4px;padding:4px 8px;border-radius:6px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.85em;">Prayed
+                1</button>
+            </div>
+            <div class="qaza-card" style="background:#334155;padding:10px;border-radius:12px;">
+              <div style="font-weight:600;margin-bottom:4px;">Witr</div>
+              <div class="qaza-count" id="qaza-count-witr" style="font-size:1.2em;color:#6ee7b7;">0</div>
+              <button class="qaza-minus-btn" data-prayer="Witr"
+                style="margin-top:4px;padding:4px 8px;border-radius:6px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.85em;">Prayed
+                1</button>
+            </div>
+          </div>
+          <button id="qaza-reset-btn"
+            style="margin-top:16px;background:none;border:none;color:#ff6b6b;text-decoration:underline;cursor:pointer;font-size:0.9em;">Reset
+            Counters</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <button class="nav-btn"><span class="nav-icon">🏠</span></button>
+    <button class="nav-btn"><span class="nav-icon">🤲</span></button>
+    <button class="nav-btn"><span class="nav-icon">📖</span></button>
+    <button class="nav-btn"><span class="nav-icon">📊</span></button>
+    <button class="nav-btn"><span class="nav-icon">☰</span></button>
+  </nav>
+
+  <script type="module">
+    import './app.js';
+  </script>
+  <!-- Partner Invite Modal -->
+  <div id="modal-partner-invite" class="modal">
+    <div class="modal-content" style="text-align:center;">
+      <div style="font-size:3em;margin-bottom:10px;">🤝</div>
+      <h2 style="margin-top:0;">Find Your Salah Partner</h2>
+      <p style="color:#94a3b8;">Boost your motivation by pairing with a partner! Track prayers together.</p>
+      <button id="btn-modal-find-partner" class="thirty-day-btn" style="width:100%;margin-bottom:10px;">Find Partner
+        Now</button>
+      <button id="btn-modal-not-now"
+        style="background:none;border:none;color:#aaa;text-decoration:underline;cursor:pointer;">Not now</button>
+    </div>
+  </div>
+
+  <div id="toast-popup"></div>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        // Register the firebase-messaging-sw which now handles both Caching and Messaging
+        navigator.serviceWorker.register('./firebase-messaging-sw.js')
+          .then(reg => console.log('Universal SW Registered!', reg.scope))
+          .catch(err => console.log('SW Fail:', err));
+      });
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,20 @@
+# Firebase
+*-firebase-adminsdk-*.json
+firebase-debug.log
+firebase-keys.json
+
+# Environment Variables
+.env
+.env.local
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Vercel
+.vercel
+
+# OS Files
+.DS_Store
+Thumbs.db
