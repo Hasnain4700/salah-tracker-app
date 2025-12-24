@@ -40,18 +40,37 @@ self.addEventListener('install', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  if (e.request.url.includes('api.aladhan.com') || e.request.url.includes('googleapis.com')) {
+  // --- Do NOT cache API calls or external Firebase/Prayer APIs ---
+  if (
+    e.request.url.includes('api.aladhan.com') ||
+    e.request.url.includes('googleapis.com') ||
+    e.request.url.includes('/api/')
+  ) {
     return;
   }
+
+  // Only handle GET requests for caching
+  if (e.request.method !== 'GET') return;
+
   e.respondWith(
     caches.match(e.request).then((cachedResponse) => {
-      const fetchPromise = fetch(e.request).then((networkResponse) => {
+      if (cachedResponse) return cachedResponse;
+
+      return fetch(e.request).then((networkResponse) => {
+        // Only cache valid responses
+        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+          return networkResponse;
+        }
+
+        const responseToCache = networkResponse.clone();
         caches.open(CACHE_NAME).then((cache) => {
-          cache.put(e.request, networkResponse.clone());
+          cache.put(e.request, responseToCache);
         });
+
         return networkResponse;
+      }).catch(() => {
+        // Fail silently
       });
-      return cachedResponse || fetchPromise;
     })
   );
 });
