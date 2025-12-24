@@ -32,7 +32,7 @@ module.exports = async (req, res) => {
             token: token,
             webpush: {
                 fcm_options: {
-                    link: "https://your-app-url.vercel.app" // You can change this
+                    link: "https://salah-tracker-app.vercel.app/" // You can change this
                 }
             }
         };
@@ -45,3 +45,4 @@ module.exports = async (req, res) => {
         return res.status(500).json({ success: false, error: error.message });
     }
 };
+
