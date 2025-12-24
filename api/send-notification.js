@@ -23,13 +23,21 @@ module.exports = async (req, res) => {
     // Initialize Firebase Admin safely
     try {
         if (!admin.apps.length) {
+            // Robust PEM normalization
+            // 1. Remove double quotes if present
+            // 2. Replace literal '\n' sequences with real newlines
+            // 3. Ensure the key has proper headers
+            let normalizedKey = private_key.trim();
+            if (normalizedKey.startsWith('"') && normalizedKey.endsWith('"')) {
+                normalizedKey = normalizedKey.substring(1, normalizedKey.length - 1);
+            }
+            normalizedKey = normalizedKey.replace(/\\n/g, '\n');
+
             admin.initializeApp({
                 credential: admin.credential.cert({
                     projectId: project_id,
                     clientEmail: client_email,
-                    // Standard PEM parsing: Replace literal \n with real newlines, 
-                    // and remove any accidental quotes at the start/end.
-                    privateKey: private_key.replace(/\\n/g, '\n').replace(/^"|"$/g, ''),
+                    privateKey: normalizedKey,
                 }),
             });
         }
