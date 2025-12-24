@@ -22,9 +22,22 @@ async function sendFCMNotificationv1(token, title, body) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, title, body })
     });
-    return await response.json();
+
+    // Check if response is valid JSON before parsing
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.indexOf("application/json") !== -1) {
+      const data = await response.json();
+      if (!data.success) {
+        console.error("Backend FCM Error Summary:", data.error);
+      }
+      return data;
+    } else {
+      const text = await response.text();
+      console.error("Backend returned non-JSON response:", text);
+      return { success: false, error: "Server Error" };
+    }
   } catch (err) {
-    console.error("Backend FCM Send Error:", err);
+    console.error("Network or Backend Error:", err);
   }
 }
 
