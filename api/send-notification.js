@@ -16,20 +16,6 @@ module.exports = async (req, res) => {
         return res.status(200).end();
     }
 
-    // --- Diagnostic GET Handler ---
-    if (req.method === 'GET') {
-        return res.status(200).json({
-            success: true,
-            diagnostics: {
-                projectId: project_id || 'NOT_SET',
-                clientEmailMasked: client_email ? `${client_email.substring(0, 5)}...${client_email.split('@')[1]} ` : 'NOT_SET',
-                privateKeyLength: private_key.length,
-                hasBeginHeader: private_key.includes('-----BEGIN PRIVATE KEY-----'),
-                hasRealNewlines: private_key.includes('\n'),
-            }
-        });
-    }
-
     // Only allow POST requests for the actual notification
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method Not Allowed' });
