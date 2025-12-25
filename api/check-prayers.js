@@ -6,8 +6,11 @@ const client_email = (process.env.FCM_CLIENT_EMAIL || '').trim();
 const private_key = (process.env.FCM_PRIVATE_KEY || '').trim();
 
 module.exports = async (req, res) => {
-    // Basic Auth Check (optional, but good for security via a secret header)
-    // if (req.headers['x-cron-auth'] !== process.env.CRON_SECRET) { ... }
+    // Basic Auth Check for External Cron
+    if (req.headers['x-cron-auth'] !== process.env.CRON_SECRET) {
+        console.log("[Cron Job] Unauthorized attempt blocked.");
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
 
     if (!project_id || !client_email || !private_key) {
         return res.status(500).json({ error: 'Missing Credentials' });
