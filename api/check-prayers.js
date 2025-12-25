@@ -72,7 +72,7 @@ module.exports = async (req, res) => {
                 console.log(`[Cron Job] Checking user ${user.email || uid} (${user.timezone}) - Local Time: ${userHHMM}`);
 
                 // --- Quran Reminder (9:00 PM) ---
-                if (userHHMM === "21:00") {
+                if (isTimeMatch(userHHMM, "21:00", 20)) {
                     const quranNotifKey = `quranNotif_${dateKey}`;
                     if (!user[quranNotifKey]) {
                         await messaging.send({
