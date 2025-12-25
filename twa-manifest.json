@@ -3,7 +3,7 @@
   "host": "hasnain4700.github.io",
   "name": "Salah Tracker",
   "launcherName": "SalahTracker",
-  "display": "standalone",
+  "display": "fullscreen",
   "themeColor": "#6EE7B7",
   "themeColorDark": "#000000",
   "navigationColor": "#000000",
@@ -19,8 +19,8 @@
     "path": "C:\\Users\\Belal\\Downloads\\salah tracker\\Salah-tracker-main\\android.keystore",
     "alias": "salah"
   },
-  "appVersionName": "5",
-  "appVersionCode": 5,
+  "appVersionName": "8",
+  "appVersionCode": 8,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://hasnain4700.github.io/salah-tracker-app/manifest.json",
@@ -48,5 +48,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "5"
+  "appVersion": "8"
 }
