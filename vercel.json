@@ -1,4 +1,10 @@
 {
+    "crons": [
+        {
+            "path": "/api/check-prayers",
+            "schedule": "*/10 * * * *"
+        }
+    ],
     "functions": {
         "api/*.js": {
             "memory": 1024,
