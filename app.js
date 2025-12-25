@@ -106,6 +106,8 @@ async function checkAndTriggerPrayerNotifications(prayers) {
     // If prayer is in the future (within today)
     if (diff > 0) {
       console.log(`Scheduling notification for ${p.name} in ${Math.round(diff / 1000 / 60)} mins`);
+
+      // Timer 1: Main Adhan Alert for the user themselves
       const timer = setTimeout(() => {
         sendFCMNotificationv1(
           myToken,
@@ -114,6 +116,32 @@ async function checkAndTriggerPrayerNotifications(prayers) {
         );
       }, diff);
       scheduledTimeouts.push(timer);
+
+      // Timer 2: Check Partner Status (20 mins later)
+      const partnerCheckTimer = setTimeout(() => {
+        get(ref(db, `users/${user.uid}/twins/pairId`)).then(tSnap => {
+          if (tSnap.exists()) {
+            const pairId = tSnap.val();
+            get(ref(db, `pairs/${pairId}`)).then(pSnap => {
+              const pData = pSnap.val();
+              const partnerId = (pData.user1 === user.uid) ? pData.user2 : pData.user1;
+              if (partnerId) {
+                // Check if partner has prayed yet
+                get(ref(db, `users/${partnerId}/logs/${todayStr}/${p.name}`)).then(statusSnap => {
+                  if (statusSnap.val() !== 'prayed') {
+                    sendFCMNotificationv1(
+                      myToken,
+                      "Partner is Late? 🤔",
+                      `Your Deen Twin hasn't marked ${p.name} yet. Why not nudge them?`
+                    );
+                  }
+                });
+              }
+            });
+          }
+        });
+      }, diff + (20 * 60 * 1000)); // 20 minutes later
+      scheduledTimeouts.push(partnerCheckTimer);
     }
   });
 }
@@ -569,20 +597,34 @@ function logPrayerStatus(prayerName, status) {
   const today = getTodayDateString(); // Uses Local Date
 
   set(ref(db, `users/${user.uid}/logs/${today}/${prayerName}`), status).then(() => {
-    // --- Deen Twins Status Sync (Fixed: Date-Aware & Sync Missed) ---
+    // --- Deen Twins Status Sync & Notifications ---
     get(ref(db, `users/${user.uid}/twins/pairId`)).then(tSnap => {
       if (tSnap.exists()) {
         const pairId = tSnap.val();
-        // Store status under specific date key to handle day changes
         update(ref(db, `pairs/${pairId}/dailyStatus/${today}/${user.uid}`), {
-          [prayerName]: status // 'prayed' or 'missed'
+          [prayerName]: status
         });
 
-        // Check for Streak Update (Simple Client-side Check)
+        // Notify Partner if this user clicked 'prayed'
         get(ref(db, `pairs/${pairId}`)).then(pSnap => {
-          const pData = pSnap.val();
-          const partnerId = (pData.user1 === user.uid) ? pData.user2 : pData.user1;
-          // Partner Logic would go here in full version
+          if (pSnap.exists()) {
+            const pData = pSnap.val();
+            const partnerId = (pData.user1 === user.uid) ? pData.user2 : pData.user1;
+
+            if (status === 'prayed' && partnerId) {
+              // Get Partner's Token
+              get(ref(db, `users/${partnerId}/fcmToken`)).then(tokSnap => {
+                const partnerToken = tokSnap.val();
+                if (partnerToken) {
+                  sendFCMNotificationv1(
+                    partnerToken,
+                    "Partner Activity 🌟",
+                    `Your Deen Twin has just prayed ${prayerName}! MashaAllah.`
+                  );
+                }
+              });
+            }
+          }
         });
       }
     });
