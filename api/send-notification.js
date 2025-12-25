@@ -1,9 +1,9 @@
 const admin = require('firebase-admin');
 
 // Validate environment variables early
-const project_id = process.env.FCM_PROJECT_ID;
-const client_email = process.env.FCM_CLIENT_EMAIL;
-const private_key = process.env.FCM_PRIVATE_KEY;
+const project_id = (process.env.FCM_PROJECT_ID || '').trim();
+const client_email = (process.env.FCM_CLIENT_EMAIL || '').trim();
+const private_key = (process.env.FCM_PRIVATE_KEY || '').trim();
 
 module.exports = async (req, res) => {
     // --- CORS Headers ---
@@ -18,19 +18,14 @@ module.exports = async (req, res) => {
 
     // --- Diagnostic GET Handler ---
     if (req.method === 'GET') {
-        const pk = private_key || '';
         return res.status(200).json({
             success: true,
             diagnostics: {
-                projectId: !!project_id,
-                clientEmail: !!client_email,
-                privateKeySet: !!pk,
-                privateKeyLength: pk.length,
-                hasBeginHeader: pk.includes('-----BEGIN PRIVATE KEY-----'),
-                hasEndFooter: pk.includes('-----END PRIVATE KEY-----'),
-                hasLiteralNewlines: pk.includes('\\n'),
-                hasRealNewlines: pk.includes('\n'),
-                startsWithQuote: pk.startsWith('"') || pk.startsWith("'"),
+                projectId: project_id || 'NOT_SET',
+                clientEmailMasked: client_email ? `${client_email.substring(0, 5)}...${client_email.split('@')[1]} ` : 'NOT_SET',
+                privateKeyLength: private_key.length,
+                hasBeginHeader: private_key.includes('-----BEGIN PRIVATE KEY-----'),
+                hasRealNewlines: private_key.includes('\n'),
             }
         });
     }
@@ -40,82 +35,60 @@ module.exports = async (req, res) => {
         return res.status(405).json({ success: false, error: 'Method Not Allowed' });
     }
 
-    // Check if env variables are missing
     if (!project_id || !client_email || !private_key) {
-        console.error("Missing Environment Variables on Vercel!");
-        return res.status(500).json({
-            success: false,
-            error: 'Missing Environment Variables. Please add FCM_PROJECT_ID, FCM_CLIENT_EMAIL, and FCM_PRIVATE_KEY in Vercel.'
-        });
+        return res.status(500).json({ success: false, error: 'Missing Credentials in Vercel Settings' });
     }
 
     // Initialize Firebase Admin safely
     try {
         if (!admin.apps.length) {
-            let pk = private_key.trim();
+            let pk = private_key;
 
-            // 1. Try to parse as JSON if it's a quoted string from a JSON file
+            // Unpack JSON string if needed
             try {
-                if (pk.startsWith('"')) {
-                    pk = JSON.parse(pk);
-                }
+                if (pk.startsWith('"')) pk = JSON.parse(pk);
             } catch (e) {
-                // If it fails, just strip quotes manually
                 pk = pk.replace(/^["']|["']$/g, '');
             }
 
-            // 2. Normalize newlines (handle both literal \n and actual newlines)
             pk = pk.replace(/\\n/g, '\n');
 
-            // 3. Ensure it has correct headers - standard PEM format
             if (!pk.includes('-----BEGIN PRIVATE KEY-----')) {
-                // Clean any accidental whitespace between segments if it was flattened
                 pk = pk.replace(/\s+/g, '');
-                pk = `-----BEGIN PRIVATE KEY-----\n${pk}\n-----END PRIVATE KEY-----`;
+                pk = `----- BEGIN PRIVATE KEY-----\n${pk} \n----- END PRIVATE KEY----- `;
             }
 
             admin.initializeApp({
                 credential: admin.credential.cert({
-                    projectId: project_id.trim(),
-                    clientEmail: client_email.trim(),
+                    projectId: project_id,
+                    clientEmail: client_email,
                     privateKey: pk,
                 }),
             });
         }
-    } catch (initError) {
-        console.error("Firebase Admin Init Error:", initError);
-        return res.status(500).json({
-            success: false,
-            error: 'Firebase Auth Error: ' + initError.message,
-            hint: 'Check if FCM_PRIVATE_KEY is a valid PEM key starting with -----BEGIN PRIVATE KEY-----'
-        });
-    }
 
-    const { token, title, body } = req.body;
-
-    if (!token || !title || !body) {
-        return res.status(400).json({ success: false, error: 'Missing required fields: token, title, body' });
-    }
-
-    try {
         const messaging = admin.messaging();
-        const message = {
+        const { token, title, body } = req.body;
+
+        if (!token || !title || !body) {
+            return res.status(400).json({ success: false, error: 'Missing token/title/body' });
+        }
+
+        const response = await messaging.send({
             notification: { title, body },
             token: token,
-            webpush: {
-                fcm_options: {
-                    link: "https://salah-tracker-app.vercel.app" // Main app link
-                }
-            }
-        };
+            webpush: { fcm_options: { link: "https://salah-tracker-app.vercel.app" } }
+        });
 
-        const response = await messaging.send(message);
-        console.log('Successfully sent message:', response);
         return res.status(200).json({ success: true, messageId: response });
+
     } catch (error) {
-        console.error('FCM Send Error:', error);
-        return res.status(500).json({ success: false, error: 'FCM Error: ' + error.message });
+        console.error("FCM Backend Error:", error);
+        return res.status(500).json({
+            success: false,
+            error: error.message,
+            code: error.code || 'UNKNOWN',
+            hint: error.message.includes('account not found') ? 'Check if Client Email is exactly correct in Vercel' : 'Double check Private Key'
+        });
     }
 };
-
-
