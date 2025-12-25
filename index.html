@@ -358,8 +358,17 @@
         </div>
         <div style="color:#6ee7b7;">&#8594;</div>
       </div>
-      <!-- Placeholder for future features -->
-      <!-- <div class="card" ...> ... </div> -->
+      <div class="card" onclick="openSubFeature('series')"
+        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
+        <div
+          style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
+          📚</div>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:600;font-size:1.05em;">Islamic Series</div>
+          <div style="font-size:0.85em;color:#aaa;">Read and learn from series</div>
+        </div>
+        <div style="color:#6ee7b7;">&#8594;</div>
+      </div>
     </div>
 
     <!-- Deen Twins (Sub Feature) -->
@@ -545,6 +554,36 @@
           <button id="qaza-reset-btn"
             style="margin-top:16px;background:none;border:none;color:#ff6b6b;text-decoration:underline;cursor:pointer;font-size:0.9em;">Reset
             Counters</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Islamic Series (Sub Feature) -->
+    <div id="feature-series" class="sub-feature-view" style="display:none;">
+      <div class="card" style="text-align:center; min-height: 400px; display: flex; flex-direction: column;">
+        <div style="display:flex;align-items:center;margin-bottom:16px;">
+          <button id="series-back-btn"
+            style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding: 0 12px 0 0;">&#8592;</button>
+          <h2 id="series-header-title" style="margin:0;font-size:1.3em;">Islamic Series</h2>
+        </div>
+
+        <!-- Series List View -->
+        <div id="series-list-view" style="flex: 1; overflow-y: auto;">
+          <!-- Series cards will be injected here -->
+        </div>
+
+        <!-- Episode List View -->
+        <div id="episode-list-view" style="display:none; flex: 1; overflow-y: auto;">
+          <!-- Episode cards will be injected here -->
+        </div>
+
+        <!-- Article View -->
+        <div id="article-view" style="display:none; flex: 1; overflow-y: auto; text-align: left;">
+          <h3 id="article-title" style="color: #6ee7b7; margin-bottom: 12px; font-size: 1.2em;"></h3>
+          <div id="article-content"
+            style="line-height: 1.6; color: #e2e8f0; font-size: 1.05em; white-space: pre-wrap; padding-bottom: 20px;">
+            <!-- Article text will be injected here -->
+          </div>
         </div>
       </div>
     </div>
