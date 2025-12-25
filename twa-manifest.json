@@ -1,6 +1,6 @@
 {
   "packageId": "io.github.hasnain4700.twa",
-  "host": "salah-tracker-app.vercel.app",
+  "host": "hasnain4700.github.io",
   "name": "Salah Tracker",
   "launcherName": "SalahTracker",
   "display": "standalone",
@@ -12,18 +12,18 @@
   "navigationDividerColorDark": "#000000",
   "backgroundColor": "#0F172A",
   "enableNotifications": true,
-  "startUrl": "/index.html",
-  "iconUrl": "https://salah-tracker-app.vercel.app/icon-512.png",
+  "startUrl": "/salah-tracker-app/index.html",
+  "iconUrl": "https://hasnain4700.github.io/salah-tracker-app/icon-512.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "C:\\Users\\Belal\\Downloads\\salah tracker\\Salah-tracker-main\\android.keystore",
     "alias": "salah"
   },
-  "appVersionName": "1",
-  "appVersionCode": 1,
+  "appVersionName": "5",
+  "appVersionCode": 5,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
-  "webManifestUrl": "https://salah-tracker-app.vercel.app/manifest.json",
+  "webManifestUrl": "https://hasnain4700.github.io/salah-tracker-app/manifest.json",
   "fallbackType": "customtabs",
   "features": {
     "locationDelegation": {
@@ -36,7 +36,7 @@
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
   "isMetaQuest": false,
-  "fullScopeUrl": "https://salah-tracker-app.vercel.app/",
+  "fullScopeUrl": "https://hasnain4700.github.io/salah-tracker-app/",
   "minSdkVersion": 21,
   "orientation": "portrait",
   "fingerprints": [
@@ -48,5 +48,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "1"
+  "appVersion": "5"
 }
