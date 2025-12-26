@@ -2163,17 +2163,56 @@ function subscribeToPair(pairId, myUid) {
     if (partnerAvatarEl) partnerAvatarEl.textContent = partnerData.avatar;
 
     const streak = pairData.streak || 0;
-    if (twinsProgress) twinsProgress.style.width = Math.min((streak / 7) * 100, 100) + '%';
+
+    // --- Combined Progress Logic (Instant Feedback) ---
+    const progressToday = getTodayDateString();
+    let myCount = 0;
+    let pCount = 0;
+    const prayersToCheck = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+
+    if (pairData.dailyStatus && pairData.dailyStatus[progressToday]) {
+      const myLog = pairData.dailyStatus[progressToday][myUid] || {};
+      const pLog = pairData.dailyStatus[progressToday][partnerId] || {};
+
+      prayersToCheck.forEach(p => {
+        if (myLog[p] === 'prayed' || myLog[p] === true) myCount++;
+        if (pLog[p] === 'prayed' || pLog[p] === true) pCount++;
+      });
+    }
+
+    // Progress is based on total prayers done by both. 
+    // Each prayer is 1/10th of a day's contribution to the bar.
+    const dailyCompletion = (myCount + pCount) / 10;
+    const fractionalStreak = streak + dailyCompletion;
+    const widthPercent = Math.min((fractionalStreak / 7) * 100, 100);
+
+    console.log(`[Twins] Me: ${myCount}/5, Partner: ${pCount}/5, Streak: ${streak}, Width: ${widthPercent.toFixed(1)}%`);
+
+    if (twinsProgress) twinsProgress.style.width = widthPercent + '%';
+
+    if (twinsTodayStatus) {
+      const sharedCount = prayersToCheck.filter(p => {
+        const myLog = (pairData.dailyStatus?.[progressToday]?.[myUid] || {});
+        const pLog = (pairData.dailyStatus?.[progressToday]?.[partnerId] || {});
+        return (myLog[p] === 'prayed' || myLog[p] === true) && (pLog[p] === 'prayed' || pLog[p] === true);
+      }).length;
+
+      twinsTodayStatus.textContent = `${sharedCount}/5 Together`;
+      if (sharedCount === 5) {
+        twinsTodayStatus.style.color = '#6ee7b7';
+        twinsTodayStatus.textContent = "Goal Achieved! 🏆";
+      }
+      else twinsTodayStatus.style.color = '#fcd34d';
+    }
 
     // Check Status for CURRENT Prayer (Date Aware)
     const currentPrayer = getCurrentPrayerContext();
-    const today = getTodayDateString();
 
-    // Look into dailyStatus/TODAY/partnerUID/prayerName
+    // Look into dailyStatus/progressToday/partnerUID/prayerName
     const pStatus = (pairData.dailyStatus &&
-      pairData.dailyStatus[today] &&
-      pairData.dailyStatus[today][partnerId] &&
-      pairData.dailyStatus[today][partnerId][currentPrayer]);
+      pairData.dailyStatus[progressToday] &&
+      pairData.dailyStatus[progressToday][partnerId] &&
+      pairData.dailyStatus[progressToday][partnerId][currentPrayer]);
 
     let widgetText = "";
     let widgetColor = "";
