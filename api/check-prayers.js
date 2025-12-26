@@ -71,14 +71,15 @@ module.exports = async (req, res) => {
 
                 console.log(`[Cron Job] Checking user ${user.email || uid} (${user.timezone}) - Local Time: ${userHHMM}`);
 
-                // --- Quran Reminder (9:00 PM) ---
-                if (isTimeMatch(userHHMM, "21:00", 20)) {
+                // --- Quran Reminder (Personalized) ---
+                const sleepTime = user.sleepTime || "21:00"; // Default 9 PM
+                if (isTimeMatch(userHHMM, sleepTime, 20)) {
                     const quranNotifKey = `quranNotif_${dateKey}`;
                     if (!user[quranNotifKey]) {
                         await messaging.send({
                             notification: {
-                                title: "Quran Reminder 📖",
-                                body: "Aapne aaj ka Quran Para listen kar liya? Don't miss out on rewards!"
+                                title: "Quran Reminder 🎧",
+                                body: "Sone se pehle chand ayaat sun lein? Dil ko sukoon milega. 🌙"
                             },
                             token: user.fcmToken,
                             webpush: {
@@ -90,7 +91,7 @@ module.exports = async (req, res) => {
                             }
                         });
                         await db.ref(`users/${uid}/${quranNotifKey}`).set(true);
-                        console.log(`[Cron Job] Quran Reminder sent to ${user.email || uid}`);
+                        console.log(`[Cron Job] Quran Reminder sent to ${user.email || uid} at ${sleepTime}`);
                     }
                 }
 
@@ -120,10 +121,20 @@ module.exports = async (req, res) => {
 
                         console.log(`[Cron Job] !!! TRIGGERING NOTIFICATION for ${user.email || uid}: ${pName} at ${pTime} !!!`);
 
+                        // Check Priority
+                        const isStruggle = (user.strugglePrayer === pName);
+                        let title = `🕌 Time for ${pName}`;
+                        let body = `Allah-o-Akbar! It's time for ${pName} prayer.`;
+
+                        if (isStruggle) {
+                            title = `⚠️ High Priority: ${pName}`;
+                            body = `Ye wo namaz hai jo aksar miss hoti hai. Aaj hum ne isay waqt par parhna hai! Shaitaan ko harana hai. 💪`;
+                        }
+
                         await messaging.send({
                             notification: {
-                                title: `🕌 Time for ${pName}`,
-                                body: `Allah-o-Akbar! It's time for ${pName} prayer. Don't forget to mark it!`
+                                title: title,
+                                body: body
                             },
                             token: user.fcmToken,
                             webpush: {
