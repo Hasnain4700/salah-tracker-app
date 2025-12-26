@@ -81,7 +81,13 @@ module.exports = async (req, res) => {
                                 body: "Aapne aaj ka Quran Para listen kar liya? Don't miss out on rewards!"
                             },
                             token: user.fcmToken,
-                            webpush: { fcm_options: { link: "https://salah-tracker-app.vercel.app" } }
+                            webpush: {
+                                fcm_options: { link: "https://salah-tracker-app.vercel.app" },
+                                notification: {
+                                    icon: "https://salah-tracker-app.vercel.app/icon-192.png",
+                                    badge: "https://salah-tracker-app.vercel.app/icon-192.png"
+                                }
+                            }
                         });
                         await db.ref(`users/${uid}/${quranNotifKey}`).set(true);
                         console.log(`[Cron Job] Quran Reminder sent to ${user.email || uid}`);
@@ -104,8 +110,8 @@ module.exports = async (req, res) => {
                     const pTime = timings[pName];
                     if (!pTime) continue;
 
-                    // 1. Main Prayer Notification (Due Now)
-                    if (isTimeMatch(userHHMM, pTime, 10)) { // 10-minute window
+                    // 1. MAIN PRAYER NOTIFICATION (Due Now)
+                    if (isTimeMatch(userHHMM, pTime, 15)) { // 15-minute window for reliability
                         const lastNotifKey = `lastNotif_${pName}_${dateKey}`;
                         if (user[lastNotifKey]) {
                             console.log(`[Cron Job] User ${uid} already notified for ${pName} today.`);
@@ -116,24 +122,35 @@ module.exports = async (req, res) => {
 
                         await messaging.send({
                             notification: {
-                                title: `Time for ${pName}`,
-                                body: `It's time for ${pName} prayer. Don't forget to mark it!`
+                                title: `🕌 Time for ${pName}`,
+                                body: `Allah-o-Akbar! It's time for ${pName} prayer. Don't forget to mark it!`
                             },
                             token: user.fcmToken,
-                            webpush: { fcm_options: { link: "https://salah-tracker-app.vercel.app" } }
+                            webpush: {
+                                fcm_options: { link: "https://salah-tracker-app.vercel.app" },
+                                notification: {
+                                    icon: "https://salah-tracker-app.vercel.app/icon-192.png",
+                                    badge: "https://salah-tracker-app.vercel.app/icon-192.png" // Tiny icon for android status bar
+                                }
+                            }
                         });
 
                         await db.ref(`users/${uid}/${lastNotifKey}`).set(true);
                         results.push({ uid, prayer: pName });
                     }
 
-                    // 2. Partner Delay Notification (Time + 15 mins)
-                    if (isTimeMatch(userHHMM, pTime, 10, 15)) { // 10-minute window, 15-minute offset
+                    // 2. PARTNER DELAY NOTIFICATION (Time + 15-35 mins window)
+                    // We widen the window to 20 mins to ensure it triggers once within a 10min cron loop
+                    if (isTimeMatch(userHHMM, pTime, 20, 15)) {
+                        console.log(`[Cron Job] Checking partner delay for ${user.email || uid} (${pName}) at ${userHHMM}`);
+
                         // Check if user has marked prayer
                         const logs = (user.logs && user.logs[dateKey]) || {};
                         const status = logs[pName];
 
-                        if (!status) { // Not marked yet
+                        if (!status) { // Not marked yet (No 'prayed' or 'missed')
+                            console.log(`[Cron Job] User ${uid} has NOT marked ${pName} yet (15 mins late).`);
+
                             // Check for partner
                             const pairId = user.twins && user.twins.pairId;
                             if (pairId && pairs && pairs[pairId]) {
@@ -143,25 +160,37 @@ module.exports = async (req, res) => {
 
                                 if (partnerUser && partnerUser.fcmToken) {
                                     const delayNotifKey = `delayNotif_${uid}_${pName}_${dateKey}`;
-                                    // Check if this specific delay notification has already been sent to the partner
                                     const snap = await db.ref(`users/${partnerId}/${delayNotifKey}`).once('value');
+
                                     if (!snap.exists()) {
-                                        console.log(`[Cron Job] !!! TRIGGERING DELAY ALERT for ${uid} to partner ${partnerId} for ${pName} !!!`);
+                                        console.log(`[Cron Job] !!! TRIGGERING DELAY ALERT !!! Late: ${uid} -> Notify Partner: ${partnerId}`);
                                         await messaging.send({
                                             notification: {
                                                 title: "Partner Reminder 🤲",
-                                                body: `Aapke partner ne abhi tak ${pName} mark nahi ki. Osko remind karwaein!`
+                                                body: `${user.email?.split('@')[0] || 'Partner'} ne abhi tak ${pName} mark nahi ki. Osko remind karwaein!`
                                             },
                                             token: partnerUser.fcmToken,
-                                            webpush: { fcm_options: { link: "https://salah-tracker-app.vercel.app" } }
+                                            webpush: {
+                                                fcm_options: { link: "https://salah-tracker-app.vercel.app" },
+                                                notification: {
+                                                    icon: "https://salah-tracker-app.vercel.app/icon-192.png",
+                                                    badge: "https://salah-tracker-app.vercel.app/icon-192.png"
+                                                }
+                                            }
                                         });
                                         await db.ref(`users/${partnerId}/${delayNotifKey}`).set(true);
-                                        console.log(`[Cron Job] Delay Alert for ${uid} sent to partner ${partnerId}`);
+                                        results.push({ partnerId, alert: 'delay_nudged' });
                                     } else {
-                                        console.log(`[Cron Job] Delay Alert for ${uid} to partner ${partnerId} for ${pName} already sent.`);
+                                        console.log(`[Cron Job] Delay Alert for ${uid} already sent to partner ${partnerId}.`);
                                     }
+                                } else {
+                                    console.log(`[Cron Job] Cannot notify partner: Partner ${partnerId} has no token.`);
                                 }
+                            } else {
+                                console.log(`[Cron Job] User ${uid} has no active pair/partner in DB.`);
                             }
+                        } else {
+                            console.log(`[Cron Job] User ${uid} already marked ${pName} as ${status}. No nudge needed.`);
                         }
                     }
                 }
