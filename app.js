@@ -153,11 +153,15 @@ const countdownTimerEl = document.getElementById('countdown-timer');
 const nextPrayerNameEl = document.getElementById('next-prayer-name');
 const prayerItems = document.querySelectorAll('.prayer-item');
 const lastThirdTimeEl = document.getElementById('last-third-time');
-const logoutBtn = document.getElementById('logout-btn');
 const prayerStatusLabel = document.getElementById('prayer-status-label');
 const levelNumEl = document.getElementById('level-num');
 const xpPointsEl = document.getElementById('xp-points');
 const xpProgress = document.getElementById('xp-progress');
+
+// --- Global Settings Variables ---
+let userOffsets = { Fajr: 0, Dhuhr: 0, Asr: 0, Maghrib: 0, Isha: 0 };
+let userDisplayName = "";
+const settingsBtn = document.getElementById('settings-btn');
 
 
 // --- Navigation Logic ---
@@ -290,14 +294,32 @@ async function fetchPrayerTimes(date = new Date()) {
   }
 }
 
+// Helper to apply offsets to time string "HH:MM"
+function applyOffset(timeStr, offsetMins) {
+  if (!offsetMins || offsetMins === 0) return timeStr;
+  const [h, m] = timeStr.split(':').map(Number);
+  const date = new Date();
+  date.setHours(h, m, 0);
+  date.setMinutes(date.getMinutes() + offsetMins);
+  return date.getHours().toString().padStart(2, '0') + ":" + date.getMinutes().toString().padStart(2, '0');
+}
+
 function parseAndRenderPrayers(t) {
+  // Apply Offsets
+  const timings = { ...t };
+  ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].forEach(p => {
+    if (userOffsets[p]) {
+      timings[p] = applyOffset(t[p], userOffsets[p]);
+    }
+  });
+
   const apiPrayers = [
-    { name: 'Fajr', time: t.Fajr },
-    { name: 'Sunrise', time: t.Sunrise },
-    { name: 'Dhuhr', time: t.Dhuhr },
-    { name: 'Asr', time: t.Asr },
-    { name: 'Maghrib', time: t.Maghrib },
-    { name: 'Isha', time: t.Isha }
+    { name: 'Fajr', time: timings.Fajr },
+    { name: 'Sunrise', time: timings.Sunrise },
+    { name: 'Dhuhr', time: timings.Dhuhr },
+    { name: 'Asr', time: timings.Asr },
+    { name: 'Maghrib', time: timings.Maghrib },
+    { name: 'Isha', time: timings.Isha }
   ];
   prayersWithTahajjud = getPrayersWithTahajjud(apiPrayers);
   document.querySelectorAll('.prayer-item').forEach((item, i) => {
@@ -425,14 +447,14 @@ function showAuthModal() {
   // Hide app sections and nav
   Object.values(sections).forEach(sec => { if (sec) sec.style.display = 'none'; });
   document.querySelector('.bottom-nav').style.display = 'none';
-  logoutBtn.style.display = 'none';
+  if (settingsBtn) settingsBtn.style.display = 'none';
 }
 function hideAuthModal() {
   authModal.style.display = 'none';
   // Show app sections and nav
   showSection('home');
   document.querySelector('.bottom-nav').style.display = '';
-  logoutBtn.style.display = '';
+  if (settingsBtn) settingsBtn.style.display = 'flex';
 }
 function updateAuthMode() {
   if (isLoginMode) {
@@ -485,13 +507,26 @@ authSubmit.onclick = async () => {
   }
 };
 
+
+
 onAuthStateChanged(auth, user => {
   if (!user) {
     showAuthModal();
-    logoutBtn.style.display = 'none';
+    if (settingsBtn) settingsBtn.style.display = 'none';
   } else {
     hideAuthModal();
-    logoutBtn.style.display = '';
+    if (settingsBtn) settingsBtn.style.display = 'flex';
+
+    // Preload user settings
+    get(ref(db, `users/${user.uid}`)).then(snap => {
+      const data = snap.val() || {};
+      userOffsets = data.prayerOffsets || { Fajr: 0, Dhuhr: 0, Asr: 0, Maghrib: 0, Isha: 0 };
+      userDisplayName = data.displayName || user.email.split('@')[0];
+
+      // Now that offsets are loaded, we can fetch/refresh prayer times
+      fetchPrayerTimes(currentDate);
+    });
+
     fetchAndDisplayTracker();
     updateMarkPrayerBtn();
     checkForAppNotification();
@@ -971,15 +1006,7 @@ markMissedBtn.onclick = () => {
   markMissedBtn.style.display = 'none';
 };
 
-logoutBtn.onclick = async () => {
-  try {
-    await window.FirebaseExports.signOut(auth);
-  } catch (e) { }
-  showAuthModal();
-  Object.values(sections).forEach(sec => { if (sec) sec.style.display = 'none'; });
-  document.querySelector('.bottom-nav').style.display = 'none';
-  logoutBtn.style.display = 'none';
-};
+
 
 // --- Quran Audio Section Logic (multi-para support) ---
 const quranAudioList = document.getElementById('quran-audio-list');
@@ -1973,7 +2000,7 @@ findPartnerBtn.onclick = async () => {
         streak: 0,
         startedAt: Date.now(),
         [waitingUid]: lobby[waitingUid] || { name: 'Partner', avatar: '👤' },
-        [user.uid]: { name: user.email.split('@')[0], avatar: '🧑🏽' }
+        [user.uid]: { name: (userDisplayName || user.email.split('@')[0]), avatar: '🧑🏽' }
       };
 
       await set(ref(db, `pairs/${pairId}`), pairData);
@@ -1991,7 +2018,7 @@ findPartnerBtn.onclick = async () => {
           sendFCMNotificationv1(
             token,
             "New Partner Assigned! 🤝",
-            `${user.email.split('@')[0]} has accepted your partnership request.`
+            `${(userDisplayName || user.email.split('@')[0])} has accepted your partnership request.`
           ).catch(err => console.error("Notification Failed:", err));
         }
       });
@@ -2001,7 +2028,7 @@ findPartnerBtn.onclick = async () => {
       console.log("No valid partner found, joining lobby.");
 
       await set(ref(db, `lobby/${user.uid}`), {
-        name: user.email.split('@')[0],
+        name: (userDisplayName || user.email.split('@')[0]),
         avatar: '🧑🏽',
         joinedAt: Date.now()
       });
@@ -2322,5 +2349,84 @@ if (btnOnboardingFinish) {
     if (modal) modal.style.display = 'none';
 
     showToast("Welcome to the family! 💚", "#6ee7b7");
+  };
+}
+
+// --- Settings Modal Interaction Logic ---
+const settingsModal = document.getElementById('settings-modal');
+const closeSettingsBtn = document.getElementById('close-settings');
+const saveSettingsBtn = document.getElementById('save-settings-btn');
+const settingsLogoutBtn = document.getElementById('settings-logout-btn');
+
+if (settingsBtn) {
+  settingsBtn.onclick = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    settingsModal.style.display = 'flex';
+
+    const snap = await get(ref(db, `users/${user.uid}`));
+    const data = snap.val() || {};
+
+    document.getElementById('settings-display-name').value = data.displayName || user.email.split('@')[0];
+    document.getElementById('settings-sleep-time').value = data.sleepTime || "22:00";
+    document.getElementById('settings-struggle-prayer').value = data.strugglePrayer || "Fajr";
+
+    const off = data.prayerOffsets || {};
+    ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].forEach(p => {
+      const input = document.getElementById(`offset-${p}`);
+      if (input) input.value = off[p] || 0;
+    });
+  };
+}
+
+if (closeSettingsBtn) {
+  closeSettingsBtn.onclick = () => {
+    settingsModal.style.display = 'none';
+  };
+}
+
+if (saveSettingsBtn) {
+  saveSettingsBtn.onclick = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const newName = document.getElementById('settings-display-name').value;
+    const newSleep = document.getElementById('settings-sleep-time').value;
+    const newStruggle = document.getElementById('settings-struggle-prayer').value;
+
+    const newOffsets = {};
+    ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].forEach(p => {
+      newOffsets[p] = parseInt(document.getElementById(`offset-${p}`).value) || 0;
+    });
+
+    try {
+      await update(ref(db, `users/${user.uid}`), {
+        displayName: newName,
+        sleepTime: newSleep,
+        strugglePrayer: newStruggle,
+        prayerOffsets: newOffsets
+      });
+
+      userOffsets = newOffsets;
+      userDisplayName = newName;
+
+      showToast("Settings Saved! ✨", "#6ee7b7");
+      settingsModal.style.display = 'none';
+
+      fetchPrayerTimes(currentDate);
+
+    } catch (e) {
+      showToast("Error saving settings", "#ff6b6b");
+    }
+  };
+}
+
+if (settingsLogoutBtn) {
+  settingsLogoutBtn.onclick = async () => {
+    try {
+      await window.FirebaseExports.signOut(auth);
+      settingsModal.style.display = 'none';
+    } catch (e) { }
   };
 }
