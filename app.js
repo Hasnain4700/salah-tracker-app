@@ -1854,12 +1854,9 @@ async function checkTwinsStatus() {
     // Auto Popup Logic
     const hasSkipped = localStorage.getItem('skipPartner');
     if (!data && !hasSkipped) {
-      // Show popup if not paired and not skipped
-      // Use a small delay to let UI settle, check if modal already shown to avoid flicker
       setTimeout(() => {
         const packet = document.getElementById('modal-partner-invite');
         const twinsSection = document.getElementById('twins-active');
-        // Only show if we are NOT already in the Twins section (which might mean user navigated there)
         if (packet && twinsSection.style.display === 'none' && packet.style.display !== 'flex') {
           packet.style.display = 'flex';
         }
@@ -1867,33 +1864,38 @@ async function checkTwinsStatus() {
     }
 
     if (data && data.pairId) {
-      // Paired! Listen to the pair data
+      // --- STATE 1: PAIRED ---
       subscribeToPair(data.pairId, user.uid);
-      // Sync historical logs (in case user prayed before pairing or before update)
       syncHistoricalLogsToPair(data.pairId, user.uid);
 
       twinsLobby.style.display = 'none';
       twinsActive.style.display = 'block';
-      // In Lobby waiting
-      document.getElementById('home-partner-widget').style.display = 'none'; // Hide if in lobby
+
+    } else if (data && data.inLobby) {
+      // --- STATE 2: WAITING IN LOBBY ---
+      document.getElementById('home-partner-widget').style.display = 'none';
+
       twinsLobby.style.display = 'block';
       twinsActive.style.display = 'none';
-      twinsLoading.style.display = 'block';
+
+      twinsLoading.style.display = 'block'; // Show Loading Text
+      findPartnerBtn.style.display = 'none'; // Hide Find Button
 
       let lobbyMsg = "Request Saved! You will be paired automatically when someone joins. You can close the app.";
       if (Notification.permission !== 'granted') {
         lobbyMsg += "<br><br><span style='color:#f59e0b;font-weight:bold;'>⚠️ Please Enable Notifications to get alerted! <button onclick='requestNotificationPermission()' style='background:#f59e0b;color:#000;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;margin-top:4px;'>Enable</button></span>";
       }
+      twinsLoading.innerHTML = lobbyMsg;
 
-      twinsLoading.innerHTML = lobbyMsg; // Use innerHTML for button
-      findPartnerBtn.style.display = 'none';
     } else {
-      // Not in anything
-      document.getElementById('home-partner-widget').style.display = 'none'; // Hide
+      // --- STATE 3: NOTHING / NEW ---
+      document.getElementById('home-partner-widget').style.display = 'none';
+
       twinsLobby.style.display = 'block';
       twinsActive.style.display = 'none';
-      twinsLoading.style.display = 'none';
-      findPartnerBtn.style.display = 'inline-block';
+
+      twinsLoading.style.display = 'none'; // Hide Loading Text
+      findPartnerBtn.style.display = 'inline-block'; // Show Find Button
     }
   });
 }
