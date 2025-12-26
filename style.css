@@ -54,6 +54,48 @@ textarea {
   font-size: 16px !important;
 }
 
+/* Custom Scrollbar for Settings */
+.custom-scroll::-webkit-scrollbar {
+  width: 5px;
+  display: block !important;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: var(--inactive);
+  border-radius: 10px;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--highlight);
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#settings-btn:hover {
+  transform: rotate(30deg) scale(1.1);
+  background: rgba(30, 41, 59, 1);
+}
+
+.onboarding-time {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #f8fafc;
+  font-size: 1.1em;
+  outline: none;
+  box-sizing: border-box;
+}
+
 .container {
   width: 100%;
   max-width: 400px;
