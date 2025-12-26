@@ -1948,10 +1948,22 @@ findPartnerBtn.onclick = async () => {
   const lobbySnap = await get(ref(db, 'lobby'));
   const lobby = lobbySnap.val();
 
+  let foundPartnerId = null;
+
   if (lobby) {
+    // Iterate to find a partner that is NOT me
+    const lobbyIds = Object.keys(lobby);
+    for (const uid of lobbyIds) {
+      if (uid !== user.uid) {
+        foundPartnerId = uid;
+        break;
+      }
+    }
+  }
+
+  if (foundPartnerId) {
     // Match found!
-    const waitingUid = Object.keys(lobby)[0];
-    if (waitingUid === user.uid) return; // Self?
+    const waitingUid = foundPartnerId;
 
     // Remove from lobby
     await set(ref(db, `lobby/${waitingUid}`), null);
@@ -1976,7 +1988,8 @@ findPartnerBtn.onclick = async () => {
     showToast("Partner Found!", "#6ee7b7");
 
   } else {
-    // No one available, join lobby
+    // No match found (or only self was in lobby)
+    // Join Lobby
     await set(ref(db, `lobby/${user.uid}`), {
       name: user.email.split('@')[0],
       avatar: '🧑🏽',
@@ -1985,6 +1998,8 @@ findPartnerBtn.onclick = async () => {
 
     // Update self state
     await set(ref(db, `users/${user.uid}/twins`), { inLobby: true });
+
+    // Explicitly update UI in case the listener lags
     twinsLoading.textContent = "Waiting for a partner to join... ⏳";
   }
 };
