@@ -11,10 +11,10 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-    import { getDatabase, ref, set, get, onValue, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+    import { getDatabase, ref, set, get, onValue, update, runTransaction } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
     window.FirebaseExports = {
       initializeApp, getAnalytics, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut,
-      getDatabase, ref, set, get, onValue, update
+      getDatabase, ref, set, get, onValue, update, runTransaction
     };
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.6.1/jsrsasign-all-min.js"></script>
@@ -65,6 +65,13 @@
       <button id="mark-missed-btn" style="display:none;margin-top:12px;margin-left:8px;background:#ff6b6b;color:#fff;"
         class="thirty-day-btn">Mark as Missed</button>
       <div id="prayer-status-label" style="margin-top:10px;font-weight:600;font-size:1.1em;"></div>
+      <div id="live-prayer-count-widget"
+        style="margin-top:16px; background:#1e293b; padding:8px 16px; border-radius:20px; display:inline-flex; align-items:center; gap:8px; border:1px solid #334155; box-shadow:0 4px 12px #0003;">
+        <div style="width:8px; height:8px; background:#22c55e; border-radius:50%; box-shadow:0 0 8px #22c55e;"></div>
+        <span id="live-count-text" style="color:#e2e8f0; font-size:0.9em; font-weight:500;">Live: <span
+            id="current-prayer-name-display" style="color:#6ee7b7; font-weight:600;">--</span> users <span
+            id="current-prayer-count" style="color:#fcd34d; font-weight:700; font-size:1.1em;">0</span></span>
+      </div>
     </div>
 
     <!-- Prayer Times List -->
@@ -75,6 +82,7 @@
         <button class="bell-btn" title="Toggle notification">
           <span class="bell-icon">🔔</span>
         </button>
+
       </div>
       <div class="prayer-item">
         <span class="prayer-name">Fajr</span>
@@ -82,6 +90,7 @@
         <button class="bell-btn" title="Toggle notification">
           <span class="bell-icon">🔔</span>
         </button>
+
       </div>
       <div class="prayer-item">
         <span class="prayer-name">Dhuhr</span>
@@ -89,6 +98,7 @@
         <button class="bell-btn" title="Toggle notification">
           <span class="bell-icon">🔔</span>
         </button>
+
       </div>
       <div class="prayer-item">
         <span class="prayer-name">Asr</span>
@@ -96,6 +106,7 @@
         <button class="bell-btn" title="Toggle notification">
           <span class="bell-icon">🔔</span>
         </button>
+
       </div>
       <div class="prayer-item">
         <span class="prayer-name">Maghrib</span>
@@ -103,6 +114,7 @@
         <button class="bell-btn" title="Toggle notification">
           <span class="bell-icon">🔔</span>
         </button>
+
       </div>
       <div class="prayer-item">
         <span class="prayer-name">Isha</span>
@@ -110,6 +122,7 @@
         <button class="bell-btn" title="Toggle notification">
           <span class="bell-icon">🔔</span>
         </button>
+
       </div>
     </div>
 
