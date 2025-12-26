@@ -23,8 +23,97 @@
 </head>
 
 <body>
-  <button id="logout-btn"
-    style="position:fixed;top:18px;right:18px;z-index:1001;display:none;background:#222;color:#6ee7b7;border:none;border-radius:16px;padding:8px 18px;font-size:1em;font-weight:600;box-shadow:0 2px 8px #0002;cursor:pointer;">Logout</button>
+  <button id="settings-btn"
+    style="position:fixed;top:18px;right:18px;z-index:1001;display:none;background:rgba(30, 41, 59, 0.8);backdrop-filter:blur(10px);color:#6ee7b7;border:1px solid rgba(110, 231, 183, 0.2);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:1.4em;box-shadow:0 4px 12px rgba(0,0,0,0.2);cursor:pointer;transition:transform 0.2s;">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path
+        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+      </path>
+    </svg>
+  </button>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal">
+    <div class="modal-content" style="max-width: 400px; padding: 25px; text-align: left;">
+      <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin:0; font-size: 1.5em; color: #fff;">Settings</h2>
+        <button id="close-settings"
+          style="background:none; border:none; color:#94a3b8; font-size:1.5em; cursor:pointer;">&times;</button>
+      </div>
+
+      <div style="max-height: 70vh; overflow-y: auto; padding-right: 5px;" class="custom-scroll">
+        <!-- Account Section -->
+        <div style="margin-bottom: 25px;">
+          <h3
+            style="font-size: 0.9em; color: #6ee7b7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
+            Account</h3>
+          <div class="setting-item">
+            <label class="onboarding-label">Display Name</label>
+            <input type="text" id="settings-display-name" class="onboarding-select" placeholder="Enter your name">
+          </div>
+        </div>
+
+        <!-- Prayer Times Section -->
+        <div style="margin-bottom: 25px;">
+          <h3
+            style="font-size: 0.9em; color: #6ee7b7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
+            Custom Prayer Times</h3>
+          <p style="font-size: 0.8em; color: #94a3b8; margin-bottom: 10px;">Adjust prayer times by minutes (+/-)</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="setting-item">
+              <label class="onboarding-label">Fajr</label>
+              <input type="number" id="offset-Fajr" class="onboarding-select" value="0">
+            </div>
+            <div class="setting-item">
+              <label class="onboarding-label">Dhuhr</label>
+              <input type="number" id="offset-Dhuhr" class="onboarding-select" value="0">
+            </div>
+            <div class="setting-item">
+              <label class="onboarding-label">Asr</label>
+              <input type="number" id="offset-Asr" class="onboarding-select" value="0">
+            </div>
+            <div class="setting-item">
+              <label class="onboarding-label">Maghrib</label>
+              <input type="number" id="offset-Maghrib" class="onboarding-select" value="0">
+            </div>
+            <div class="setting-item">
+              <label class="onboarding-label">Isha</label>
+              <input type="number" id="offset-Isha" class="onboarding-select" value="0">
+            </div>
+          </div>
+        </div>
+
+        <!-- App Preferences -->
+        <div style="margin-bottom: 25px;">
+          <h3
+            style="font-size: 0.9em; color: #6ee7b7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
+            Preferences</h3>
+          <div class="setting-item" style="margin-bottom: 15px;">
+            <label class="onboarding-label">Sleep Time</label>
+            <input type="time" id="settings-sleep-time" class="onboarding-time">
+          </div>
+          <div class="setting-item">
+            <label class="onboarding-label">Struggle Prayer</label>
+            <select id="settings-struggle-prayer" class="onboarding-select">
+              <option value="Fajr">Fajr</option>
+              <option value="Dhuhr">Dhuhr</option>
+              <option value="Asr">Asr</option>
+              <option value="Maghrib">Maghrib</option>
+              <option value="Isha">Isha</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="save-settings-btn" class="onboarding-btn" style="width: 100%; margin-top: 10px;">Save
+          Settings</button>
+
+        <button id="settings-logout-btn"
+          style="width: 100%; margin-top: 20px; background: none; border: 1px solid #ff6b6b; color: #ff6b6b; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer;">Logout</button>
+      </div>
+    </div>
+  </div>
   <div class="container" id="home-section">
     <!-- Date Section -->
     <div class="date-section card">
@@ -786,7 +875,7 @@
       <div class="onboarding-emoji">👨‍💻</div>
       <div class="onboarding-title">Meri Kahani</div>
       <div class="onboarding-text" style="text-align:left; max-width:85%;">
-        Mera naam <b>Belal</b> hai. <br><br>
+        Mera naam <b>Hasnain</b> hai. <br><br>
         Maine ye app paisa kamanay ke liye nahi banayi. <br>
         Mera maqsad sirf ye hai ke jadeed technology (AI & Code) ka istemal kar ke hum Musalmano ko Allah ke aur qareeb
         kar saken. <br><br>
