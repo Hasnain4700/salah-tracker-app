@@ -1877,7 +1877,7 @@ async function checkTwinsStatus() {
       twinsLobby.style.display = 'block';
       twinsActive.style.display = 'none';
       twinsLoading.style.display = 'block';
-      twinsLoading.textContent = "Waiting for a partner to join... ⏳";
+      twinsLoading.textContent = "Request Saved! You will be paired automatically when someone joins. You can close the app.";
       findPartnerBtn.style.display = 'none';
     } else {
       // Not in anything
@@ -1961,8 +1961,20 @@ findPartnerBtn.onclick = async () => {
 
     showToast("Partner Found!", "#6ee7b7");
 
+    // --- Notify the Waiting User (Async) ---
+    get(ref(db, `users/${waitingUid}/fcmToken`)).then(snap => {
+      const token = snap.val();
+      if (token) {
+        sendFCMNotificationv1(
+          token,
+          "New Partner Assigned! 🤝",
+          `${user.email.split('@')[0]} has accepted your partnership request.`
+        );
+      }
+    });
+
   } else {
-    // No one available, join lobby
+    // No one available, join lobby & SAVE REQUEST
     await set(ref(db, `lobby/${user.uid}`), {
       name: user.email.split('@')[0],
       avatar: '🧑🏽',
@@ -1971,7 +1983,10 @@ findPartnerBtn.onclick = async () => {
 
     // Update self state
     await set(ref(db, `users/${user.uid}/twins`), { inLobby: true });
-    twinsLoading.textContent = "Waiting for a partner to join... ⏳";
+
+    // Better UI Feedback for Async Request
+    twinsLoading.textContent = "Request Saved! You will be paired automatically when someone joins. You can close the app.";
+    showToast("Request Saved 💾", "#6ee7b7");
   }
 };
 
