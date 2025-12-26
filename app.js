@@ -8,7 +8,8 @@ const {
   set,
   get,
   onValue,
-  update
+  update,
+  runTransaction
 } = window.FirebaseExports;
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js";
 
@@ -604,73 +605,161 @@ function logPrayerStatus(prayerName, status) {
   if (!user) return;
   const today = getTodayDateString(); // Uses Local Date
 
-  set(ref(db, `users/${user.uid}/logs/${today}/${prayerName}`), status).then(() => {
-    // --- Deen Twins Status Sync & Notifications ---
-    get(ref(db, `users/${user.uid}/twins/pairId`)).then(tSnap => {
-      if (tSnap.exists()) {
-        const pairId = tSnap.val();
-        update(ref(db, `pairs/${pairId}/dailyStatus/${today}/${user.uid}`), {
-          [prayerName]: status
-        });
+  // 1. Get Previous Status First (to adjust global count correctly)
+  const logRef = ref(db, `users/${user.uid}/logs/${today}/${prayerName}`);
+  get(logRef).then(snap => {
+    const prevStatus = snap.exists() ? snap.val() : null;
 
-        // Notify Partner if this user clicked 'prayed'
-        get(ref(db, `pairs/${pairId}`)).then(pSnap => {
-          if (pSnap.exists()) {
-            const pData = pSnap.val();
-            const partnerId = (pData.user1 === user.uid) ? pData.user2 : pData.user1;
+    // If status is same, do nothing (avoid double count)
+    if (prevStatus === status) return;
 
-            if (status === 'prayed' && partnerId) {
-              // Get Partner's Token
-              get(ref(db, `users/${partnerId}/fcmToken`)).then(tokSnap => {
-                const partnerToken = tokSnap.val();
-                if (partnerToken) {
-                  sendFCMNotificationv1(
-                    partnerToken,
-                    "Partner Activity 🌟",
-                    `Your Deen Twin has just prayed ${prayerName}! MashaAllah.`
-                  );
-                }
-              });
+    // 2. Update to New Status
+    set(logRef, status).then(() => {
+      // 3. Update Global Counts via Transaction
+      const countRef = ref(db, `globalStats/${today}/${prayerName}`);
+      runTransaction(countRef, (currentCount) => {
+        if (currentCount === null) currentCount = 0;
+
+        // Logic:
+        // If changing TO 'prayed' -> +1
+        // If changing FROM 'prayed' TO 'missed' -> -1
+        // If changing FROM 'null' TO 'missed' -> 0 (no global count change)
+
+        if (status === 'prayed') {
+          return currentCount + 1;
+        } else if (prevStatus === 'prayed' && status !== 'prayed') {
+          return Math.max(0, currentCount - 1);
+        }
+        return currentCount; // No change for missed -> missed or null -> missed
+      });
+
+      // --- Deen Twins Status Sync & Notifications ---
+      get(ref(db, `users/${user.uid}/twins/pairId`)).then(tSnap => {
+        if (tSnap.exists()) {
+          const pairId = tSnap.val();
+          update(ref(db, `pairs/${pairId}/dailyStatus/${today}/${user.uid}`), {
+            [prayerName]: status
+          });
+
+          // Notify Partner if this user clicked 'prayed'
+          get(ref(db, `pairs/${pairId}`)).then(pSnap => {
+            if (pSnap.exists()) {
+              const pData = pSnap.val();
+              const partnerId = (pData.user1 === user.uid) ? pData.user2 : pData.user1;
+
+              if (status === 'prayed' && partnerId) {
+                // Get Partner's Token
+                get(ref(db, `users/${partnerId}/fcmToken`)).then(tokSnap => {
+                  const partnerToken = tokSnap.val();
+                  if (partnerToken) {
+                    sendFCMNotificationv1(
+                      partnerToken,
+                      "Partner Activity 🌟",
+                      `Your Deen Twin has just prayed ${prayerName}! MashaAllah.`
+                    );
+                  }
+                });
+              }
             }
-          }
-        });
-      }
-    });
+          });
+        }
+      });
 
-    let isTahajjud = (prayerName === 'Tahajjud');
-    if (status === 'prayed') {
-      // Increment rewards only for prayed
-      get(ref(db, `users/${user.uid}/rewards`)).then(snap => {
-        let points = snap.exists() ? snap.val() : 0;
-        points += isTahajjud ? 20 : 10;
-        set(ref(db, `users/${user.uid}/rewards`), points).then(() => {
-          rewardsPointsEl.textContent = points;
+      let isTahajjud = (prayerName === 'Tahajjud');
+      if (status === 'prayed') {
+        // Increment rewards only for prayed
+        get(ref(db, `users/${user.uid}/rewards`)).then(snap => {
+          let points = snap.exists() ? snap.val() : 0;
+          points += isTahajjud ? 20 : 10;
+          set(ref(db, `users/${user.uid}/rewards`), points).then(() => {
+            rewardsPointsEl.textContent = points;
+          });
         });
-      });
-      // Increment XP
-      get(ref(db, `users/${user.uid}/xp`)).then(snap => {
-        let xp = snap.exists() ? snap.val() : 0;
-        const before = getLevelFromXP(xp).level;
-        xp += isTahajjud ? 20 : 10;
-        const after = getLevelFromXP(xp).level;
-        set(ref(db, `users/${user.uid}/xp`), xp).then(() => {
-          if (after > before) showLevelUp(after);
-          fetchAndDisplayTracker();
+        // Increment XP
+        get(ref(db, `users/${user.uid}/xp`)).then(snap => {
+          let xp = snap.exists() ? snap.val() : 0;
+          const before = getLevelFromXP(xp).level;
+          xp += isTahajjud ? 20 : 10;
+          const after = getLevelFromXP(xp).level;
+          set(ref(db, `users/${user.uid}/xp`), xp).then(() => {
+            if (after > before) showLevelUp(after);
+            fetchAndDisplayTracker();
+          });
         });
-      });
-      // Motivational toast
-      if (isTahajjud) {
-        showToast(tahajjudMsgs[Math.floor(Math.random() * tahajjudMsgs.length)], '#a78bfa');
+        // Motivational toast
+        if (isTahajjud) {
+          showToast(tahajjudMsgs[Math.floor(Math.random() * tahajjudMsgs.length)], '#a78bfa');
+        } else {
+          showToast(prayedMsgs[Math.floor(Math.random() * prayedMsgs.length)], '#6ee7b7');
+        }
       } else {
-        showToast(prayedMsgs[Math.floor(Math.random() * prayedMsgs.length)], '#6ee7b7');
+        fetchAndDisplayTracker();
+        showToast(missedMsgs[Math.floor(Math.random() * missedMsgs.length)], '#ff6b6b');
       }
-    } else {
-      fetchAndDisplayTracker();
-      showToast(missedMsgs[Math.floor(Math.random() * missedMsgs.length)], '#ff6b6b');
-    }
-    updateMarkPrayerBtn();
+      updateMarkPrayerBtn();
+    });
   });
 }
+
+// --- Live Global Counts Listener ---
+function listenToGlobalCounts() {
+  const today = getTodayDateString();
+  const todayCountsRef = ref(db, `globalStats/${today}`);
+
+  // Function to update the widget
+  const updateWidget = (data) => {
+    // Re-use existing logic to find current prayer
+    // If getCurrentPrayerContext is missing, we use a fallback or recreate it.
+    // Assuming it exists or we use the 'nextPrayer' logic to derive current.
+
+    let currentPrayerName = 'Fajr'; // Default
+    if (typeof getCurrentPrayerContext === 'function') {
+      currentPrayerName = getCurrentPrayerContext();
+    } else {
+      // Fallback or duplicate logic if function is missing/moved
+      // Simple logic: find last started prayer
+      // (This duplicate is safe to ensure robustness)
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      if (prayersWithTahajjud && prayersWithTahajjud.length > 0) {
+        for (let i = prayersWithTahajjud.length - 1; i >= 0; i--) {
+          const p = prayersWithTahajjud[i];
+          const [h, m] = p.time.split(':').map(Number);
+          if (currentMinutes >= h * 60 + m) {
+            currentPrayerName = p.name;
+            break;
+          }
+        }
+      }
+    }
+
+    const count = data[currentPrayerName] || 0;
+    const countEl = document.getElementById('current-prayer-count');
+    const nameEl = document.getElementById('current-prayer-name-display');
+
+    if (countEl && nameEl) {
+      countEl.textContent = count;
+      nameEl.textContent = currentPrayerName;
+    }
+  };
+
+  onValue(todayCountsRef, (snap) => {
+    const data = snap.val() || {};
+    updateWidget(data);
+  });
+
+  // Also update when minute changes (to catch prayer time change)
+  setInterval(() => {
+    // Trigger a re-read of current local data to update the NAME if time passed
+    get(todayCountsRef).then(snap => {
+      const data = snap.val() || {};
+      updateWidget(data);
+    })
+  }, 60000);
+}
+// Start listening on load
+listenToGlobalCounts();
+
 
 // --- Badges & Gamification ---
 const trackerSection = document.getElementById('tracker-section');
