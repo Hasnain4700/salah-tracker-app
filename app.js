@@ -1753,7 +1753,7 @@ async function checkTwinsStatus() {
   const user = auth.currentUser;
   if (!user) return;
   // Listen to user's twins node
-  const twinsRef = ref(db, `users / ${user.uid}/twins`);
+  const twinsRef = ref(db, `users/${user.uid}/twins`);
   if (twinsUnsubscribe) twinsUnsubscribe();
 
   twinsUnsubscribe = onValue(twinsRef, async (snap) => {
