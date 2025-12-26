@@ -207,6 +207,90 @@ function getPrayersWithTahajjud(apiPrayers) {
 let prayersWithTahajjud = [];
 let apiDate = new Date();
 
+// Settings State (Load from LocalStorage)
+let calcMethod = localStorage.getItem('calcMethod') || 2; // Default ISNA
+let prayerOffsets = JSON.parse(localStorage.getItem('prayerOffsets')) || {
+  Fajr: 0,
+  Dhuhr: 0,
+  Asr: 0,
+  Maghrib: 0,
+  Isha: 0
+};
+
+// UI Elements for Settings
+const settingsSection = document.getElementById('settings-section');
+const settingsBtn = document.getElementById('settings-btn');
+const settingsBackBtn = document.getElementById('settings-back-btn');
+const calcMethodSelect = document.getElementById('calc-method-select');
+const updateLocationBtn = document.getElementById('update-location-btn');
+const settingsEmailEl = document.getElementById('settings-email');
+
+// Initialize Settings UI
+calcMethodSelect.value = calcMethod;
+updateOffsetDisplay();
+
+function updateOffsetDisplay() {
+  document.getElementById('offset-val-Fajr').textContent = prayerOffsets.Fajr;
+  document.getElementById('offset-val-Dhuhr').textContent = prayerOffsets.Dhuhr;
+  document.getElementById('offset-val-Asr').textContent = prayerOffsets.Asr;
+  document.getElementById('offset-val-Maghrib').textContent = prayerOffsets.Maghrib;
+  document.getElementById('offset-val-Isha').textContent = prayerOffsets.Isha;
+}
+
+// Event Listeners for Settings
+settingsBtn.addEventListener('click', () => {
+  settingsSection.style.display = 'block';
+  if (auth.currentUser) {
+    settingsEmailEl.textContent = auth.currentUser.email;
+  }
+});
+settingsBackBtn.addEventListener('click', () => {
+  settingsSection.style.display = 'none';
+});
+
+calcMethodSelect.addEventListener('change', (e) => {
+  calcMethod = e.target.value;
+  localStorage.setItem('calcMethod', calcMethod);
+
+  // Clear cache for today so we fetch fresh data
+  const yyyy = currentDate.getFullYear();
+  const mm = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+  const dd = currentDate.getDate().toString().padStart(2, '0');
+  const dateKey = `${yyyy}-${mm}-${dd}`;
+  localStorage.removeItem('prayers_' + dateKey);
+
+  showToast("Method Updated! Refreshing...", "#6ee7b7");
+  fetchPrayerTimes(currentDate); // Refetch with new method
+});
+
+updateLocationBtn.addEventListener('click', () => {
+  localStorage.removeItem('userLat');
+  localStorage.removeItem('userLng');
+
+  // Clear cache for today
+  const yyyy = currentDate.getFullYear();
+  const mm = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+  const dd = currentDate.getDate().toString().padStart(2, '0');
+  const dateKey = `${yyyy}-${mm}-${dd}`;
+  localStorage.removeItem('prayers_' + dateKey);
+
+  showToast("Updating Location...", "#6ee7b7");
+  fetchPrayerTimes(currentDate);
+});
+
+window.adjustOffset = (prayer, change) => {
+  prayerOffsets[prayer] += change;
+  localStorage.setItem('prayerOffsets', JSON.stringify(prayerOffsets));
+  updateOffsetDisplay();
+  // Re-render current prayers with new offsets (no need to fetch API)
+  const dateKey = getTodayDateString(currentDate);
+  const cachedData = localStorage.getItem('prayers_' + dateKey);
+  if (cachedData) {
+    parseAndRenderPrayers(JSON.parse(cachedData));
+    showToast(`${prayer} offset: ${prayerOffsets[prayer]} min`, "#6ee7b7");
+  }
+};
+
 async function fetchPrayerTimes(date = new Date()) {
   const yyyy = date.getFullYear();
   const mm = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -256,7 +340,8 @@ async function fetchPrayerTimes(date = new Date()) {
   // 3. Fetch API (Network)
   if (navigator.onLine) {
     try {
-      const url = `https://api.aladhan.com/v1/timings/${dateKey}?latitude=${coords.lat}&longitude=${coords.lng}&method=2`;
+      // Use dynamic calcMethod
+      const url = `https://api.aladhan.com/v1/timings/${dateKey}?latitude=${coords.lat}&longitude=${coords.lng}&method=${calcMethod}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error("API Limit/Error");
       const data = await res.json();
@@ -289,14 +374,32 @@ async function fetchPrayerTimes(date = new Date()) {
   }
 }
 
+// Helper to add minutes to time string "HH:MM"
+function addMinutes(timeStr, mins) {
+  if (!timeStr) return timeStr;
+  const [h, m] = timeStr.split(':').map(Number);
+  const date = new Date();
+  date.setHours(h, m + mins, 0, 0);
+  const newH = date.getHours().toString().padStart(2, '0');
+  const newM = date.getMinutes().toString().padStart(2, '0');
+  return `${newH}:${newM}`;
+}
+
 function parseAndRenderPrayers(t) {
+  // Apply Offsets
+  const fTime = addMinutes(t.Fajr, prayerOffsets.Fajr || 0);
+  const dTime = addMinutes(t.Dhuhr, prayerOffsets.Dhuhr || 0);
+  const aTime = addMinutes(t.Asr, prayerOffsets.Asr || 0);
+  const mTime = addMinutes(t.Maghrib, prayerOffsets.Maghrib || 0);
+  const iTime = addMinutes(t.Isha, prayerOffsets.Isha || 0);
+
   const apiPrayers = [
-    { name: 'Fajr', time: t.Fajr },
-    { name: 'Sunrise', time: t.Sunrise },
-    { name: 'Dhuhr', time: t.Dhuhr },
-    { name: 'Asr', time: t.Asr },
-    { name: 'Maghrib', time: t.Maghrib },
-    { name: 'Isha', time: t.Isha }
+    { name: 'Fajr', time: fTime },
+    { name: 'Sunrise', time: t.Sunrise }, // Sunrise usually has no offset in this basic implementation
+    { name: 'Dhuhr', time: dTime },
+    { name: 'Asr', time: aTime },
+    { name: 'Maghrib', time: mTime },
+    { name: 'Isha', time: iTime }
   ];
   prayersWithTahajjud = getPrayersWithTahajjud(apiPrayers);
   document.querySelectorAll('.prayer-item').forEach((item, i) => {
