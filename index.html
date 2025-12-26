@@ -22,11 +22,8 @@
 </head>
 
 <body>
-  <!-- Settings Gear Icon -->
-  <button id="settings-btn"
-    style="position:fixed;top:18px;right:18px;z-index:1001;background:#1e293b;color:#6ee7b7;border:1px solid #334155;border-radius:12px;width:42px;height:42px;font-size:1.5em;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px #0002;">
-    ⚙️
-  </button>
+  <button id="logout-btn"
+    style="position:fixed;top:18px;right:18px;z-index:1001;display:none;background:#222;color:#6ee7b7;border:none;border-radius:16px;padding:8px 18px;font-size:1em;font-weight:600;box-shadow:0 2px 8px #0002;cursor:pointer;">Logout</button>
   <div class="container" id="home-section">
     <!-- Date Section -->
     <div class="date-section card">
@@ -591,101 +588,6 @@
       </div>
     </div>
 
-  </div>
-
-  <!-- Settings Section (Overlay) -->
-  <div id="settings-section"
-    style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0f172a;z-index:2000;padding:20px;overflow-y:auto;">
-    <div style="display:flex;align-items:center;margin-bottom:24px;">
-      <button id="settings-back-btn"
-        style="background:none;border:none;color:#6ee7b7;font-size:1.4em;cursor:pointer;padding:0 12px 0 0;">&#8592;</button>
-      <h2 style="margin:0;font-size:1.5em;color:#fff;">Settings</h2>
-    </div>
-
-    <!-- General Settings -->
-    <div class="card" style="margin-bottom:16px;">
-      <h3 style="color:#6ee7b7;margin-bottom:12px;font-size:1.1em;">General</h3>
-
-      <!-- Calculation Method -->
-      <div style="margin-bottom:16px;">
-        <label style="display:block;margin-bottom:6px;color:#94a3b8;font-size:0.95em;">Calculation Method</label>
-        <select id="calc-method-select"
-          style="width:100%;padding:12px;border-radius:10px;border:1px solid #334155;background:#1e293b;color:#fff;font-size:1em;outline:none;">
-          <option value="2">ISNA (North America)</option>
-          <option value="3">MWL (Muslim World League)</option>
-          <option value="1">Egyptian General Authority</option>
-          <option value="4">Umm Al-Qura (Makkah)</option>
-          <option value="5">University of Islamic Sciences (Karachi)</option>
-          <option value="8">Gulf Region</option>
-          <option value="12">France (UOIF)</option>
-          <option value="13">Turkey (Diyanet)</option>
-        </select>
-      </div>
-
-      <!-- Update Location -->
-      <button id="update-location-btn" class="thirty-day-btn"
-        style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:#334155;">
-        📍 Update Location
-      </button>
-    </div>
-
-    <!-- Prayer Time Offsets -->
-    <div class="card" style="margin-bottom:16px;">
-      <h3 style="color:#6ee7b7;margin-bottom:12px;font-size:1.1em;">Adjust Prayer Times (Minutes)</h3>
-      <p style="font-size:0.85em;color:#94a3b8;margin-bottom:16px;">Add (+) or subtract (-) minutes to match your local
-        masjid.</p>
-
-      <div class="offset-row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <span style="font-weight:600;width:70px;">Fajr</span>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <button class="offset-btn" onclick="adjustOffset('Fajr', -1)">-</button>
-          <span id="offset-val-Fajr" style="width:30px;text-align:center;">0</span>
-          <button class="offset-btn" onclick="adjustOffset('Fajr', 1)">+</button>
-        </div>
-      </div>
-      <div class="offset-row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <span style="font-weight:600;width:70px;">Dhuhr</span>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <button class="offset-btn" onclick="adjustOffset('Dhuhr', -1)">-</button>
-          <span id="offset-val-Dhuhr" style="width:30px;text-align:center;">0</span>
-          <button class="offset-btn" onclick="adjustOffset('Dhuhr', 1)">+</button>
-        </div>
-      </div>
-      <div class="offset-row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <span style="font-weight:600;width:70px;">Asr</span>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <button class="offset-btn" onclick="adjustOffset('Asr', -1)">-</button>
-          <span id="offset-val-Asr" style="width:30px;text-align:center;">0</span>
-          <button class="offset-btn" onclick="adjustOffset('Asr', 1)">+</button>
-        </div>
-      </div>
-      <div class="offset-row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <span style="font-weight:600;width:70px;">Maghrib</span>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <button class="offset-btn" onclick="adjustOffset('Maghrib', -1)">-</button>
-          <span id="offset-val-Maghrib" style="width:30px;text-align:center;">0</span>
-          <button class="offset-btn" onclick="adjustOffset('Maghrib', 1)">+</button>
-        </div>
-      </div>
-      <div class="offset-row" style="display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-weight:600;width:70px;">Isha</span>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <button class="offset-btn" onclick="adjustOffset('Isha', -1)">-</button>
-          <span id="offset-val-Isha" style="width:30px;text-align:center;">0</span>
-          <button class="offset-btn" onclick="adjustOffset('Isha', 1)">+</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Account -->
-    <div class="card" style="text-align:center;">
-      <h3 style="color:#6ee7b7;margin-bottom:12px;font-size:1.1em;">Account</h3>
-      <div id="settings-email" style="color:#94a3b8;margin-bottom:16px;font-size:0.95em;"></div>
-      <button id="logout-btn" class="thirty-day-btn" style="width:100%;background:#ff6b6b;color:#fff;">Logout</button>
-      <div style="margin-top:12px;font-size:0.8em;color:#64748b;">
-        Salah Tracker v2.0
-      </div>
-    </div>
   </div>
 
   <!-- Bottom Navigation -->
