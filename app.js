@@ -1938,71 +1938,87 @@ findPartnerBtn.onclick = async () => {
   twinsLoading.style.display = 'block';
   twinsLoading.textContent = "Searching for partner... ⏳";
 
-  // 1. Check Lobby
-  const lobbySnap = await get(ref(db, 'lobby'));
-  const lobby = lobbySnap.val();
+  try {
+    // 1. Check Lobby
+    const lobbySnap = await get(ref(db, 'lobby'));
+    const lobby = lobbySnap.val();
 
-  if (lobby) {
-    // Match found!
-    const waitingUid = Object.keys(lobby)[0];
-    if (waitingUid === user.uid) return; // Self?
+    console.log("Lobby Snap:", lobby);
 
-    // Remove from lobby
-    await set(ref(db, `lobby/${waitingUid}`), null);
+    let foundPartnerId = null;
 
-    // Create Pair
-    const pairId = 'pair_' + Date.now();
-    const pairData = {
-      user1: waitingUid,
-      user2: user.uid,
-      streak: 0,
-      startedAt: Date.now(),
-      [waitingUid]: lobby[waitingUid], // Store waiting user info
-      [user.uid]: { name: user.email.split('@')[0], avatar: '🧑🏽' } // Store my info
-    };
+    if (lobby) {
+      const ids = Object.keys(lobby);
+      // Find one that isn't me
+      foundPartnerId = ids.find(id => id !== user.uid);
+    }
 
-    await set(ref(db, `pairs/${pairId}`), pairData);
+    if (foundPartnerId) {
+      // --- Match found! ---
+      const waitingUid = foundPartnerId;
+      console.log("Partner Found:", waitingUid);
 
-    // Update both users
-    await set(ref(db, `users/${waitingUid}/twins`), { pairId: pairId });
-    await set(ref(db, `users/${user.uid}/twins`), { pairId: pairId });
+      // Remove from lobby
+      await set(ref(db, `lobby/${waitingUid}`), null);
+      // Ensure I am removed too just in case
+      await set(ref(db, `lobby/${user.uid}`), null);
 
-    showToast("Partner Found!", "#6ee7b7");
+      // Create Pair
+      const pairId = 'pair_' + Date.now();
+      const pairData = {
+        user1: waitingUid,
+        user2: user.uid,
+        streak: 0,
+        startedAt: Date.now(),
+        [waitingUid]: lobby[waitingUid] || { name: 'Partner', avatar: '👤' },
+        [user.uid]: { name: user.email.split('@')[0], avatar: '🧑🏽' }
+      };
 
-    // --- Notify the Waiting User (Async) ---
-    get(ref(db, `users/${waitingUid}/fcmToken`)).then(snap => {
-      const token = snap.val();
-      console.log("Attempting to notify waiting user:", waitingUid, "Token:", token ? "Found" : "Missing");
+      await set(ref(db, `pairs/${pairId}`), pairData);
 
-      if (token) {
-        sendFCMNotificationv1(
-          token,
-          "New Partner Assigned! 🤝",
-          `${user.email.split('@')[0]} has accepted your partnership request.`
-        ).then(res => {
-          console.log("Notification Result:", res);
-        }).catch(err => {
-          console.error("Notification Failed:", err);
-        });
-      } else {
-        console.warn("Cannot notify waiting user: No FCM Token found.");
+      // Update both users
+      await set(ref(db, `users/${waitingUid}/twins`), { pairId: pairId });
+      await set(ref(db, `users/${user.uid}/twins`), { pairId: pairId });
+
+      showToast("Partner Found!", "#6ee7b7");
+
+      // --- Notify the Waiting User (Async) ---
+      get(ref(db, `users/${waitingUid}/fcmToken`)).then(snap => {
+        const token = snap.val();
+        if (token) {
+          sendFCMNotificationv1(
+            token,
+            "New Partner Assigned! 🤝",
+            `${user.email.split('@')[0]} has accepted your partnership request.`
+          ).catch(err => console.error("Notification Failed:", err));
+        }
+      });
+
+    } else {
+      // --- No one available, join lobby & SAVE REQUEST ---
+      console.log("No valid partner found, joining lobby.");
+
+      await set(ref(db, `lobby/${user.uid}`), {
+        name: user.email.split('@')[0],
+        avatar: '🧑🏽',
+        joinedAt: Date.now()
+      });
+
+      // Update self state
+      await set(ref(db, `users/${user.uid}/twins`), { inLobby: true });
+
+      // Update UI
+      let lobbyMsg = "Request Saved! You will be paired automatically when someone joins. You can close the app.";
+      if (Notification.permission !== 'granted') {
+        lobbyMsg += "<br><br><span style='color:#f59e0b;font-weight:bold;'>⚠️ Please Enable Notifications to get alerted! <button onclick='requestNotificationPermission()' style='background:#f59e0b;color:#000;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;margin-top:4px;'>Enable</button></span>";
       }
-    });
-
-  } else {
-    // No one available, join lobby & SAVE REQUEST
-    await set(ref(db, `lobby/${user.uid}`), {
-      name: user.email.split('@')[0],
-      avatar: '🧑🏽',
-      joinedAt: Date.now()
-    });
-
-    // Update self state
-    await set(ref(db, `users/${user.uid}/twins`), { inLobby: true });
-
-    // Better UI Feedback for Async Request
-    twinsLoading.textContent = "Request Saved! You will be paired automatically when someone joins. You can close the app.";
-    showToast("Request Saved 💾", "#6ee7b7");
+      twinsLoading.innerHTML = lobbyMsg;
+      showToast("Request Saved 💾", "#6ee7b7");
+    }
+  } catch (err) {
+    console.error("Find Partner Error:", err);
+    twinsLoading.textContent = "Error occurred. Please try again.";
+    findPartnerBtn.style.display = 'inline-block';
   }
 };
 
