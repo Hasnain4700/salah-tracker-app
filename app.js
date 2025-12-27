@@ -170,7 +170,7 @@ async function checkAndTriggerPrayerNotifications(prayers) {
           body = `This is your struggle prayer! Don't let Shaytan win. Stand up now for Allah. 💪`;
         }
 
-        sendFCMNotificationv1(myToken, title, body, 'azan');
+        sendFCMNotificationv1(myToken, title, body, 'azan_tone');
       }, diff);
       scheduledTimeouts.push(timer);
 
@@ -190,7 +190,7 @@ async function checkAndTriggerPrayerNotifications(prayers) {
                       myToken,
                       "Partner is Late? 🤔",
                       `Your Deen Twin hasn't marked ${p.name} yet. Why not nudge them?`,
-                      'default'
+                      'reminder_tone'
                     );
                   }
                 });
@@ -296,7 +296,7 @@ async function fetchPrayerTimes(date = new Date()) {
       navigator.geolocation.getCurrentPosition(
         p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
         () => reject("Loc error"),
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 600000 } // High accuracy, 5s timeout, allow 10min old cached pos
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 600000 } // High accuracy, 10s timeout, allow 10min old cached pos
       );
     });
     // Update Coords & Save
@@ -354,6 +354,14 @@ function applyOffset(timeStr, offsetMins) {
   return date.getHours().toString().padStart(2, '0') + ":" + date.getMinutes().toString().padStart(2, '0');
 }
 
+function formatTime12h(time24) {
+  if (!time24 || time24 === '--:--') return '--:--';
+  const [h, m] = time24.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${m.toString().padStart(2, '0')} ${period}`;
+}
+
 function parseAndRenderPrayers(t) {
   // Apply Offsets
   const timings = { ...t };
@@ -373,7 +381,7 @@ function parseAndRenderPrayers(t) {
   ];
   prayersWithTahajjud = getPrayersWithTahajjud(apiPrayers);
   document.querySelectorAll('.prayer-item').forEach((item, i) => {
-    item.querySelector('.prayer-time').textContent = prayersWithTahajjud[i]?.time || '--:--';
+    item.querySelector('.prayer-time').textContent = formatTime12h(prayersWithTahajjud[i]?.time);
   });
   calcLastThird();
   updateCountdown();
@@ -772,7 +780,7 @@ function logPrayerStatus(prayerName, status) {
                       partnerToken,
                       "Partner Activity 🌟",
                       `Your Deen Twin has just prayed ${prayerName}! MashaAllah.`,
-                      'default'
+                      'reminder_tone'
                     );
                   }
                 });
@@ -2097,7 +2105,8 @@ findPartnerBtn.onclick = async () => {
           sendFCMNotificationv1(
             token,
             "New Partner Assigned! 🤝",
-            `${(userDisplayName || user.email.split('@')[0])} has accepted your partnership request.`
+            `${(userDisplayName || user.email.split('@')[0])} has accepted your partnership request.`,
+            'reminder_tone'
           ).catch(err => console.error("Notification Failed:", err));
         }
       });
@@ -2160,7 +2169,8 @@ twinsNudgeBtn.onclick = async () => {
       sendFCMNotificationv1(
         partnerToken,
         "Nudge from Partner! 🔔",
-        `${auth.currentUser.email.split('@')[0]} wants to remind you about prayer.`
+        `${auth.currentUser.email.split('@')[0]} wants to remind you about prayer.`,
+        'reminder_tone'
       );
     }
   });
