@@ -9,16 +9,17 @@ module.exports = async (req, res) => {
     // --- CORS Headers ---
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-cron-auth');
 
     // Handle Preflight request
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
 
-    // Only allow POST requests for the actual notification
-    if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method Not Allowed' });
+    // --- Security Check ---
+    if (req.headers['x-cron-auth'] !== process.env.CRON_SECRET) {
+        console.log("[API] Unauthorized attempt to send-notification blocked.");
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
     if (!project_id || !client_email || !private_key) {
@@ -54,17 +55,43 @@ module.exports = async (req, res) => {
         }
 
         const messaging = admin.messaging();
-        const { token, title, body } = req.body;
+        const { token, title, body, sound } = req.body;
 
         if (!token || !title || !body) {
             return res.status(400).json({ success: false, error: 'Missing token/title/body' });
         }
 
-        const response = await messaging.send({
+        const message = {
             notification: { title, body },
             token: token,
-            webpush: { fcm_options: { link: "https://salah-tracker-app.vercel.app" } }
-        });
+            webpush: {
+                fcm_options: { link: "https://salah-tracker-app.vercel.app" },
+                notification: {
+                    icon: "https://salah-tracker-app.vercel.app/icon-192.png",
+                    badge: "https://salah-tracker-app.vercel.app/icon-192.png"
+                }
+            },
+            android: {
+                notification: {
+                    sound: sound || 'default',
+                    channelId: 'prayer-notifications'
+                }
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        sound: sound ? `${sound}.caf` : 'default'
+                    }
+                }
+            }
+        };
+
+        // If sound is specifically provided, add it to main notification as well
+        if (sound) {
+            message.notification.sound = sound;
+        }
+
+        const response = await messaging.send(message);
 
         return res.status(200).json({ success: true, messageId: response });
 
