@@ -83,10 +83,7 @@ module.exports = async (req, res) => {
             }
         };
 
-        // If sound is specifically provided, add it to main notification as well
-        if (sound) {
-            message.notification.sound = sound;
-        }
+
 
         const response = await messaging.send(message);
 
