@@ -21,7 +21,7 @@ messaging.onBackgroundMessage(function (payload) {
 });
 
 // --- Caching Logic (Merged from sw.js) ---
-const CACHE_NAME = 'salah-tracker-v3.0';
+const CACHE_NAME = 'salah-tracker-v3.1';
 const ASSETS = [
   './',
   './index.html',
@@ -46,17 +46,20 @@ self.addEventListener('activate', (e) => {
       return Promise.all(
         keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', (e) => {
+  const url = e.request.url;
+  // --- STOP extension errors and only handle HTTP(S) ---
+  if (!url.startsWith('http')) return;
+
   // --- Do NOT cache API calls or external Firebase/Prayer APIs ---
   if (
-    !e.request.url.startsWith('http') ||
-    e.request.url.includes('api.aladhan.com') ||
-    e.request.url.includes('googleapis.com') ||
-    e.request.url.includes('/api/') ||
+    url.includes('api.aladhan.com') ||
+    url.includes('googleapis.com') ||
+    url.includes('/api/') ||
     e.request.method !== 'GET'
   ) {
     return;
