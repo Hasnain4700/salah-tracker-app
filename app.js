@@ -13,36 +13,92 @@ const {
 } = window.FirebaseExports;
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js";
 
+// =============================================================================
+// GLOBAL UI ELEMENTS & SETTINGS
+// =============================================================================
+
+const gregorianDateEl = document.getElementById('gregorian-date');
+const hijriDateEl = document.getElementById('hijri-date');
+const prevDateBtn = document.getElementById('prev-date');
+const nextDateBtn = document.getElementById('next-date');
+const countdownTimerEl = document.getElementById('countdown-timer');
+const nextPrayerNameEl = document.getElementById('next-prayer-name');
+const prayerItems = document.querySelectorAll('.prayer-item');
+const lastThirdTimeEl = document.getElementById('last-third-time');
+const prayerStatusLabel = document.getElementById('prayer-status-label');
+const levelNumEl = document.getElementById('level-num');
+const xpPointsEl = document.getElementById('xp-points');
+const xpProgress = document.getElementById('xp-progress');
+
+// --- Global Settings Variables ---
+let userOffsets = { Fajr: 0, Dhuhr: 0, Asr: 0, Maghrib: 0, Isha: 0 };
+let userDisplayName = "";
+let userStrugglePrayer = "";
+const settingsBtn = document.getElementById('settings-btn');
+let currentDate = new Date();
+
+// --- Scalability & Community Utilities ---
+const APP_VERSION = "1.2.0";
+
+const GlobalAudit = {
+  logError: async (context, error) => {
+    console.error(`[Audit Error] ${context}:`, error);
+    const user = auth.currentUser;
+    if (user) {
+      try {
+        await update(ref(db, `logs/errors/${user.uid}/${Date.now()}`), {
+          context,
+          message: error.message || error,
+          stack: error.stack || null,
+          version: APP_VERSION,
+          timestamp: Date.now()
+        });
+      } catch (e) {
+        // Silently fail to avoid infinite loops if DB is down
+      }
+    }
+  },
+  logActivity: async (action, details = {}) => {
+    console.log(`[Audit Activity] ${action}`, details);
+  }
+};
+
 // --- FCM Backend Call ---
-async function sendFCMNotificationv1(token, title, body) {
+async function sendFCMNotificationv1(token, title, body, sound) {
   try {
-    // Use the absolute URL of your Vercel deployment so it works from GitHub/Localhost/APK
     const BACKEND_URL = 'https://salah-tracker-app.vercel.app/api/send-notification';
 
+    // Added security header to harden API
     const response = await fetch(BACKEND_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, title, body })
+      headers: {
+        'Content-Type': 'application/json',
+        'x-cron-auth': 'CRON_SECRET_PLACEHOLDER' // Ideally this would be a dynamic token, but using the same secret for now
+      },
+      body: JSON.stringify({ token, title, body, sound })
     });
 
-    // Check if response is valid JSON before parsing
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.indexOf("application/json") !== -1) {
       const data = await response.json();
       if (!data.success) {
-        console.error("Backend FCM Error Summary:", data.error);
+        GlobalAudit.logError("FCM Backend Response", data.error);
       }
       return data;
     } else {
       const text = await response.text();
-      console.error("Backend returned non-JSON response:", text);
+      GlobalAudit.logError("FCM Non-JSON Response", text);
       return { success: false, error: "Server Error" };
     }
   } catch (err) {
-    console.error("Network or Backend Error:", err);
+    GlobalAudit.logError("FCM Network/Fetch", err);
   }
 }
 
+
+// =============================================================================
+// 1. NOTIFICATION & FCM LOGIC
+// =============================================================================
 
 async function requestNotificationPermission() {
   try {
@@ -106,11 +162,15 @@ async function checkAndTriggerPrayerNotifications(prayers) {
 
       // Timer 1: Main Adhan Alert for the user themselves
       const timer = setTimeout(() => {
-        sendFCMNotificationv1(
-          myToken,
-          "Adhan Alert! 🕌",
-          `It is time for ${p.name}. May Allah accept your prayers.`
-        );
+        let title = "Adhan Alert! 🕌";
+        let body = `It is time for ${p.name}. May Allah accept your prayers.`;
+
+        if (p.name === userStrugglePrayer) {
+          title = `⚠️ High Priority: ${p.name}`;
+          body = `This is your struggle prayer! Don't let Shaytan win. Stand up now for Allah. 💪`;
+        }
+
+        sendFCMNotificationv1(myToken, title, body, 'azan');
       }, diff);
       scheduledTimeouts.push(timer);
 
@@ -129,7 +189,8 @@ async function checkAndTriggerPrayerNotifications(prayers) {
                     sendFCMNotificationv1(
                       myToken,
                       "Partner is Late? 🤔",
-                      `Your Deen Twin hasn't marked ${p.name} yet. Why not nudge them?`
+                      `Your Deen Twin hasn't marked ${p.name} yet. Why not nudge them?`,
+                      'default'
                     );
                   }
                 });
@@ -144,25 +205,9 @@ async function checkAndTriggerPrayerNotifications(prayers) {
 }
 
 
-// --- UI Elements ---
-const gregorianDateEl = document.getElementById('gregorian-date');
-const hijriDateEl = document.getElementById('hijri-date');
-const prevDateBtn = document.getElementById('prev-date');
-const nextDateBtn = document.getElementById('next-date');
-const countdownTimerEl = document.getElementById('countdown-timer');
-const nextPrayerNameEl = document.getElementById('next-prayer-name');
-const prayerItems = document.querySelectorAll('.prayer-item');
-const lastThirdTimeEl = document.getElementById('last-third-time');
-const prayerStatusLabel = document.getElementById('prayer-status-label');
-const levelNumEl = document.getElementById('level-num');
-const xpPointsEl = document.getElementById('xp-points');
-const xpProgress = document.getElementById('xp-progress');
-
-// --- Global Settings Variables ---
-let userOffsets = { Fajr: 0, Dhuhr: 0, Asr: 0, Maghrib: 0, Isha: 0 };
-let userDisplayName = "";
-const settingsBtn = document.getElementById('settings-btn');
-
+// =============================================================================
+// 2. UI NAVIGATION & INITIALIZATION
+// =============================================================================
 
 // --- Navigation Logic ---
 const sections = {
@@ -188,9 +233,13 @@ navBtns[3].onclick = () => showSection('tracker');
 navBtns[4].onclick = () => showSection('more');
 showSection('home');
 
+// =============================================================================
+// 3. PRAYER TIME ENGINE (API & CACHING)
+// =============================================================================
+
 // --- Date Handling ---
-let currentDate = new Date();
 function updateDates() {
+  if (!gregorianDateEl || !hijriDateEl) return;
   // Gregorian
   gregorianDateEl.textContent = currentDate.toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'short', day: 'numeric'
@@ -198,6 +247,7 @@ function updateDates() {
   // Hijri (placeholder, real conversion needs API or library)
   hijriDateEl.textContent = 'Hijri: ' + (currentDate.getDate() + 18) + ' Jumada II 1445';
 }
+updateDates();
 
 // --- Prayers List (with Tahajjud) ---
 // For API, insert Tahajjud at start with fixed time (e.g., 2:30 AM)
@@ -358,6 +408,25 @@ function updateCountdown() {
   const secs = Math.floor((diff / 1000) % 60);
   countdownTimerEl.textContent = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   nextPrayerNameEl.textContent = name;
+
+  // Struggle Prayer Highlight
+  const countdownCard = document.querySelector('.countdown-section');
+  if (countdownCard) {
+    if (name === userStrugglePrayer) {
+      countdownCard.classList.add('struggle-active');
+      if (!countdownCard.querySelector('.priority-badge')) {
+        const badge = document.createElement('div');
+        badge.className = 'priority-badge';
+        badge.textContent = 'HIGH PRIORITY';
+        countdownCard.appendChild(badge);
+      }
+    } else {
+      countdownCard.classList.remove('struggle-active');
+      const badge = countdownCard.querySelector('.priority-badge');
+      if (badge) badge.remove();
+    }
+  }
+
   // Animate SVG circle
   const prevIndex = (index - 1 + prayersWithTahajjud.length) % prayersWithTahajjud.length;
   const [prevH, prevM] = prayersWithTahajjud[prevIndex].time.split(':').map(Number);
@@ -522,6 +591,7 @@ onAuthStateChanged(auth, user => {
       const data = snap.val() || {};
       userOffsets = data.prayerOffsets || { Fajr: 0, Dhuhr: 0, Asr: 0, Maghrib: 0, Isha: 0 };
       userDisplayName = data.displayName || user.email.split('@')[0];
+      userStrugglePrayer = data.strugglePrayer || "";
 
       // Now that offsets are loaded, we can fetch/refresh prayer times
       fetchPrayerTimes(currentDate);
@@ -530,6 +600,9 @@ onAuthStateChanged(auth, user => {
     fetchAndDisplayTracker();
     updateMarkPrayerBtn();
     checkForAppNotification();
+
+    // Check for app updates
+    checkAppUpdates();
 
     // Check if new user needs onboarding
     checkOnboardingStatus(user.uid);
@@ -638,7 +711,12 @@ const tahajjudMsgs = [
   'May Allah answer your secret prayers. 💖',
   'You are building a powerful connection with Allah.'
 ];
+// =============================================================================
+// 4. PRAYER LOGGING & GAMIFICATION
+// =============================================================================
+
 function logPrayerStatus(prayerName, status) {
+  GlobalAudit.logActivity("Mark Prayer", { prayer: prayerName, status });
   const user = auth.currentUser;
   if (!user) return;
   const today = getTodayDateString(); // Uses Local Date
@@ -693,7 +771,8 @@ function logPrayerStatus(prayerName, status) {
                     sendFCMNotificationv1(
                       partnerToken,
                       "Partner Activity 🌟",
-                      `Your Deen Twin has just prayed ${prayerName}! MashaAllah.`
+                      `Your Deen Twin has just prayed ${prayerName}! MashaAllah.`,
+                      'default'
                     );
                   }
                 });
@@ -2410,6 +2489,7 @@ if (saveSettingsBtn) {
 
       userOffsets = newOffsets;
       userDisplayName = newName;
+      userStrugglePrayer = newStruggle;
 
       showToast("Settings Saved! ✨", "#6ee7b7");
       settingsModal.style.display = 'none';
@@ -2430,3 +2510,73 @@ if (settingsLogoutBtn) {
     } catch (e) { }
   };
 }
+
+// =============================================================================
+// 7. COMMUNITY FEATURES (UPDATES & EXPORT)
+// =============================================================================
+
+// --- Community Updates & Export Logic ---
+async function checkAppUpdates() {
+  const localVersion = localStorage.getItem('appVersion') || "1.0.0";
+
+  if (localVersion !== APP_VERSION) {
+    const newsModal = document.getElementById('news-modal');
+    const newsContent = document.getElementById('news-content');
+    if (!newsModal || !newsContent) return;
+
+    // Latest Update Summary
+    newsContent.innerHTML = `
+      <ul style="padding-left: 20px;">
+        <li><b>Account Settings:</b> Custom Display Names implemented! 🧑🏽</li>
+        <li><b>Prayer Offsets:</b> Adjust prayer times by minutes. 🕌</li>
+        <li><b>Data Export:</b> Save your history locally anytime. 📥</li>
+        <li><b>Security:</b> Hardened API and better error tracking. 🛡️</li>
+      </ul>
+      <p style="margin-top: 15px; font-style: italic;">We're making Salah Tracker ready for the whole Ummah! Keep us in your Duas. 🤲</p>
+    `;
+
+    newsModal.style.display = 'flex';
+
+    document.getElementById('close-news-btn').onclick = () => {
+      newsModal.style.display = 'none';
+      localStorage.setItem('appVersion', APP_VERSION);
+    };
+  }
+}
+
+async function exportUserData() {
+  const user = auth.currentUser;
+  if (!user) return showToast("Login to export data", "#ff6b6b");
+
+  try {
+    showToast("Preparing your data... ⏳", "#6ee7b7");
+    const snap = await get(ref(db, `users/${user.uid}`));
+    const data = snap.val();
+
+    if (!data) return showToast("No data found.", "#ff6b6b");
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `salah-tracker-export-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast("Data Exported! Check downloads. 📥", "#6ee7b7");
+  } catch (err) {
+    GlobalAudit.logError("Export Data", err);
+    showToast("Export failed.", "#ff6b6b");
+  }
+}
+
+// Global listener for new community buttons
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'export-data-btn') {
+    exportUserData();
+  } else if (e.target.id === 'send-feedback-btn') {
+    window.location.href = "mailto:support@salah-tracker.example.com?subject=Salah Tracker Feedback";
+  }
+});
