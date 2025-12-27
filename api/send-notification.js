@@ -72,15 +72,18 @@ module.exports = async (req, res) => {
                 }
             },
             android: {
+                priority: 'high',
                 notification: {
-                    sound: sound || 'default',
-                    channelId: 'prayer-notifications'
+                    sound: sound || 'reminder_tone',
+                    channelId: 'prayer-notifications',
+                    priority: 'max'
                 }
             },
             apns: {
                 payload: {
                     aps: {
-                        sound: sound ? `${sound}.caf` : 'default'
+                        sound: sound ? `${sound}.caf` : 'reminder_tone.caf',
+                        priority: 10
                     }
                 }
             }
