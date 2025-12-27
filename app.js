@@ -106,7 +106,7 @@ async function requestNotificationPermission() {
     const vapidKey = 'BBeVQ0f8nC--oymwOnsGfla9p5AB5h37TEPpf1EMY0QTz4pbdPjlmqn-8Rkjw8sAE71ksSnkqcvRpA7M0_64FBE';
 
     // Explicitly pass service worker registration to fix "no active service worker"
-    const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js?v=3.2');
+    const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js?v=3.3');
     const currentToken = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
     if (currentToken) {
       const user = auth.currentUser;
