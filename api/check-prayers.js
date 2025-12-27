@@ -6,6 +6,16 @@ const client_email = (process.env.FCM_CLIENT_EMAIL || '').trim();
 const private_key = (process.env.FCM_PRIVATE_KEY || '').trim();
 
 module.exports = async (req, res) => {
+    // --- CORS Headers ---
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-cron-auth');
+
+    // Handle Preflight request
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
     // Basic Auth Check for External Cron
     if (req.headers['x-cron-auth'] !== process.env.CRON_SECRET) {
         console.log("[Cron Job] Unauthorized attempt blocked.");
@@ -134,14 +144,28 @@ module.exports = async (req, res) => {
                         await messaging.send({
                             notification: {
                                 title: title,
-                                body: body
+                                body: body,
+                                sound: 'azan'
                             },
                             token: user.fcmToken,
+                            android: {
+                                notification: {
+                                    sound: 'azan',
+                                    channelId: 'prayer-notifications'
+                                }
+                            },
+                            apns: {
+                                payload: {
+                                    aps: {
+                                        sound: 'azan.caf'
+                                    }
+                                }
+                            },
                             webpush: {
                                 fcm_options: { link: "https://salah-tracker-app.vercel.app" },
                                 notification: {
                                     icon: "https://salah-tracker-app.vercel.app/icon-192.png",
-                                    badge: "https://salah-tracker-app.vercel.app/icon-192.png" // Tiny icon for android status bar
+                                    badge: "https://salah-tracker-app.vercel.app/icon-192.png"
                                 }
                             }
                         });
@@ -175,12 +199,25 @@ module.exports = async (req, res) => {
 
                                     if (!snap.exists()) {
                                         console.log(`[Cron Job] !!! TRIGGERING DELAY ALERT !!! Late: ${uid} -> Notify Partner: ${partnerId}`);
+
+                                        const isStruggle = (user.strugglePrayer === pName);
+                                        let title = "Partner Reminder 🤲";
+                                        let body = `${user.email?.split('@')[0] || 'Partner'} ne abhi tak ${pName} mark nahi ki. Osko remind karwaein!`;
+
+                                        if (isStruggle) {
+                                            title = "⚠️ High Priority Nudge";
+                                            body = `${user.email?.split('@')[0] || 'Partner'} is struggling with ${pName} right now. Reach out and motivate them! 💪`;
+                                        }
+
                                         await messaging.send({
-                                            notification: {
-                                                title: "Partner Reminder 🤲",
-                                                body: `${user.email?.split('@')[0] || 'Partner'} ne abhi tak ${pName} mark nahi ki. Osko remind karwaein!`
-                                            },
+                                            notification: { title, body },
                                             token: partnerUser.fcmToken,
+                                            android: {
+                                                notification: {
+                                                    sound: 'default',
+                                                    channelId: 'prayer-notifications'
+                                                }
+                                            },
                                             webpush: {
                                                 fcm_options: { link: "https://salah-tracker-app.vercel.app" },
                                                 notification: {
