@@ -21,40 +21,53 @@ messaging.onBackgroundMessage(function (payload) {
 });
 
 // --- Caching Logic (Merged from sw.js) ---
-const CACHE_NAME = 'salah-tracker-v2';
+const CACHE_NAME = 'salah-tracker-v3.0';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
-  './firebase.js'
+  './firebase.js',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', (e) => {
+  self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+  );
+});
+
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      );
+    })
   );
 });
 
 self.addEventListener('fetch', (e) => {
   // --- Do NOT cache API calls or external Firebase/Prayer APIs ---
   if (
+    !e.request.url.startsWith('http') ||
     e.request.url.includes('api.aladhan.com') ||
     e.request.url.includes('googleapis.com') ||
-    e.request.url.includes('/api/')
+    e.request.url.includes('/api/') ||
+    e.request.method !== 'GET'
   ) {
     return;
   }
-
-  // Only handle GET requests for caching
-  if (e.request.method !== 'GET') return;
 
   e.respondWith(
     caches.match(e.request).then((cachedResponse) => {
       if (cachedResponse) return cachedResponse;
 
       return fetch(e.request).then((networkResponse) => {
-        // Only cache valid responses
+        // Only cache valid responses from our own origin
         if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
           return networkResponse;
         }
