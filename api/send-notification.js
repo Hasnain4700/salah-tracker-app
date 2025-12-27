@@ -16,12 +16,6 @@ module.exports = async (req, res) => {
         return res.status(200).end();
     }
 
-    // --- Security Check ---
-    if (req.headers['x-cron-auth'] !== process.env.CRON_SECRET) {
-        console.log("[API] Unauthorized attempt to send-notification blocked.");
-        return res.status(401).json({ success: false, error: 'Unauthorized' });
-    }
-
     if (!project_id || !client_email || !private_key) {
         return res.status(500).json({ success: false, error: 'Missing Credentials in Vercel Settings' });
     }
