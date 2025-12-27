@@ -749,16 +749,6 @@
   </div>
 
   <div id="toast-popup"></div>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        // Register the firebase-messaging-sw which now handles both Caching and Messaging
-        navigator.serviceWorker.register('./firebase-messaging-sw.js')
-          .then(reg => console.log('Universal SW Registered!', reg.scope))
-          .catch(err => console.log('SW Fail:', err));
-      });
-    }
-  </script>
   <!-- ==================== ONBOARDING WIZARD ==================== -->
   <style>
     .onboarding-step {
