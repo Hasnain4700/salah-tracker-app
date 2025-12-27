@@ -96,6 +96,55 @@ textarea {
   box-sizing: border-box;
 }
 
+/* Struggle Prayer High Priority Styling */
+.countdown-section.struggle-active {
+  border: 2px solid #ff6b6b;
+  box-shadow: 0 0 20px rgba(255, 107, 107, 0.2);
+  position: relative;
+  overflow: hidden;
+  animation: struggle-pulse 2s infinite;
+}
+
+@keyframes struggle-pulse {
+  0% {
+    border-color: #ff6b6b;
+    box-shadow: 0 0 15px rgba(255, 107, 107, 0.2);
+  }
+
+  50% {
+    border-color: #ef4444;
+    box-shadow: 0 0 25px rgba(255, 107, 107, 0.4);
+  }
+
+  100% {
+    border-color: #ff6b6b;
+    box-shadow: 0 0 15px rgba(255, 107, 107, 0.2);
+  }
+}
+
+.priority-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: #ff6b6b;
+  color: #fff;
+  font-size: 0.65em;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+  z-index: 10;
+}
+
+.countdown-section.struggle-active .countdown-progress {
+  stroke: #ff6b6b;
+}
+
+.countdown-section.struggle-active #next-prayer-name {
+  color: #ff6b6b;
+}
+
 .container {
   width: 100%;
   max-width: 400px;
