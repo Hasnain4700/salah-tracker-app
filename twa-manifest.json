@@ -19,8 +19,8 @@
     "path": "C:\\Users\\Belal\\Downloads\\salah tracker\\Salah-tracker-main\\android.keystore",
     "alias": "salah"
   },
-  "appVersionName": "12",
-  "appVersionCode": 12,
+  "appVersionName": "3",
+  "appVersionCode": 3,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://hasnain4700.github.io/salah-tracker-app/manifest.json",
@@ -48,5 +48,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "12"
+  "appVersion": "3"
 }
