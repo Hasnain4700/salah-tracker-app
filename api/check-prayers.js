@@ -145,19 +145,22 @@ module.exports = async (req, res) => {
                             notification: {
                                 title: title,
                                 body: body,
-                                sound: 'azan'
+                                sound: 'azan_tone'
                             },
                             token: user.fcmToken,
                             android: {
+                                priority: 'high',
                                 notification: {
-                                    sound: 'azan',
-                                    channelId: 'prayer-notifications'
+                                    sound: 'azan_tone',
+                                    channelId: 'prayer-notifications',
+                                    priority: 'max'
                                 }
                             },
                             apns: {
                                 payload: {
                                     aps: {
-                                        sound: 'azan.caf'
+                                        sound: 'azan_tone.caf',
+                                        priority: 10
                                     }
                                 }
                             },
@@ -167,6 +170,9 @@ module.exports = async (req, res) => {
                                     icon: "https://salah-tracker-app.vercel.app/icon-192.png",
                                     badge: "https://salah-tracker-app.vercel.app/icon-192.png"
                                 }
+                            },
+                            fcmOptions: {
+                                analyticsLabel: 'prayer-notification'
                             }
                         });
 
@@ -213,9 +219,11 @@ module.exports = async (req, res) => {
                                             notification: { title, body },
                                             token: partnerUser.fcmToken,
                                             android: {
+                                                priority: 'high',
                                                 notification: {
-                                                    sound: 'default',
-                                                    channelId: 'prayer-notifications'
+                                                    sound: 'reminder_tone',
+                                                    channelId: 'prayer-notifications',
+                                                    priority: 'max'
                                                 }
                                             },
                                             webpush: {
@@ -256,7 +264,7 @@ module.exports = async (req, res) => {
     }
 };
 
-function isTimeMatch(currentTime, targetTime, windowMins = 10, offsetMins = 0) {
+function isTimeMatch(currentTime, targetTime, windowMins = 25, offsetMins = 0) {
     const [currH, currM] = currentTime.split(':').map(Number);
     const [textH, textM] = targetTime.split(':').map(Number);
 
