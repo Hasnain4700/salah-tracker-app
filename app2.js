@@ -45,6 +45,12 @@
 
         qiblaBearingText.textContent = `Qibla: ${Math.round(qiblaBearing)}°`;
         qiblaDistText.textContent = `${Math.round(distance).toLocaleString()} km from Makkah`;
+
+        // Position the Kaaba icon on the disk based on calculated bearing
+        const kaabaIcon = document.getElementById('kaaba-pointer');
+        if (kaabaIcon) {
+            kaabaIcon.style.transform = `translateX(-50%) rotate(${qiblaBearing}deg)`;
+        }
     }
 
     // --- Mathematics: Spherical Trigonometry ---
@@ -104,25 +110,29 @@
         let heading = e.webkitCompassHeading || e.alpha;
 
         if (typeof heading !== 'undefined' && heading !== null) {
-            // Smooth the heading change (simple lerp)
+            // Android deviceorientationabsolute is usually 0 at North but sometimes inverted
+            if (e.absolute === true && !e.webkitCompassHeading) {
+                heading = (360 - heading) % 360;
+            }
+
             compassHeading = heading;
-
-            // On android alpha starts at north, but we want to subtract it 
-            // from the disk rotation so Northern North stays North.
-            // rotation = -heading + qiblaBearing
-            // But we rotate the disk itself, so the disk's "North" (0 deg) 
-            // should point to real north.
-
             const rotation = -compassHeading;
             qiblaDisk.style.transform = `rotate(${rotation}deg)`;
 
-            // Alignment Feedback
-            const diff = Math.abs((rotation + qiblaBearing + 360) % 360);
-            if (diff < 2 || diff > 358) {
+            // Alignment Feedback: Check if the phone heading matches the Qibla bearing
+            // Fixed indicator is at the top (0 deg). 
+            // Qibla icon is at qiblaBearing on the disk.
+            // Disk is rotated by -heading.
+            // Position of Qibla icon relative to screen top = (qiblaBearing - heading)
+            let relativeQibla = (qiblaBearing - compassHeading + 360) % 360;
+
+            if (relativeQibla < 3 || relativeQibla > 357) {
+                document.getElementById('kaaba-pointer').classList.add('aligned');
                 document.getElementById('kaaba-pointer').style.color = '#6ee7b7';
                 document.getElementById('kaaba-pointer').style.filter = 'drop-shadow(0 0 15px #6ee7b7)';
-                if (navigator.vibrate) navigator.vibrate(20); // Subtle tick
+                if (navigator.vibrate) navigator.vibrate(20);
             } else {
+                document.getElementById('kaaba-pointer').classList.remove('aligned');
                 document.getElementById('kaaba-pointer').style.color = '';
                 document.getElementById('kaaba-pointer').style.filter = 'drop-shadow(0 0 5px #fcd34d)';
             }
