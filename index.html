@@ -109,9 +109,37 @@
         <button id="save-settings-btn" class="onboarding-btn" style="width: 100%; margin-top: 10px;">Save
           Settings</button>
 
+        <!-- Scalability & Community Extras -->
+        <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05);">
+          <div style="display: flex; gap: 10px; margin-bottom: 12px; margin-top: 20px;">
+            <button id="export-data-btn"
+              style="flex:1; background:rgba(110, 231, 183, 0.1); border:1px solid rgba(110, 231, 183, 0.3); color:#6ee7b7; padding:10px; border-radius:10px; font-size:0.85em; cursor:pointer;">📥
+              Export Logs</button>
+            <button id="send-feedback-btn"
+              style="flex:1; background:rgba(251, 191, 36, 0.1); border:1px solid rgba(251, 191, 36, 0.3); color:#fbbf24; padding:10px; border-radius:10px; font-size:0.85em; cursor:pointer;">💬
+              Feedback</button>
+          </div>
+          <div style="text-align: center; color: #475569; font-size: 0.75em; letter-spacing: 0.5px;">
+            Salah Tracker v1.2.0 • Made with 💚
+          </div>
+        </div>
+
         <button id="settings-logout-btn"
           style="width: 100%; margin-top: 20px; background: none; border: 1px solid #ff6b6b; color: #ff6b6b; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer;">Logout</button>
       </div>
+    </div>
+  </div>
+
+  <!-- What's New Modal -->
+  <div id="news-modal" class="modal">
+    <div class="modal-content" style="max-width: 400px; padding: 30px;">
+      <div style="font-size: 3.5em; margin-bottom: 15px;">✨</div>
+      <h2 style="margin:0 0 10px 0; color:#fff; font-size: 1.6em;">What's New!</h2>
+      <div id="news-content"
+        style="text-align: left; color: #94a3b8; font-size: 1em; line-height: 1.6; margin-bottom: 25px;">
+        <!-- Content will be injected -->
+      </div>
+      <button id="close-news-btn" class="onboarding-btn" style="width: 100%;">MashaAllah, Got it!</button>
     </div>
   </div>
   <div class="container" id="home-section">
