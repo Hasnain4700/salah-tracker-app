@@ -83,9 +83,13 @@ module.exports = async (req, res) => {
 
                 // --- Quran Reminder (Personalized) ---
                 const sleepTime = user.sleepTime || "21:00"; // Default 9 PM
-                if (isTimeMatch(userHHMM, sleepTime, 20)) {
+                const isSleepMatch = isTimeMatch(userHHMM, sleepTime, 30);
+                console.log(`[Cron Job] Quran Reminder Check: ${userHHMM} vs ${sleepTime} -> Match: ${isSleepMatch}`);
+
+                if (isSleepMatch) {
                     const quranNotifKey = `quranNotif_${dateKey}`;
                     if (!user[quranNotifKey]) {
+                        console.log(`[Cron Job] Sending Quran Reminder to ${user.email || uid}`);
                         await messaging.send({
                             notification: {
                                 title: "Quran Reminder 🎧",
@@ -101,7 +105,8 @@ module.exports = async (req, res) => {
                             }
                         });
                         await db.ref(`users/${uid}/${quranNotifKey}`).set(true);
-                        console.log(`[Cron Job] Quran Reminder sent to ${user.email || uid} at ${sleepTime}`);
+                    } else {
+                        console.log(`[Cron Job] Quran Reminder already sent for today to ${user.email || uid}`);
                     }
                 }
 
@@ -122,10 +127,11 @@ module.exports = async (req, res) => {
                     if (!pTime) continue;
 
                     // 1. MAIN PRAYER NOTIFICATION (Due Now)
-                    if (isTimeMatch(userHHMM, pTime, 15)) { // 15-minute window for reliability
+                    const isPrayerDue = isTimeMatch(userHHMM, pTime, 30);
+                    if (isPrayerDue) {
                         const lastNotifKey = `lastNotif_${pName}_${dateKey}`;
                         if (user[lastNotifKey]) {
-                            console.log(`[Cron Job] User ${uid} already notified for ${pName} today.`);
+                            console.log(`[Cron Job] User ${uid} already notified for ${pName} on ${dateKey}.`);
                             continue;
                         }
 
@@ -144,8 +150,7 @@ module.exports = async (req, res) => {
                         await messaging.send({
                             notification: {
                                 title: title,
-                                body: body,
-                                sound: 'azan_tone'
+                                body: body
                             },
                             token: user.fcmToken,
                             android: {
@@ -180,9 +185,9 @@ module.exports = async (req, res) => {
                         results.push({ uid, prayer: pName });
                     }
 
-                    // 2. PARTNER DELAY NOTIFICATION (Time + 15-35 mins window)
-                    // We widen the window to 20 mins to ensure it triggers once within a 10min cron loop
-                    if (isTimeMatch(userHHMM, pTime, 20, 15)) {
+                    // 2. PARTNER DELAY NOTIFICATION (Time + 15-45 mins window)
+                    // We widen the window to 30 mins to ensure it triggers once within a 10-15min cron loop
+                    if (isTimeMatch(userHHMM, pTime, 30, 15)) {
                         console.log(`[Cron Job] Checking partner delay for ${user.email || uid} (${pName}) at ${userHHMM}`);
 
                         // Check if user has marked prayer
@@ -216,7 +221,10 @@ module.exports = async (req, res) => {
                                         }
 
                                         await messaging.send({
-                                            notification: { title, body },
+                                            notification: {
+                                                title: title,
+                                                body: body
+                                            },
                                             token: partnerUser.fcmToken,
                                             android: {
                                                 priority: 'high',
