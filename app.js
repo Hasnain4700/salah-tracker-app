@@ -1547,22 +1547,7 @@ goodDeedSaveReflection.onclick = async () => {
 
 // --- Donate Section Logic ---
 const donateSection = document.getElementById('donate-section');
-const donateStatus = document.getElementById('donate-status');
-const donateMarkBtn = document.getElementById('donate-mark-btn');
-const donateStreak = document.getElementById('donate-streak');
-const donateBadges = document.getElementById('donate-badges');
-const copySadapayBtn = document.getElementById('copy-sadapay-btn');
-const copyJazzcashBtn = document.getElementById('copy-jazzcash-btn');
-const sadapayNumber = document.getElementById('sadapay-number').textContent;
-const jazzcashNumber = document.getElementById('jazzcash-number').textContent;
-copySadapayBtn.onclick = () => {
-  navigator.clipboard.writeText(sadapayNumber);
-  showToast('Sadapay number copied!', '#6ee7b7');
-};
-copyJazzcashBtn.onclick = () => {
-  navigator.clipboard.writeText(jazzcashNumber);
-  showToast('JazzCash number copied!', '#6ee7b7');
-};
+// Logic moved to new section (Line 3079)
 
 // Nav: replace mosque with donate section
 navBtns[1].onclick = () => showSection('donate');
@@ -1583,38 +1568,14 @@ async function updateDonateStatus() {
   if (!user) return;
   const week = getCurrentWeek();
   const snap = await get(ref(db, `users/${user.uid}/donations`));
-  const donations = snap.exists() ? snap.val() : {};
-  const donated = !!donations[week];
-  donateStatus.textContent = donated ? 'This week: Donated ✅' : 'This week: Not Donated ❌';
-  donateMarkBtn.disabled = donated;
-  // Streak
-  let streak = 0, maxStreak = 0, tempStreak = 0;
-  const weeks = Object.keys(donations).sort();
-  for (let i = weeks.length - 1; i >= 0; i--) {
-    if (donations[weeks[i]]) tempStreak++;
-    else break;
-  }
-  streak = tempStreak;
-  donateStreak.textContent = `Streak: ${streak} week${streak !== 1 ? 's' : ''}`;
-  // Badges
-  let badges = '';
-  if (streak >= 4) badges += '<span class="badge">🌟 4-Week Streak</span> ';
-  if (streak >= 12) badges += '<span class="badge">🏅 12-Week Streak</span> ';
-  if (streak >= 52) badges += '<span class="badge">🏆 1 Year Streak</span> ';
-  donateBadges.innerHTML = badges;
+  // Legacy Donation Logic Removed: Replaced with Claim System (Line 3079)
 }
 
-donateMarkBtn.onclick = async () => {
-  const user = auth.currentUser;
-  if (!user) return;
-  const week = getCurrentWeek();
-  await set(ref(db, `users/${user.uid}/donations/${week}`), true);
-  showToast('JazakAllah! Allah aap ki niyyat qubool farmaye. 🤲', '#6ee7b7');
-  updateDonateStatus();
-};
-
 onAuthStateChanged(auth, user => {
-  if (user) updateDonateStatus();
+  if (user) {
+    updateDonateStatus();
+    loadDonationStreak();
+  }
 });
 
 // --- Donation Proofs Gallery in User App ---
@@ -3063,6 +3024,255 @@ async function exportUserData() {
     GlobalAudit.logError("Export Data", err);
     showToast("Export failed.", "#ff6b6b");
   }
+}
+
+
+// =============================================================================
+// 8. DONATION SYSTEM (CLAIMS & VERIFICATION)
+// =============================================================================
+
+// --- Global Stats Listener ---
+const globalDonationTotalEl = document.getElementById('global-donation-total');
+const globalDonationCountEl = document.getElementById('global-donation-count');
+
+function listenToDonationStats() {
+  onValue(ref(db, 'donations/stats'), (snap) => {
+    const data = snap.val() || { totalAmount: 0, donorCount: 0 };
+    if (globalDonationTotalEl) globalDonationTotalEl.textContent = `${data.totalAmount.toLocaleString()} PKR`;
+    if (globalDonationCountEl) globalDonationCountEl.textContent = data.donorCount;
+  });
+}
+listenToDonationStats();
+
+// --- Copy JazzCash Logic ---
+const copyJazzcashBtn = document.getElementById('copy-jazzcash-btn');
+const jazzcashNumberEl = document.getElementById('jazzcash-number');
+if (copyJazzcashBtn && jazzcashNumberEl) {
+  copyJazzcashBtn.onclick = () => {
+    navigator.clipboard.writeText(jazzcashNumberEl.textContent);
+    showToast('JazzCash Number Copied! 📋', '#6ee7b7');
+  };
+}
+
+// --- Submit Claim Logic ---
+const donateSubmitBtn = document.getElementById('donate-submit-btn');
+const donationTrxInput = document.getElementById('donation-trx-id');
+const btnShowClaimForm = document.getElementById('btn-show-claim-form');
+const claimFormContainer = document.getElementById('claim-form-container');
+const userStreakEl = document.getElementById('user-donation-streak');
+
+// Toggle Form
+if (btnShowClaimForm && claimFormContainer) {
+  btnShowClaimForm.onclick = () => {
+    claimFormContainer.style.display = "block";
+    btnShowClaimForm.style.display = "none"; // Hide button after showing form
+  };
+}
+
+// Load Streak
+async function loadDonationStreak() {
+  const user = auth.currentUser;
+  if (!user || !userStreakEl) return;
+  const snap = await get(ref(db, `users/${user.uid}/donationStats`));
+  const stats = snap.val() || { streak: 0 };
+  userStreakEl.textContent = `${stats.streak} 🔥`;
+}
+
+if (donateSubmitBtn) {
+  donateSubmitBtn.onclick = async () => {
+    const user = auth.currentUser;
+    if (!user) return showToast("Please Login to donate.", "#ff6b6b");
+
+    const trxId = donationTrxInput.value.trim();
+    if (!trxId) return showToast("Please enter Transaction ID", "#fcd34d");
+    if (trxId.length < 5) return showToast("Invalid Transaction ID", "#ff6b6b");
+
+    try {
+      donateSubmitBtn.disabled = true;
+      donateSubmitBtn.textContent = "Submitting...";
+
+      // Create Claim
+      const newClaimRef = push(ref(db, 'donations/claims'));
+      await set(newClaimRef, {
+        uid: user.uid,
+        name: user.displayName || "Anonymous",
+        trxId: trxId,
+        status: 'pending',
+        timestamp: Date.now()
+      });
+
+      // --- STREAK LOGIC (Optimistic Update) ---
+      // Simple logic: Increment streak on submission to encourage user
+      // Ideally check previous week, but for gamification we stick to simplified count or weekly check
+      // Here: Just increment if first time this week (client-side check roughly)
+      const week = getCurrentWeek();
+      const statsRef = ref(db, `users/${user.uid}/donationStats`);
+      const statsSnap = await get(statsRef);
+      let stats = statsSnap.val() || { streak: 0, lastWeek: '' };
+
+      if (stats.lastWeek !== week) {
+        stats.streak = (stats.streak || 0) + 1;
+        stats.lastWeek = week;
+        await set(statsRef, stats);
+
+        // Update UI
+        if (userStreakEl) userStreakEl.textContent = `${stats.streak} 🔥`;
+
+        // Celebration!
+        triggerConfetti ? triggerConfetti() : null;
+        showToast(`Streak Increased! ${stats.streak} Weeks 🔥`, "#fcd34d");
+      } else {
+        showToast("Claim Submitted! (Streak already active for this week)", "#6ee7b7");
+      }
+
+      // Feedback
+      donationTrxInput.value = "";
+      claimFormContainer.style.display = 'none'; // Hide form again
+      btnShowClaimForm.style.display = 'block'; // Show button again
+      btnShowClaimForm.textContent = "Submit Another Transaction";
+
+      document.getElementById('user-donation-status').innerHTML = `<span style="color:#fcd34d;">Pending Verification (ID: ${trxId})</span>`;
+
+    } catch (err) {
+      console.error("Donation Error", err);
+      showToast("Submission Failed", "#ff6b6b");
+    } finally {
+      donateSubmitBtn.disabled = false;
+      donateSubmitBtn.textContent = "Submit Claim";
+    }
+  };
+}
+
+// --- Admin Dashboard Logic ---
+const adminPanel = document.getElementById('admin-donation-panel');
+const adminList = document.getElementById('admin-pending-list');
+
+// Secret Trigger: Call openAdminDonations() from console or specialized button
+window.openAdminDonations = () => {
+  if (!auth.currentUser) return;
+  adminPanel.style.display = 'block';
+  loadAdminDonations();
+  showToast("Admin Panel Opened 🛡️", "#ef4444");
+};
+
+let adminDonationsUnsub = null;
+
+function loadAdminDonations() {
+  if (adminDonationsUnsub) adminDonationsUnsub();
+
+  // Listen to ALL claims (In real app, query by status='pending')
+  // optimization: query(ref(db, 'donations/claims'), orderByChild('status'), equalTo('pending'))
+  // But 'orderByChild' needs index. For small scale, fetch all is fine or limitToLast
+  const claimsRef = query(ref(db, 'donations/claims'), limitToLast(20));
+
+  adminDonationsUnsub = onValue(claimsRef, (snap) => {
+    adminList.innerHTML = '';
+    if (!snap.exists()) {
+      adminList.innerHTML = '<div style="padding:10px;">No claims found.</div>';
+      return;
+    }
+
+    const claims = [];
+    snap.forEach(c => claims.push({ key: c.key, ...c.val() }));
+
+    // Filter Pending client-side for simplicity
+    const pending = claims.filter(c => c.status === 'pending').reverse();
+
+    if (pending.length === 0) {
+      adminList.innerHTML = '<div style="padding:10px;">No pending claims.</div>';
+      return;
+    }
+
+    pending.forEach(c => {
+      const div = document.createElement('div');
+      div.style.padding = "10px";
+      div.style.borderBottom = "1px solid #333";
+      div.style.background = "#1e293b";
+      div.style.marginBottom = "8px";
+      div.innerHTML = `
+                <div style="color:#fff; font-weight:bold;">${c.name} <span style="color:#94a3b8; font-size:0.8em;">(${c.uid.slice(0, 4)})</span></div>
+                <div style="color:#fcd34d; font-family:monospace;">TRX: ${c.trxId}</div>
+                <div style="font-size:0.8em; color:#64748b;">${new Date(c.timestamp).toLocaleString()}</div>
+                
+                <div style="margin-top:8px; display:flex; gap:6px;">
+                    <input type="number" id="amt-${c.key}" placeholder="Enter verified amount" 
+                       style="width:120px; padding:6px; background:#0f172a; border:1px solid #334155; color:#fff; border-radius:4px;">
+                    <button onclick="verifyClaim('${c.key}', true)" style="background:#059669; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Approve</button>
+                    <button onclick="verifyClaim('${c.key}', false)" style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Reject</button>
+                </div>
+            `;
+      adminList.appendChild(div);
+    });
+  });
+}
+
+window.verifyClaim = async (key, isApproved) => {
+  if (!confirm(isApproved ? "Approve this claim?" : "Reject this claim?")) return;
+
+  if (isApproved) {
+    const amtInput = document.getElementById(`amt-${key}`);
+    const amount = parseInt(amtInput.value);
+    if (!amount || amount <= 0) return alert("Please enter valid amount!");
+
+    try {
+      // Update Claim
+      await update(ref(db, `donations/claims/${key}`), {
+        status: 'approved',
+        verifiedAmount: amount,
+        verifiedAt: Date.now()
+      });
+
+      // Update Global Stats (Atomic equivalent or simple transaction)
+      await runTransaction(ref(db, 'donations/stats'), (currentStats) => {
+        if (!currentStats) return { totalAmount: amount, donorCount: 1 };
+        return {
+          totalAmount: (currentStats.totalAmount || 0) + amount,
+          donorCount: (currentStats.donorCount || 0) + 1
+        };
+      });
+
+      showToast(`Approved ${amount} PKR!`, "#6ee7b7");
+    } catch (e) {
+      console.error(e);
+      alert("Error approving: " + e.message);
+    }
+
+  } else {
+    await update(ref(db, `donations/claims/${key}`), { status: 'rejected' });
+    showToast("Claim Rejected", "#ef4444");
+  }
+};
+
+// --- Why Donate Popup ---
+const btnWhyDonate = document.getElementById('btn-why-donate');
+const modalWhyDonate = document.getElementById('modal-why-donate');
+const closeWhyDonate = document.getElementById('close-why-donate');
+
+if (btnWhyDonate && modalWhyDonate) {
+  btnWhyDonate.onclick = () => {
+    modalWhyDonate.style.display = "block";
+  };
+  closeWhyDonate.onclick = () => {
+    modalWhyDonate.style.display = "none";
+  };
+  window.addEventListener('click', (e) => {
+    if (e.target === modalWhyDonate) {
+      modalWhyDonate.style.display = "none";
+    }
+  });
+}
+
+// --- Secret Admin Trigger ---
+let heartTaps = 0;
+const heartIcon = document.getElementById('donate-heart-icon');
+if (heartIcon) {
+  heartIcon.onclick = () => {
+    heartTaps++;
+    if (heartTaps === 5) {
+      openAdminDonations();
+      heartTaps = 0;
+    }
+  };
 }
 
 // Global listener for new community buttons
