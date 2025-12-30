@@ -792,6 +792,168 @@ textarea {
   }
 }
 
+/* --- Halaqa Circles Styles --- */
+.halaqa-leaderboard-item {
+  background: rgba(30, 41, 59, 0.7);
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.rank-badge {
+  font-size: 1.2em;
+  margin-right: 8px;
+  width: 24px;
+  text-align: center;
+}
+
+.nudge-btn {
+  background: rgba(255, 107, 107, 0.15);
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.8em;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+transform: scale(0.95);
+}
+
+.kick-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2em;
+  padding: 4px;
+  margin-left: 8px;
+  opacity: 0.6;
+}
+
+.kick-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* Chat Styles */
+.chat-msg {
+  max-width: 80%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 0.95em;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.chat-msg.me {
+  align-self: flex-end;
+  background: #6ee7b7;
+  color: #0f172a;
+  border-bottom-right-radius: 2px;
+}
+
+.chat-msg.others {
+  align-self: flex-start;
+  background: #334155;
+  color: #f1f5f9;
+  border-bottom-left-radius: 2px;
+}
+
+.chat-sender-name {
+  font-size: 0.75em;
+  margin-bottom: 2px;
+  opacity: 0.8;
+  font-weight: 600;
+}
+
+.chat-time {
+  font-size: 0.7em;
+  text-align: right;
+  opacity: 0.6;
+  margin-top: 4px;
+}
+
+/* --- Salah Streak Animations --- */
+.fire-anim-container {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8em;
+  animation: fire-pulse 2s infinite ease-in-out;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+}
+
+.fire-core {
+  display: inline-block;
+  animation: fire-flicker 1.5s infinite alternate;
+}
+
+@keyframes fire-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+  }
+
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.6);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+  }
+}
+
+@keyframes fire-flicker {
+  0% {
+    transform: rotate(-5deg) scale(0.95);
+    filter: brightness(1);
+  }
+
+  100% {
+    transform: rotate(5deg) scale(1.1);
+    filter: brightness(1.2);
+  }
+}
+
+/* Confetti / Celebration Class */
+.celebration-burst {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 9999;
+  font-size: 4em;
+  animation: burst-fade 1.5s forwards;
+}
+
+@keyframes burst-fade {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+
+  20% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+
 /* --- Islamic Series Styles --- */
 #feature-series .card {
   animation: slideUpSeries 0.4s ease-out;
