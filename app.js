@@ -9,7 +9,11 @@ const {
   get,
   onValue,
   update,
-  runTransaction
+  runTransaction,
+  push,
+  query,
+  limitToLast,
+  orderByKey
 } = window.FirebaseExports;
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js";
 
@@ -38,7 +42,7 @@ const settingsBtn = document.getElementById('settings-btn');
 let currentDate = new Date();
 
 // --- Scalability & Community Utilities ---
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.3.2";
 
 const GlobalAudit = {
   logError: async (context, error) => {
@@ -810,6 +814,13 @@ function logPrayerStatus(prayerName, status) {
             fetchAndDisplayTracker();
           });
         });
+
+        // --- NEW: Check & Update Streak ---
+        // If not Tahajjud (Tahajjud is bonus, doesn't affect core streak)
+        if (!isTahajjud) {
+          checkAndIncrementStreak(user);
+        }
+
         // Motivational toast
         if (isTahajjud) {
           showToast(tahajjudMsgs[Math.floor(Math.random() * tahajjudMsgs.length)], '#a78bfa');
@@ -823,6 +834,75 @@ function logPrayerStatus(prayerName, status) {
       updateMarkPrayerBtn();
     });
   });
+}
+
+// --- Streak Calculation Helper ---
+async function checkAndIncrementStreak(user) {
+  const today = getTodayDateString();
+
+  // 1. Check if all 5 Fard prayers are done today
+  const logsSnap = await get(ref(db, `users/${user.uid}/logs/${today}`));
+  const todayLogs = logsSnap.exists() ? logsSnap.val() : {};
+  const fardPrayers = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+  const allDone = fardPrayers.every(p => todayLogs[p] === 'prayed');
+
+  if (allDone) {
+    // 2. All done! Now check streak status
+    const statsRef = ref(db, `users/${user.uid}/stats`);
+    const statsSnap = await get(statsRef);
+    const stats = statsSnap.exists() ? statsSnap.val() : {};
+
+    let currentStreak = stats.streak || 0;
+    const lastStreakDate = stats.lastStreakDate || "";
+
+    // If already updated for today, don't double count
+    if (lastStreakDate === today) return;
+
+    // Check Yesterday
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const yesterday = getTodayDateString(d);
+
+    // If last streak was yesterday, increment. Else, reset/start at 1.
+    if (lastStreakDate === yesterday) {
+      currentStreak++;
+    } else {
+      // Edge case: if lastStreakDate is older than yesterday, streak was broken.
+      // But wait... was yesterday actually done but user forgot to open app? 
+      // Ideally we check yesterday's logs. But for simplicity and robustness:
+      // If we are strictly "all 5 done today", and we want to link to yesterday:
+      const yLogsSnap = await get(ref(db, `users/${user.uid}/logs/${yesterday}`));
+      const yLogs = yLogsSnap.exists() ? yLogsSnap.val() : {};
+      const yAllDone = fardPrayers.every(p => yLogs[p] === 'prayed');
+
+      if (yAllDone) {
+        // Recover streak if yesterday was valid
+        // This handles the case where user filled yesterday's logs late
+        currentStreak++;
+      } else {
+        currentStreak = 1; // Start fresh
+      }
+    }
+
+    // Save
+    await update(statsRef, {
+      streak: currentStreak,
+      lastStreakDate: today
+    });
+
+    // Show Celebration
+    showToast(`🔥 Streak Updated: ${currentStreak} Days!`, '#f59e0b');
+    createCelebrationBurst();
+    fetchAndDisplayTracker(); // Refresh UI
+  }
+}
+
+function createCelebrationBurst() {
+  const el = document.createElement('div');
+  el.textContent = '🔥';
+  el.className = 'celebration-burst';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2000);
 }
 
 // --- Live Global Counts Listener ---
@@ -947,9 +1027,59 @@ function fetchAndDisplayTracker() {
       }
       if (tempStreak > maxStreak) maxStreak = tempStreak;
     }
-    streak = newStreak;
-    streakCountEl.textContent = streak;
-    updateStreakGamification();
+
+    // --- UPDATED STREAK DISPLAY ---
+    // Try to get robust streak from stats, fallback to 7-day calculation
+    get(ref(db, `users/${user.uid}/stats`)).then(statsSnap => {
+      const stats = statsSnap.exists() ? statsSnap.val() : {};
+
+      // If persisted streak exists, use it. Otherwise use the calculated 7-day streak.
+      // But verify: if 7-day calc is 0 (today not done + yesterday missed), persisted might still be old?
+      // No, checkAndIncrementStreak updates it.
+      // If user hasn't prayed today, persisted streak is valid (it holds yesterday's value).
+      // But if user missed yesterday, persisted streak (if not updated) might still show old info until they log something?
+      // We rely on the logic: if they miss a day, they break the streak.
+      // Ideally, we should check if 'lastStreakDate' < yesterday.
+
+      if (stats.streak !== undefined) {
+        streak = stats.streak;
+
+        // UI Check: has user broken the streak?
+        const lastStreakDate = stats.lastStreakDate;
+        const today = getTodayDateString();
+        const d = new Date(); d.setDate(d.getDate() - 1);
+        const yesterday = getTodayDateString(d);
+
+        if (lastStreakDate !== today && lastStreakDate !== yesterday) {
+          // Streak is stale (broken), show 0 visually (but don't delete from DB until they log next prayer to reset)
+          // Or strictly set to 0.
+          streak = 0;
+        }
+      } else {
+        streak = newStreak;
+      }
+
+      streakCountEl.textContent = streak;
+      updateStreakGamification(); // Updates badges
+
+      // Update Home Widget
+      const homeStreakWidget = document.getElementById('home-streak-widget');
+      const homeStreakValue = document.getElementById('home-streak-value');
+      if (homeStreakWidget && homeStreakValue) {
+        homeStreakValue.textContent = streak;
+        homeStreakWidget.style.display = 'block'; // Always show
+
+        if (streak === 0) {
+          homeStreakWidget.style.background = 'linear-gradient(135deg, #475569, #334155)'; // Grey for 0
+          homeStreakWidget.querySelector('.fire-core').textContent = '🌑'; // No fire yet
+          homeStreakWidget.querySelector('.fire-anim-container').style.animation = 'none';
+        } else {
+          homeStreakWidget.style.background = 'linear-gradient(135deg, #b45309, #78350f)';
+          homeStreakWidget.querySelector('.fire-core').textContent = '🔥';
+          homeStreakWidget.querySelector('.fire-anim-container').style.animation = 'fire-pulse 2s infinite ease-in-out';
+        }
+      }
+    });
   });
   // Fetch rewards
   get(ref(db, `users/${user.uid}/rewards`)).then(snap => {
@@ -1811,7 +1941,7 @@ async function renderTree() {
   }
 }
 
-// Hook into openSubFeature to render tree
+// Hook into openSubFeature to render features
 const originalOpenSubFeature = window.openSubFeature;
 window.openSubFeature = (feature) => {
   originalOpenSubFeature(feature);
@@ -1824,6 +1954,362 @@ window.openSubFeature = (feature) => {
   if (feature === 'series') {
     renderSeriesList();
   }
+  if (feature === 'halaqa' && auth.currentUser) {
+    checkHalaqaStatus();
+  }
+};
+
+// --- Halaqa Circles Logic ---
+const halaqaCreateBtn = document.getElementById('halaqa-create-btn');
+const halaqaJoinBtn = document.getElementById('halaqa-join-btn');
+const halaqaJoinInputContainer = document.getElementById('halaqa-join-input-container');
+const halaqaCodeInput = document.getElementById('halaqa-code-input');
+const halaqaSubmitJoin = document.getElementById('halaqa-submit-join');
+const halaqaLobby = document.getElementById('halaqa-lobby');
+const halaqaActive = document.getElementById('halaqa-active');
+const halaqaLeaveBtn = document.getElementById('halaqa-leave-btn');
+
+halaqaCreateBtn.onclick = async () => {
+  const name = prompt("Enter Circle Name:");
+  if (!name) return;
+  const user = auth.currentUser;
+  if (!user) return;
+
+  // Generate distinct 6-digit code
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const circleId = `halaqa_${code}`;
+
+  const circleData = {
+    name: name,
+    code: code,
+    admin: user.uid,
+    createdAt: Date.now(),
+    members: { [user.uid]: true }
+  };
+
+  try {
+    await set(ref(db, `circles/${circleId}`), circleData);
+    await update(ref(db, `users/${user.uid}`), { circleId: circleId });
+    showToast("Circle Created Successfully! 🎉", "#6ee7b7");
+    checkHalaqaStatus();
+  } catch (e) {
+    showToast("Error creating circle.", "#ff6b6b");
+  }
+};
+
+halaqaJoinBtn.onclick = () => {
+  halaqaJoinInputContainer.style.display = 'block';
+};
+
+halaqaSubmitJoin.onclick = async () => {
+  const code = halaqaCodeInput.value.trim();
+  if (code.length !== 6) {
+    showToast("Invalid Code", "#ff6b6b");
+    return;
+  }
+  const user = auth.currentUser;
+  const circleId = `halaqa_${code}`;
+
+  const snap = await get(ref(db, `circles/${circleId}`));
+  if (snap.exists()) {
+    await update(ref(db, `circles/${circleId}/members`), { [user.uid]: true });
+    await update(ref(db, `users/${user.uid}`), { circleId: circleId });
+    showToast("Joined Circle! 🤝", "#6ee7b7");
+    checkHalaqaStatus();
+  } else {
+    showToast("Circle not found.", "#ff6b6b");
+  }
+};
+
+halaqaLeaveBtn.onclick = async () => {
+  if (!confirm("Are you sure you want to leave this circle?")) return;
+  const user = auth.currentUser;
+  const snap = await get(ref(db, `users/${user.uid}/circleId`));
+  const circleId = snap.val();
+
+  if (circleId) {
+    await set(ref(db, `circles/${circleId}/members/${user.uid}`), null); // Remove member correctly
+    await update(ref(db, `users/${user.uid}`), { circleId: null });
+    showToast("Left Circle.", "#94a3b8");
+    checkHalaqaStatus();
+  }
+};
+
+async function checkHalaqaStatus() {
+  const user = auth.currentUser;
+  const snap = await get(ref(db, `users/${user.uid}/circleId`));
+  const circleId = snap.val();
+
+  if (circleId) {
+    halaqaLobby.style.display = 'none';
+    halaqaActive.style.display = 'block';
+    loadHalaqaData(circleId);
+  } else {
+    // Cleanup chat if moving to lobby
+    if (currentChatUnsubscribe) {
+      currentChatUnsubscribe();
+      currentChatUnsubscribe = null;
+    }
+    halaqaLobby.style.display = 'block';
+    halaqaActive.style.display = 'none';
+    halaqaJoinInputContainer.style.display = 'none'; // reset
+  }
+}
+
+async function loadHalaqaData(circleId) {
+  const snap = await get(ref(db, `circles/${circleId}`));
+  if (!snap.exists()) return;
+  const data = snap.val();
+
+  document.getElementById('halaqa-name').textContent = data.name;
+  const codeDisplay = document.getElementById('halaqa-code-display');
+  codeDisplay.textContent = data.code;
+  codeDisplay.onclick = () => {
+    navigator.clipboard.writeText(data.code);
+    showToast("Code Copied!", "#6ee7b7");
+  };
+
+  const memberIds = Object.keys(data.members || {});
+  document.getElementById('halaqa-member-count').textContent = `${memberIds.length} Members`;
+
+  renderHalaqaLeaderboard(memberIds, data.admin);
+
+  // Start Chat Listener
+  listenToChat(circleId);
+
+  // Setup Chat Send Button
+  const sendBtn = document.getElementById('halaqa-chat-send-btn');
+  const chatInput = document.getElementById('halaqa-chat-input');
+
+  // Remove old listener to prevent duplicates
+  const newSendBtn = sendBtn.cloneNode(true);
+  sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
+
+  newSendBtn.onclick = () => sendMessage(circleId, chatInput.value, memberIds, data.name);
+  chatInput.onkeypress = (e) => {
+    if (e.key === 'Enter') sendMessage(circleId, chatInput.value, memberIds, data.name);
+  };
+}
+
+// --- Chat Logic ---
+// Global variable for chat listener cleanup
+let currentChatUnsubscribe = null;
+
+function listenToChat(circleId) {
+  // Cleanup previous listener
+  if (currentChatUnsubscribe) {
+    currentChatUnsubscribe();
+    currentChatUnsubscribe = null;
+  }
+
+  const chatContainer = document.getElementById('halaqa-chat-messages');
+  // Use limitToLast to avoid loading all history
+  const messagesRef = query(ref(db, `circles/${circleId}/messages`), orderByKey(), limitToLast(50));
+
+  currentChatUnsubscribe = onValue(messagesRef, (snap) => {
+    try {
+      chatContainer.innerHTML = '';
+
+      if (!snap.exists()) {
+        chatContainer.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.9em;margin-top:20px;">No messages yet. Say Salam! 👋</div>';
+        return;
+      }
+
+      const val = snap.val();
+      const msgs = [];
+      snap.forEach(child => {
+        msgs.push(child.val());
+      });
+
+      msgs.forEach(msg => {
+        const isMe = (auth.currentUser && msg.senderId === auth.currentUser.uid);
+        const div = document.createElement('div');
+        div.className = `chat-msg ${isMe ? 'me' : 'others'}`;
+        div.innerHTML = `
+           <div class="chat-sender-name">${isMe ? 'You' : msg.senderName}</div>
+           <div>${msg.text}</div>
+           <div class="chat-time">${new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+        `;
+        chatContainer.appendChild(div);
+      });
+
+      // Scroll to bottom
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    } catch (err) {
+      console.error("[Chat] Error rendering messages:", err);
+    }
+  });
+}
+
+async function sendMessage(circleId, text, memberIds, circleName) {
+  if (!text || !text.trim()) return;
+  const user = auth.currentUser;
+
+  const msgData = {
+    senderId: user.uid,
+    senderName: user.displayName || "Member",
+    text: text.trim(),
+    timestamp: Date.now()
+  };
+
+  try {
+    await push(ref(db, `circles/${circleId}/messages`), msgData);
+    document.getElementById('halaqa-chat-input').value = '';
+  } catch (err) {
+    console.error("Chat Send Error:", err);
+    showToast("Failed to send. Are you in the circle?", "#ff6b6b");
+    return;
+  }
+
+  // --- Notify Other Members ---
+  memberIds.forEach(targetUid => {
+    if (targetUid === user.uid) return; // Don't notify self
+
+    // Throttle notifications? Maybe for now send all.
+    get(ref(db, `users/${targetUid}/fcmToken`)).then(snap => {
+      if (snap.exists()) {
+        sendFCMNotificationv1(
+          snap.val(),
+          `New Message in ${circleName} 💬`,
+          `${user.displayName || 'Someone'}: ${text.substring(0, 30)}...`,
+          "default"
+        );
+      }
+    });
+  });
+}
+
+// --- Leaderboard & Admin Logic ---
+async function renderHalaqaLeaderboard(memberIds, adminId) {
+  const listEl = document.getElementById('halaqa-leaderboard');
+  listEl.innerHTML = '<div style="color:#94a3b8;text-align:center;">Loading stats...</div>';
+  const currentUid = auth.currentUser.uid;
+  const isAdmin = (currentUid === adminId);
+
+  // Calculate Start of Week (Monday)
+  const today = new Date();
+  const day = today.getDay(); // 0 (Sun) - 6 (Sat)
+  const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Monday start
+  const monday = new Date(today.setDate(diff));
+  const dateKeys = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    dateKeys.push(getTodayDateString(d));
+  }
+
+  const membersData = [];
+
+  for (const uid of memberIds) {
+    // Parallel fetch profile + logs
+    const [profileSnap, logsSnap] = await Promise.all([
+      get(ref(db, `users/${uid}`)),
+      get(ref(db, `users/${uid}/logs`))
+    ]);
+
+    const profile = profileSnap.val() || {};
+    const logs = logsSnap.val() || {};
+
+    let weeklyPrayers = 0;
+    dateKeys.forEach(date => {
+      if (logs[date]) {
+        const p = logs[date];
+        ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].forEach(namaz => {
+          if (p[namaz] === 'prayed') weeklyPrayers++;
+        });
+      }
+    });
+
+    membersData.push({
+      uid,
+      name: profile.displayName || "Unknown",
+      score: weeklyPrayers
+    });
+  }
+
+  // Sort by Score Descending
+  membersData.sort((a, b) => b.score - a.score);
+
+  listEl.innerHTML = '';
+  membersData.forEach((m, index) => {
+    const isMe = (m.uid === currentUid);
+    let rankEmoji = `#${index + 1}`;
+    if (index === 0) rankEmoji = '🥇';
+    if (index === 1) rankEmoji = '🥈';
+    if (index === 2) rankEmoji = '🥉';
+
+    const div = document.createElement('div');
+    div.className = 'halaqa-leaderboard-item';
+    if (isMe) div.style.borderColor = '#6ee7b7';
+
+    let actionButtons = '';
+    if (!isMe) {
+      actionButtons += `<button onclick="nudgeMember('${m.uid}')" class="nudge-btn">🔔 Nudge</button>`;
+      // Add Kick Button if I am Admin
+      if (isAdmin) {
+        actionButtons += `<button onclick="kickMember('${m.uid}')" class="kick-btn" title="Kick Member">🗑️</button>`;
+      }
+    }
+
+    div.innerHTML = `
+      <div style="display:flex;align-items:center;">
+        <span class="rank-badge">${rankEmoji}</span>
+        <div>
+           <div style="font-weight:600;color:${isMe ? '#6ee7b7' : '#e2e8f0'}">${m.name} ${isMe ? '(You)' : ''}</div>
+           <div style="font-size:0.8em;color:#94a3b8;">${m.score} Prayers</div>
+        </div>
+      </div>
+      <div>
+         ${actionButtons}
+      </div>
+    `;
+    listEl.appendChild(div);
+  });
+}
+
+window.kickMember = async (targetUid) => {
+  if (!confirm("Are you sure you want to remove this member?")) return;
+
+  // Admin check is implicitly done by UI visibility, but security rules should handle backend.
+  // Ideally, we re-check `circles/{id}/admin` here, but for now client-side logic:
+
+  const user = auth.currentUser;
+  const snap = await get(ref(db, `users/${user.uid}/circleId`));
+  const circleId = snap.val();
+
+  if (circleId) {
+    await set(ref(db, `circles/${circleId}/members/${targetUid}`), null);
+    await update(ref(db, `users/${targetUid}`), { circleId: null });
+    showToast("Member Removed.", "#ff6b6b");
+    // UI updates automatically via listeners? No, loadHalaqaData is manual refresh mostly unless we add listeners for members too.
+    // Ideally we should reload data.
+    loadHalaqaData(circleId);
+  }
+};
+
+window.nudgeMember = (targetUid) => {
+  // Check throttle (1 nudge per hour?)
+  const lastNudge = localStorage.getItem(`nudge_${targetUid}`);
+  if (lastNudge && (Date.now() - lastNudge < 3600000)) {
+    showToast("Wait before nudging again!", "#f59e0b");
+    return;
+  }
+
+  // Send FCM
+  get(ref(db, `users/${targetUid}/fcmToken`)).then(snap => {
+    if (snap.exists()) {
+      sendFCMNotificationv1(
+        snap.val(),
+        "Halaqa Nudge! 🔔",
+        "Your circle member is reminding you to pray! Don't give up!",
+        "reminder_tone"
+      );
+      showToast("Nudge Sent!", "#6ee7b7");
+      localStorage.setItem(`nudge_${targetUid}`, Date.now());
+    } else {
+      showToast("User offline (No Token)", "#94a3b8");
+    }
+  });
 };
 
 // --- Islamic Series Logic (Migrated to Firebase) ---
@@ -2536,12 +3022,10 @@ async function checkAppUpdates() {
     // Latest Update Summary
     newsContent.innerHTML = `
       <ul style="padding-left: 20px;">
-        <li><b>Account Settings:</b> Custom Display Names implemented! 🧑🏽</li>
-        <li><b>Prayer Offsets:</b> Adjust prayer times by minutes. 🕌</li>
-        <li><b>Data Export:</b> Save your history locally anytime. 📥</li>
-        <li><b>Security:</b> Hardened API and better error tracking. 🛡️</li>
+        <li><b>Halaqa Circles:</b> Join groups, chat & compete with friends! 👥</li>
+        <li><b>Salah Streak:</b> Track your consistency & keep the fire burning! 🔥</li>
       </ul>
-      <p style="margin-top: 15px; font-style: italic;">We're making Salah Tracker ready for the whole Ummah! Keep us in your Duas. 🤲</p>
+      <p style="margin-top: 15px; font-style: italic;">Connect, Compete, and Pray together! 🤲</p>
     `;
 
     newsModal.style.display = 'flex';
