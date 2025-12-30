@@ -6,7 +6,7 @@
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Salah Tracker</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=3.4">
   <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
@@ -275,32 +275,99 @@
   </div>
 
   <!-- Donate Section (replaces Mosque) -->
+  <!-- Donate Section -->
   <div class="container" id="donate-section" style="display:none">
     <div class="card donate-card" style="text-align:center;">
-      <h2 style="font-size:2em;margin-bottom:0.2em;">🤲 Donate for Poor</h2>
-      <div style="font-size:2.2em;margin-bottom:0.2em;color:#ff6b81;">❤️</div>
-      <div style="margin-bottom:14px;font-size:1.13em;line-height:1.5;">Har week sirf <b>100 rupay</b> kisi ki zindagi
-        badal sakte hain! Sadqa dein, barakat paayen.</div>
-      <div id="donate-status" style="margin-bottom:12px;font-weight:600;font-size:1.08em;"></div>
+      <h2 style="font-size:2em;margin-bottom:0.2em;">🤲 Sadqa-e-Jariya</h2>
+      <div id="donate-heart-icon" style="font-size:2.2em;margin-bottom:0.2em;color:#ff6b81;cursor:pointer;">❤️</div>
+
+      <!-- Trust Message -->
+      <!-- Trust Message Trigger -->
+      <button id="btn-why-donate"
+        style="background:#064e3b; color:#fff; border:1px solid #059669; padding:10px 15px; border-radius:10px; font-size:0.95em; cursor:pointer; width:100%; margin-bottom:15px; font-weight:600;">
+        Why Donate? 💭
+      </button>
+
+      <!-- Trust Message Modal -->
+      <div id="modal-why-donate" class="modal" style="display:none;">
+        <div class="modal-content" style="text-align:left; border:1px solid #059669;">
+          <span id="close-why-donate" class="close"
+            style="color:#aaa; float:right; font-size:28px; font-weight:bold; cursor:pointer;">&times;</span>
+          <div style="font-size:1.1em; color:#fff; font-weight:600; margin-bottom:8px;">Assalamualaikum,</div>
+          <div style="font-size:0.95em; color:#ecfdf5; line-height:1.6;">
+            Apki di hoi donations haqdaro tk ponchai jay gi... dekhein apkay just 100 se apkay rizq mein kami nahi hogi
+            apka ye 100 ak ghareeb ki khoshi ka baais bn sakta hai... <br><br>
+            Is dunniya mein hazaro log asay hein jo raat ko bina khai piye so rahay hein hazaro asay hein jo din raat
+            allah se dua mangtay hein k allah on k liye koi wasila banay... muj se jitna ho sakta hai mein madad karta
+            ho ghareebo ki but agr hum sub mil kr karein to ap khud andaza lagaein k hum kitno ki madad kr sakty
+            hein.<br><br>
+            Apki di hoi donation mein se ak rupiya bhe mein nahi rakho ga sub donate kia jay ga... and iska proof bhe
+            upload hoga just apko dikhanay k liye k apki di hoi donation such mein haqdaaro tk poch rahi... and ap total
+            donation bhe dekh sakty hein jo jo user donate kr raha wo live count ho raha takay apko pata chal sakay k
+            kitna donate ho raha hai...
+          </div>
+          <div style="margin-top:10px; font-size:0.85em; color:#6ee7b7; font-weight:700;">
+            "Jo shakhs kisi mohtaj ki madad karta hai, Allah uski madad karta hai." (Muslim)
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Global Stats -->
+      <div
+        style="background:#0f172a; padding:12px; border-radius:12px; margin-bottom:15px; border:1px solid #334155; display:flex; justify-content:space-around;">
+        <div>
+          <div style="color:#94a3b8; font-size:0.8em;">Total Donations</div>
+          <div id="global-donation-total" style="color:#fcd34d; font-size:1.4em; font-weight:700;">0 PKR</div>
+        </div>
+        <div>
+          <div style="color:#94a3b8; font-size:0.8em;">Donors</div>
+          <div id="global-donation-count" style="color:#6ee7b7; font-size:1.4em; font-weight:700;">0</div>
+        </div>
+        <div>
+          <div style="color:#94a3b8; font-size:0.8em;">My Streak</div>
+          <div id="user-donation-streak" style="color:#ff6b6b; font-size:1.4em; font-weight:700;">0 🔥</div>
+        </div>
+      </div>
+
+      <!-- Payment Method: JazzCash Only -->
       <div class="donate-pay-box"
         style="background:#222c;padding:16px 10px 10px 10px;border-radius:16px;margin-bottom:16px;box-shadow:0 2px 12px #0002;">
-        <div id="donate-sadapay" style="margin-bottom:8px;font-size:1.13em;">
-          <b>Sadapay:</b> <span id="sadapay-number">03284700500</span>
-          <button id="copy-sadapay-btn"
-            style="margin-left:6px;padding:2px 10px;border-radius:8px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.98em;">Copy</button>
-        </div>
         <div id="donate-jazzcash" style="margin-bottom:2px;font-size:1.13em;">
           <b>JazzCash:</b> <span id="jazzcash-number">03284700500</span>
           <button id="copy-jazzcash-btn"
             style="margin-left:6px;padding:2px 10px;border-radius:8px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.98em;">Copy</button>
         </div>
+        <div style="font-size:0.8em; color:#aaa; margin-top:5px;">Name: Muhammad Hasnain</div>
       </div>
-      <button id="donate-mark-btn" class="thirty-day-btn"
-        style="margin-bottom:14px;width:100%;background:#6ee7b7;color:#222;">I have donated (Mark as Done)</button>
-      <div id="donate-streak" style="margin:10px 0 4px 0;font-size:1.08em;color:#6ee7b7;"></div>
-      <div id="donate-badges" style="margin-bottom:4px;"></div>
-      <div style="margin-top:12px;font-size:1.01em;color:#a7f3d0;">"Jo shakhs kisi mohtaj ki madad karta hai, Allah uski
-        madad karta hai." (Muslim)</div>
+
+      <!-- Verification Form Trigger -->
+      <button id="btn-show-claim-form"
+        style="width:100%; border:none; border-radius:12px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#fff; padding:16px; font-weight:700; font-size:1.1em; cursor:pointer; box-shadow:0 6px 20px rgba(16, 185, 129, 0.4); margin-bottom:15px; position:relative; overflow:hidden;">
+        I Have Donated ✅
+      </button>
+
+      <!-- Verification Form (Hidden Initially) -->
+      <div id="claim-form-container" style="display:none; animation: slideDown 0.3s ease-out; margin-bottom:15px;">
+        <label style="font-size:0.9em; color:#cbd5e1;">Enter Transaction ID (from SMS):</label>
+        <input type="text" id="donation-trx-id" placeholder="e.g. T2819SH829"
+          style="width:100%; padding:10px; margin-top:5px; border-radius:8px; border:1px solid #334155; background:#1e293b; color:#fff; outline:none;">
+      </div>
+
+      <button id="donate-submit-btn" class="thirty-day-btn"
+        style="margin-bottom:14px;width:100%;background:#6ee7b7;color:#222; font-weight:700;">Submit Claim ✅</button>
+
+      <div id="user-donation-status" style="margin:10px 0; font-size:0.95em;"></div>
+    </div>
+  </div>
+
+  <!-- Admin Verification Panel (Hidden by Default) -->
+  <div class="container" id="admin-donation-panel" style="display:none; border:2px solid #ef4444;">
+    <div class="card">
+      <h3 style="color:#ef4444; margin-top:0;">🛡️ Admin Verification</h3>
+      <div id="admin-pending-list" style="max-height:300px; overflow-y:auto; text-align:left;">
+        <!-- Populated by JS -->
+        <div style="padding:10px; border-bottom:1px solid #333; color:#aaa;">Loading claims...</div>
+      </div>
     </div>
   </div>
 
@@ -1080,7 +1147,7 @@
     </div>
 
   </div>
-  <script type="module" src="app.js?v=3.3"></script>
+  <script type="module" src="app.js?v=3.4"></script>
   <script type="module" src="app2.js?v=1.0"></script>
 </body>
 
