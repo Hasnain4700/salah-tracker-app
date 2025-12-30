@@ -992,3 +992,43 @@ transform: scale(0.95);
     transform: translateY(0);
   }
 }
+
+/* Donation UI Enhancements */
+.donation-glow-text {
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+  animation: glow-pulse 3s infinite alternate;
+}
+
+@keyframes glow-pulse {
+  from {
+    text-shadow: 0 0 5px rgba(252, 211, 77, 0.2);
+  }
+
+  to {
+    text-shadow: 0 0 15px rgba(252, 211, 77, 0.6);
+  }
+}
+
+#donate-section input:focus {
+  border-color: #6ee7b7 !important;
+  box-shadow: 0 0 0 2px rgba(110, 231, 183, 0.2);
+}
+
+/* Streak Fire Animation */
+#user-donation-streak {
+  text-shadow: 0 0 10px rgba(255, 107, 107, 0.4);
+  animation: fire-pulse 2s infinite ease-in-out;
+}
+
+/* Slide Down for Form */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
