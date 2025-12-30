@@ -21,7 +21,7 @@ messaging.onBackgroundMessage(function (payload) {
 });
 
 // --- Caching Logic (Merged from sw.js) ---
-const CACHE_NAME = 'salah-tracker-v3.4';
+const CACHE_NAME = 'salah-tracker-v3.5';
 const ASSETS = [
   './',
   './index.html',
