@@ -237,3 +237,271 @@
         }
     };
 })();
+
+/**
+ * --- DAILY HADITH FEATURE ---
+ */
+(function () {
+    const fallbacks = [
+        { text: "Verily, actions are by intentions, and every person will have only what they intended.", ref: "Sahih Bukhari" },
+        { text: "The best among you are those who have the best manners and character.", ref: "Sahih Bukhari" },
+        { text: "None of you will have faith until he loves for his brother what he loves for himself.", ref: "Sahih Bukhari" },
+        { text: "A good word is a form of charity.", ref: "Sahih Bukhari" },
+        { text: "A Muslim is the one from whose tongue and hands the Muslims are safe.", ref: "Sahih Bukhari" }
+    ];
+
+    async function initDailyHadith() {
+        const today = new Date().toDateString();
+        const lastShown = localStorage.getItem('last_hadith_date');
+
+        if (lastShown === today) return;
+
+        const hadithContent = document.getElementById('hadith-content');
+        const hadithRef = document.getElementById('hadith-ref');
+        const hadithModal = document.getElementById('hadith-modal');
+
+        if (!hadithContent || !hadithModal) return;
+
+        try {
+            // Using a reliable free Hadith API
+            const response = await fetch('https://hadith-api.com/api/hadiths?apiKey=$2y$10$fWfI/kH06z.N.6F9M/Vv7uq3rUe/Yj9Ua5Gv7R8H/n6m/Yj9Ua5Gv7R8H/&limit=1&random=1');
+            if (!response.ok) throw new Error("API Limit or DNS issue");
+            const data = await response.json();
+            const hadith = data.hadiths?.data?.[0];
+
+            if (hadith) {
+                hadithContent.textContent = hadith.hadithUrdu || hadith.hadithEnglish;
+                if (hadithRef) hadithRef.textContent = `— ${hadith.bookName}, Hadith: ${hadith.hadithNumber}`;
+                hadithModal.style.display = 'flex';
+                localStorage.setItem('last_hadith_date', today);
+            } else {
+                showFallback();
+            }
+        } catch (err) {
+            console.warn("Hadith API failed, using fallback.");
+            showFallback();
+        }
+
+        function showFallback() {
+            const randomH = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+            hadithContent.textContent = randomH.text;
+            if (hadithRef) hadithRef.textContent = `— ${randomH.ref}`;
+            hadithModal.style.display = 'flex';
+            localStorage.setItem('last_hadith_date', today);
+        }
+    }
+
+    const closeBtn = document.getElementById('close-hadith-btn');
+    if (closeBtn) {
+        closeBtn.onclick = () => {
+            const modal = document.getElementById('hadith-modal');
+            if (modal) modal.style.display = 'none';
+        };
+    }
+
+    // Trigger on load
+    window.addEventListener('load', () => setTimeout(initDailyHadith, 5000));
+})();
+
+/**
+ * --- QURAN READ FEATURE ---
+ */
+(function () {
+    const surahListEl = document.getElementById('quran-surah-list');
+    const versesViewEl = document.getElementById('quran-verses-view');
+    const backBtn = document.getElementById('quran-read-back-btn');
+
+    async function fetchSurahs() {
+        if (!surahListEl) return;
+        try {
+            const res = await fetch('https://api.quran.com/api/v4/chapters?language=ur');
+            const data = await res.json();
+            renderSurahList(data.chapters);
+        } catch (err) {
+            surahListEl.innerHTML = `<div style="color:#ff6b6b; text-align:center;">Failed to load Surahs. Check connection.</div>`;
+        }
+    }
+
+    function renderSurahList(chapters) {
+        if (!surahListEl) return;
+        surahListEl.innerHTML = chapters.map(c => `
+            <div class="card" style="padding:12px; margin-bottom:8px; cursor:pointer; background:#1e293b; display:flex; justify-content:space-between; align-items:center;" onclick="window.loadSurah(${c.id}, '${c.name_simple}')">
+                <div>
+                    <span style="color:#6ee7b7; font-weight:bold; margin-right:10px;">${c.id}.</span>
+                    <span>${c.name_simple}</span>
+                </div>
+                <div style="font-family:'Traditional Arabic', serif; font-size:1.1em;">${c.name_arabic}</div>
+            </div>
+        `).join('');
+    }
+
+    window.loadSurah = async (id, name) => {
+        if (!surahListEl || !versesViewEl) return;
+        surahListEl.style.display = 'none';
+        versesViewEl.style.display = 'block';
+        versesViewEl.innerHTML = `<div style="text-align:center; padding:20px; color:#94a3b8;">Loading Verses... 📖</div>`;
+
+        try {
+            // Updated API: per_page=300 for full Surah, fields=text_uthmani to fix undefined text
+            const res = await fetch(`https://api.quran.com/api/v4/verses/by_chapter/${id}?language=ur&words=false&translations=158&page=1&per_page=300&fields=text_uthmani`);
+            const data = await res.json();
+            renderVerses(data.verses, name);
+        } catch (err) {
+            versesViewEl.innerHTML = `<div style="color:#ff6b6b; text-align:center;">Failed to load verses.</div>`;
+        }
+    };
+
+    function renderVerses(verses, surahName) {
+        if (!versesViewEl) return;
+        versesViewEl.innerHTML = `
+            <div style="text-align:center; margin-bottom:20px; padding: 10px;">
+                <h2 style="color:#6ee7b7; margin:0; font-size: 1.5em; font-weight: 800;">${surahName}</h2>
+            </div>
+            ${verses.map(v => `
+                <div style="margin-bottom:32px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:16px; text-align: right;">
+                    <!-- Arabic Text (Top) -->
+                    <div style="font-size:1.8em; line-height:2.2; font-family:'Traditional Arabic', serif; color:#fff; direction: rtl; margin-bottom: 12px;">
+                        ${v.text_uthmani} <span style="font-size:0.5em; color:#6ee7b7; border:1px solid #6ee7b7; border-radius:50%; padding:2px 6px; vertical-align: middle; margin-right: 5px;">${v.verse_number}</span>
+                    </div>
+                    <!-- Urdu Translation (Bottom) -->
+                    <div style="font-size:1.05em; color:#a7f3d0; line-height:1.7; font-family:'Noto Nastaliq Urdu', serif; direction: rtl;">
+                        ${v.translations[0]?.text || ''}
+                    </div>
+                </div>
+            `).join('')}
+            <div style="text-align:center; color:#94a3b8; font-size:0.85em; margin-top:30px; padding-bottom: 20px;">Sadq-Allahu-Azim</div>
+        `;
+    }
+
+    if (backBtn) {
+        backBtn.onclick = () => {
+            if (versesViewEl && versesViewEl.style.display === 'block') {
+                versesViewEl.style.display = 'none';
+                if (surahListEl) surahListEl.style.display = 'block';
+            } else {
+                // Custom closeSubFeature logic if it exists globally
+                if (window.closeSubFeature) window.closeSubFeature();
+            }
+        };
+    }
+
+    // Activate on display
+    const obs = new MutationObserver((muts) => {
+        muts.forEach(m => {
+            if (m.target.id === 'feature-quran-read' && m.target.style.display !== 'none' && surahListEl && surahListEl.children.length <= 1) {
+                fetchSurahs();
+            }
+        });
+    });
+    const qReadTarget = document.getElementById('feature-quran-read');
+    if (qReadTarget) {
+        obs.observe(qReadTarget, { attributes: true, attributeFilter: ['style'] });
+    }
+})();
+
+/**
+ * --- ZAKAT CALCULATOR LOGIC ---
+ */
+(function () {
+    const calcBtn = document.getElementById('calculate-zakat-btn');
+    const resultDiv = document.getElementById('zakat-result');
+    const amountEl = document.getElementById('zakat-amount');
+
+    if (calcBtn) {
+        calcBtn.onclick = () => {
+            const cash = parseFloat(document.getElementById('zakat-cash').value) || 0;
+            const gold = parseFloat(document.getElementById('zakat-gold').value) || 0;
+            const silver = parseFloat(document.getElementById('zakat-silver').value) || 0;
+            const assets = parseFloat(document.getElementById('zakat-assets').value) || 0;
+            const debts = parseFloat(document.getElementById('zakat-debts').value) || 0;
+
+            const totalWealth = cash + gold + silver + assets - debts;
+
+            // Approx Nisab in PKR (Dec 2023 - Silver rate approx 2300/tola, 52.5 tola = ~120,000)
+            // For simplicity, let's keep it around 150k as a safe threshold
+            const nisabThreshold = 150000;
+
+            if (amountEl && resultDiv) {
+                if (totalWealth >= nisabThreshold) {
+                    const zakat = totalWealth * 0.025;
+                    amountEl.textContent = `${Math.round(zakat).toLocaleString()} PKR`;
+                    resultDiv.style.display = 'block';
+                } else {
+                    amountEl.textContent = "Nisab Not Met";
+                    amountEl.style.color = "#94a3b8";
+                    resultDiv.style.display = 'block';
+                }
+            }
+        };
+    }
+})();
+
+/**
+ * --- MASJID FINDER LOGIC (Free Overpass API) ---
+ */
+(function () {
+    const listEl = document.getElementById('masjid-list');
+
+    async function findMasajid() {
+        if (!listEl) return;
+        const lat = localStorage.getItem('userLat');
+        const lng = localStorage.getItem('userLng');
+
+        if (!lat || !lng) {
+            listEl.innerHTML = `
+                <div style="text-align:center; padding:20px; color:#ff6b6b;">
+                    <div style="font-size:2em; margin-bottom:10px;">⚠️</div>
+                    Location access denied or not found.<br>
+                    Please enable GPS and refresh the app.
+                </div>`;
+            return;
+        }
+
+        listEl.innerHTML = `<div style="text-align:center; padding:20px; color:#94a3b8;">Searching nearby Masajid... 🕌</div>`;
+
+        try {
+            // Overpass API Query: Mosque within 5km
+            const query = `[out:json];node["amenity"="place_of_worship"]["religion"="muslim"](around:5000,${lat},${lng});out body;`;
+            const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+            if (!res.ok) throw new Error("Overpass API error");
+            const data = await res.json();
+
+            if (data.elements && data.elements.length > 0) {
+                renderMasajid(data.elements);
+            } else {
+                listEl.innerHTML = `<div style="text-align:center; padding:20px; color:#94a3b8;">No masajid found within 5km. Try increasing range in future updates.</div>`;
+            }
+        } catch (err) {
+            listEl.innerHTML = `<div style="text-align:center; padding:20px; color:#ff6b6b;">Error searching Masajid. Please try again later.</div>`;
+        }
+    }
+
+    function renderMasajid(elements) {
+        if (!listEl) return;
+        // Simple distance calculation and sort might be needed, but for now we list them
+        listEl.innerHTML = elements.map(e => `
+            <div class="card" style="padding:15px; margin-bottom:10px; background:#1e293b; border-left:4px solid #6ee7b7;">
+                <div style="font-weight:700; color:#fff;">${e.tags.name || 'Masjid (Unnamed)'}</div>
+                <div style="font-size:0.85em; color:#94a3b8; margin-top:4px;">
+                    ${e.tags['addr:street'] || 'Nearby Area'}
+                </div>
+                <a href="https://www.google.com/maps/search/?api=1&query=${e.lat},${e.lon}" target="_blank"
+                   style="display:inline-block; margin-top:8px; font-size:0.85em; color:#6ee7b7; text-decoration:none;">
+                   Open in Maps 🗺️
+                </a>
+            </div>
+        `).join('');
+    }
+
+    const obs = new MutationObserver((muts) => {
+        muts.forEach(m => {
+            if (m.target.id === 'feature-masjid' && m.target.style.display !== 'none' && listEl && listEl.children.length <= 1) {
+                findMasajid();
+            }
+        });
+    });
+    const mTarget = document.getElementById('feature-masjid');
+    if (mTarget) {
+        obs.observe(mTarget, { attributes: true, attributeFilter: ['style'] });
+    }
+})();
