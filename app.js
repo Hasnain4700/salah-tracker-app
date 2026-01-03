@@ -743,6 +743,7 @@ onAuthStateChanged(auth, user => {
       userOffsets = data.prayerOffsets || { Fajr: 0, Dhuhr: 0, Asr: 0, Maghrib: 0, Isha: 0 };
       userDisplayName = data.displayName || user.email.split('@')[0];
       userStrugglePrayer = data.strugglePrayer || "";
+      localStorage.setItem('userStrugglePrayer', userStrugglePrayer);
 
       // Now that offsets are loaded, we can fetch/refresh prayer times
       fetchPrayerTimes(currentDate);
