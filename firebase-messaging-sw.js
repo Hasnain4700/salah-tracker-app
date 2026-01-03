@@ -1,101 +1,95 @@
-const admin = require('firebase-admin');
+// firebase-messaging-sw.js
+importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
 
-// Validate environment variables early
-const project_id = (process.env.FCM_PROJECT_ID || '').trim();
-const client_email = (process.env.FCM_CLIENT_EMAIL || '').trim();
-const private_key = (process.env.FCM_PRIVATE_KEY || '').trim();
+// --- Initialize Firebase ---
+let messaging = null;
+if (typeof firebase !== 'undefined') {
+  firebase.initializeApp({
+    apiKey: "AIzaSyDbVJk5nIK3Ltth3ibdERPmMzT8BXmeiUk",
+    authDomain: "salah-tracker2.firebaseapp.com",
+    projectId: "salah-tracker2",
+    messagingSenderId: "1051833345706",
+    appId: "1:1051833345706:web:40977957e6bf792b1552d3"
+  });
+  messaging = firebase.messaging();
+} else {
+  console.error("[FCM SW] Firebase SDK failed to load. Notification support disabled.");
+}
 
-module.exports = async (req, res) => {
-    // --- CORS Headers ---
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-cron-auth');
+// --- Background Notifications ---
+if (messaging) {
+  messaging.onBackgroundMessage(function (payload) {
+    console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  });
+}
 
-    // Handle Preflight request
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
+// --- Caching Logic (Merged from sw.js) ---
+const CACHE_NAME = 'salah-tracker-v3.7';
+const ASSETS = [
+  './',
+  './index.html',
+  './style.css',
+  './app.js',
+  './firebase.js',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
+  './favicon.ico',
+  './twa-manifest.json'
+];
 
-    if (!project_id || !client_email || !private_key) {
-        return res.status(500).json({ success: false, error: 'Missing Credentials in Vercel Settings' });
-    }
+self.addEventListener('install', (e) => {
+  self.skipWaiting();
+  e.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+  );
+});
 
-    // Initialize Firebase Admin safely
-    try {
-        if (!admin.apps.length) {
-            let pk = private_key;
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      );
+    }).then(() => self.clients.claim())
+  );
+});
 
-            // Unpack JSON string if needed
-            try {
-                if (pk.startsWith('"')) pk = JSON.parse(pk);
-            } catch (e) {
-                pk = pk.replace(/^["']|["']$/g, '');
-            }
+self.addEventListener('fetch', (e) => {
+  const url = e.request.url;
+  // --- STOP extension errors and only handle HTTP(S) ---
+  if (!url.startsWith('http')) return;
 
-            pk = pk.replace(/\\n/g, '\n');
+  // --- Do NOT cache API calls or external Firebase/Prayer APIs ---
+  if (
+    url.includes('api.aladhan.com') ||
+    url.includes('googleapis.com') ||
+    url.includes('/api/') ||
+    e.request.method !== 'GET'
+  ) {
+    return;
+  }
 
-            if (!pk.includes('-----BEGIN PRIVATE KEY-----')) {
-                pk = pk.replace(/\s+/g, '');
-                pk = `----- BEGIN PRIVATE KEY-----\n${pk} \n----- END PRIVATE KEY----- `;
-            }
+  e.respondWith(
+    caches.match(e.request).then((cachedResponse) => {
+      if (cachedResponse) return cachedResponse;
 
-            admin.initializeApp({
-                credential: admin.credential.cert({
-                    projectId: project_id,
-                    clientEmail: client_email,
-                    privateKey: pk,
-                }),
-            });
+      return fetch(e.request).then((networkResponse) => {
+        // Only cache valid responses from our own origin
+        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+          return networkResponse;
         }
 
-        const messaging = admin.messaging();
-        const { token, title, body, sound } = req.body;
-
-        if (!token || !title || !body) {
-            return res.status(400).json({ success: false, error: 'Missing token/title/body' });
-        }
-
-        const message = {
-            notification: { title, body },
-            token: token,
-            webpush: {
-                fcm_options: { link: "https://salah-tracker-app.vercel.app" },
-                notification: {
-                    icon: "https://salah-tracker-app.vercel.app/icon-192.png",
-                    badge: "https://salah-tracker-app.vercel.app/icon-192.png"
-                }
-            },
-            android: {
-                priority: 'high',
-                notification: {
-                    sound: sound || 'reminder_tone',
-                    channelId: 'prayer-notifications',
-                    priority: 'max'
-                }
-            },
-            apns: {
-                payload: {
-                    aps: {
-                        sound: sound ? `${sound}.caf` : 'reminder_tone.caf',
-                        priority: 10
-                    }
-                }
-            }
-        };
-
-
-
-        const response = await messaging.send(message);
-
-        return res.status(200).json({ success: true, messageId: response });
-
-    } catch (error) {
-        console.error("FCM Backend Error:", error);
-        return res.status(500).json({
-            success: false,
-            error: error.message,
-            code: error.code || 'UNKNOWN',
-            hint: `Project ID: ${project_id}. ` + (error.message.includes('account not found') ? 'Check if Client Email is exactly correct in Vercel' : 'Double check Private Key')
+        const responseToCache = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(e.request, responseToCache);
         });
-    }
-};
+
+        return networkResponse;
+      }).catch(() => {
+        // Fail silently
+      });
+    })
+  );
+});
