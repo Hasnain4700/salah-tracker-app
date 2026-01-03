@@ -6,7 +6,7 @@
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Salah Tracker</title>
-  <link rel="stylesheet" href="style.css?v=3.5">
+  <link rel="stylesheet" href="style.css?v=3.7">
   <link rel="icon" href="icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
@@ -38,67 +38,50 @@
 
   <!-- Settings Modal -->
   <div id="settings-modal" class="modal">
-    <div class="modal-content" style="max-width: 400px; padding: 25px; text-align: left;">
-      <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 style="margin:0; font-size: 1.5em; color: #fff;">Settings</h2>
-        <button id="close-settings"
-          style="background:none; border:none; color:#94a3b8; font-size:1.5em; cursor:pointer;">&times;</button>
+    <div class="modal-content settings-modal-content" style="background: #0f172a !important;">
+      <!-- Centered Header -->
+      <div class="settings-header-centered">
+        <button id="close-settings" class="settings-back-btn">&#8592;</button>
+        <h2 style="margin:0; font-size:1.1em; font-weight:700;" data-i18n="settings">Settings</h2>
       </div>
 
-      <div style="max-height: 70vh; overflow-y: auto; padding-right: 5px;" class="custom-scroll">
-        <!-- Account Section -->
-        <div style="margin-bottom: 25px;">
-          <h3
-            style="font-size: 0.9em; color: #6ee7b7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
-            Account</h3>
-          <div class="setting-item">
-            <label class="onboarding-label">Display Name</label>
-            <input type="text" id="settings-display-name" class="onboarding-select" placeholder="Enter your name">
+      <!-- Search Bar -->
+      <div class="settings-search-container">
+        <input type="text" class="settings-search-input" placeholder="Search for a setting..." id="settings-search">
+      </div>
+
+      <!-- Body -->
+      <div class="settings-body custom-scroll" style="padding: 0;">
+
+        <!-- Account Group -->
+        <div class="settings-group-card">
+          <div class="settings-item-row" style="cursor: default;">
+            <div class="settings-item-icon">👤</div>
+            <div class="settings-item-label">Display Name</div>
+            <input type="text" id="settings-display-name" class="settings-list-control" placeholder="Name"
+              style="text-align: left; width: 100px;">
+          </div>
+          <div class="settings-item-row" style="cursor: default;">
+            <div class="settings-item-icon">🌍</div>
+            <div class="settings-item-label" data-i18n="lang_label">App Language</div>
+            <select id="settings-language" class="settings-list-control">
+              <option value="ur">Roman Urdu</option>
+              <option value="en">English</option>
+            </select>
           </div>
         </div>
 
-        <!-- Prayer Times Section -->
-        <div style="margin-bottom: 25px;">
-          <h3
-            style="font-size: 0.9em; color: #6ee7b7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
-            Custom Prayer Times</h3>
-          <p style="font-size: 0.8em; color: #94a3b8; margin-bottom: 10px;">Adjust prayer times by minutes (+/-)</p>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div class="setting-item">
-              <label class="onboarding-label">Fajr</label>
-              <input type="number" id="offset-Fajr" class="onboarding-select" value="0">
-            </div>
-            <div class="setting-item">
-              <label class="onboarding-label">Dhuhr</label>
-              <input type="number" id="offset-Dhuhr" class="onboarding-select" value="0">
-            </div>
-            <div class="setting-item">
-              <label class="onboarding-label">Asr</label>
-              <input type="number" id="offset-Asr" class="onboarding-select" value="0">
-            </div>
-            <div class="setting-item">
-              <label class="onboarding-label">Maghrib</label>
-              <input type="number" id="offset-Maghrib" class="onboarding-select" value="0">
-            </div>
-            <div class="setting-item">
-              <label class="onboarding-label">Isha</label>
-              <input type="number" id="offset-Isha" class="onboarding-select" value="0">
-            </div>
+        <!-- Preferences Group -->
+        <div class="settings-group-card">
+          <div class="settings-item-row" style="cursor: default;">
+            <div class="settings-item-icon">🌙</div>
+            <div class="settings-item-label">Sleep Time</div>
+            <input type="time" id="settings-sleep-time" class="settings-list-control">
           </div>
-        </div>
-
-        <!-- App Preferences -->
-        <div style="margin-bottom: 25px;">
-          <h3
-            style="font-size: 0.9em; color: #6ee7b7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
-            Preferences</h3>
-          <div class="setting-item" style="margin-bottom: 15px;">
-            <label class="onboarding-label">Sleep Time</label>
-            <input type="time" id="settings-sleep-time" class="onboarding-time">
-          </div>
-          <div class="setting-item">
-            <label class="onboarding-label">Struggle Prayer</label>
-            <select id="settings-struggle-prayer" class="onboarding-select">
+          <div class="settings-item-row" style="cursor: default;">
+            <div class="settings-item-icon">💪</div>
+            <div class="settings-item-label">Struggle Prayer</div>
+            <select id="settings-struggle-prayer" class="settings-list-control">
               <option value="Fajr">Fajr</option>
               <option value="Dhuhr">Dhuhr</option>
               <option value="Asr">Asr</option>
@@ -108,26 +91,59 @@
           </div>
         </div>
 
-        <button id="save-settings-btn" class="onboarding-btn" style="width: 100%; margin-top: 10px;">Save
-          Settings</button>
-
-        <!-- Scalability & Community Extras -->
-        <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05);">
-          <div style="display: flex; gap: 10px; margin-bottom: 12px; margin-top: 20px;">
-            <button id="export-data-btn"
-              style="flex:1; background:rgba(110, 231, 183, 0.1); border:1px solid rgba(110, 231, 183, 0.3); color:#6ee7b7; padding:10px; border-radius:10px; font-size:0.85em; cursor:pointer;">📥
-              Export Logs</button>
-            <button id="send-feedback-btn"
-              style="flex:1; background:rgba(251, 191, 36, 0.1); border:1px solid rgba(251, 191, 36, 0.3); color:#fbbf24; padding:10px; border-radius:10px; font-size:0.85em; cursor:pointer;">💬
-              Feedback</button>
+        <!-- Adhan Adjustments Group -->
+        <div class="settings-section-title" style="margin: 0 24px 8px;">Adhan Adjustments</div>
+        <div class="settings-group-card">
+          <div class="settings-item-row" style="cursor: default; padding: 12px 24px;">
+            <div class="settings-item-label">Fajr Check</div>
+            <input type="number" id="offset-Fajr" class="settings-list-control" value="0">
           </div>
-          <div style="text-align: center; color: #475569; font-size: 0.75em; letter-spacing: 0.5px;">
-            Salah Tracker v1.2.0 • Made with 💚
+          <div class="settings-item-row" style="cursor: default; padding: 12px 24px;">
+            <div class="settings-item-label">Dhuhr Check</div>
+            <input type="number" id="offset-Dhuhr" class="settings-list-control" value="0">
+          </div>
+          <div class="settings-item-row" style="cursor: default; padding: 12px 24px;">
+            <div class="settings-item-label">Asr Check</div>
+            <input type="number" id="offset-Asr" class="settings-list-control" value="0">
+          </div>
+          <div class="settings-item-row" style="cursor: default; padding: 12px 24px;">
+            <div class="settings-item-label">Maghrib Check</div>
+            <input type="number" id="offset-Maghrib" class="settings-list-control" value="0">
+          </div>
+          <div class="settings-item-row" style="cursor: default; padding: 12px 24px;">
+            <div class="settings-item-label">Isha Check</div>
+            <input type="number" id="offset-Isha" class="settings-list-control" value="0">
           </div>
         </div>
 
-        <button id="settings-logout-btn"
-          style="width: 100%; margin-top: 20px; background: none; border: 1px solid #ff6b6b; color: #ff6b6b; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer;">Logout</button>
+        <!-- Support Group -->
+        <div class="settings-group-card">
+          <div class="settings-item-row" id="export-data-btn">
+            <div class="settings-item-icon">📥</div>
+            <div class="settings-item-label">Export Logs</div>
+            <div class="settings-item-chevron">&#8250;</div>
+          </div>
+          <div class="settings-item-row" id="send-feedback-btn">
+            <div class="settings-item-icon">💬</div>
+            <div class="settings-item-label">Send Feedback</div>
+            <div class="settings-item-chevron">&#8250;</div>
+          </div>
+          <div class="settings-item-row" id="settings-logout-btn">
+            <div class="settings-item-icon">🚪</div>
+            <div class="settings-item-label" style="color: #ef4444;">Logout Account</div>
+            <div class="settings-item-chevron">&#8250;</div>
+          </div>
+        </div>
+
+        <div
+          style="text-align: center; color: #475569; font-size: 0.75em; letter-spacing: 0.5px; margin-top: 10px; margin-bottom: 30px;">
+          Salah Tracker v6.4 • Made with 💚
+        </div>
+      </div>
+
+      <!-- Compact Footer -->
+      <div class="settings-footer" style="padding: 16px 24px;">
+        <button id="save-settings-btn" class="settings-save-btn">Save Changes</button>
       </div>
     </div>
   </div>
@@ -182,12 +198,13 @@
             <div class="fire-core">🔥</div>
           </div>
           <div style="text-align:left;">
-            <div style="font-weight:700;font-size:1.1em;color:#fff;">Salah Streak</div>
-            <div style="font-size:0.85em;color:rgba(255,255,255,0.8);">Consistency is key! 🔑</div>
+            <div style="font-weight:700;font-size:1.1em;color:#fff;" data-i18n="streak_title">Salah Streak</div>
+            <div style="font-size:0.85em;color:rgba(255,255,255,0.8);" data-i18n="streak_desc">Consistency is key! 🔑
+            </div>
           </div>
         </div>
         <div style="font-size:1.5em;font-weight:800;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,0.3);">
-          <span id="home-streak-value">0</span> Days
+          <span id="home-streak-value">0</span> <span data-i18n="days">Days</span>
         </div>
       </div>
     </div>
@@ -554,8 +571,8 @@
           style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
           🌳</div>
         <div style="flex:1;text-align:left;">
-          <div style="font-weight:600;font-size:1.05em;">Jannat ka Darakht</div>
-          <div style="font-size:0.85em;color:#aaa;">Your Deeds Tree</div>
+          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_tree">Jannat ka Darakht</div>
+          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_tree_desc">Your Deeds Tree</div>
         </div>
         <div style="color:#6ee7b7;">&#8594;</div>
       </div>
@@ -565,8 +582,8 @@
           style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
           🤝</div>
         <div style="flex:1;text-align:left;">
-          <div style="font-weight:600;font-size:1.05em;">Deen Twins</div>
-          <div style="font-size:0.85em;color:#aaa;">Salah Accountability Partner</div>
+          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_twins">Deen Twins</div>
+          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_twins_desc">Salah Accountability Partner</div>
         </div>
         <div style="color:#6ee7b7;">&#8594;</div>
       </div>
@@ -576,8 +593,8 @@
           style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
           📅</div>
         <div style="flex:1;text-align:left;">
-          <div style="font-weight:600;font-size:1.05em;">Qaza-e-Umri Tracker</div>
-          <div style="font-size:0.85em;color:#aaa;">Track your missed prayers</div>
+          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_qaza">Qaza-e-Umri Tracker</div>
+          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_qaza_desc">Track your missed prayers</div>
         </div>
         <div style="color:#6ee7b7;">&#8594;</div>
       </div>
@@ -587,8 +604,8 @@
           style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
           👥</div>
         <div style="flex:1;text-align:left;">
-          <div style="font-weight:600;font-size:1.05em;">Halaqa Circles</div>
-          <div style="font-size:0.85em;color:#aaa;">Group Accountability & Stats</div>
+          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_halaqa">Halaqa Circles</div>
+          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_halaqa_desc">Group Accountability & Stats</div>
         </div>
         <div style="color:#6ee7b7;">&#8594;</div>
       </div>
@@ -598,8 +615,8 @@
           style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
           📚</div>
         <div style="flex:1;text-align:left;">
-          <div style="font-weight:600;font-size:1.05em;">Islamic Series</div>
-          <div style="font-size:0.85em;color:#aaa;">Read and learn from series</div>
+          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_series">Islamic Series</div>
+          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_series_desc">Read and learn from series</div>
         </div>
         <div style="color:#6ee7b7;">&#8594;</div>
       </div>
@@ -610,8 +627,8 @@
           style="background:#064e3b;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
           🔋</div>
         <div style="flex:1;text-align:left;">
-          <div style="font-weight:600;font-size:1.05em;">Background Mode</div>
-          <div style="font-size:0.85em;color:#aaa;">Fix Adhan & Counter issues</div>
+          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_bg">Background Mode</div>
+          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_bg_desc">Fix Adhan & Counter issues</div>
         </div>
         <div style="color:#6ee7b7;">&#9881;</div>
       </div>
@@ -1099,45 +1116,56 @@
   <div id="onboarding-modal"
     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:99999; background:#0f172a;">
 
+    <!-- Language Selection (Step 0) -->
+    <div id="onboarding-step-lang" class="onboarding-step">
+      <div class="onboarding-emoji">🌍</div>
+      <div class="onboarding-title">Select Language</div>
+      <div class="onboarding-text">App ki zaban muntakhib karein.</div>
+      <div style="display:grid; grid-template-columns:1fr; gap:15px; width:100%; max-width:300px;">
+        <button class="onboarding-btn lang-select-btn" data-lang="ur"
+          style="background:#1e293b; color:#6ee7b7; border:1px solid #6ee7b7;">Roman Urdu</button>
+        <button class="onboarding-btn lang-select-btn" data-lang="en"
+          style="background:#1e293b; color:#fff; border:1px solid #334155;">English</button>
+      </div>
+    </div>
+
     <!-- Step 1: Welcome & Permissions -->
-    <div id="onboarding-step-1" class="onboarding-step" style="display:flex;">
+    <div id="onboarding-step-1" class="onboarding-step">
       <div class="onboarding-emoji">👋</div>
-      <div class="onboarding-title">Welcome to Salah Tracker</div>
-      <div class="onboarding-text">
+      <div class="onboarding-title" data-i18n="ob_welcome_title">Welcome to Salah Tracker</div>
+      <div class="onboarding-text" data-i18n="ob_welcome_text">
         Assalam-o-Alaikum! <br>
         Is app ka maqsad aapko Allah ke qareeb karna hai. <br><br>
         Sab se pehle, notifications allow karen taake aap koi namaz miss na karen aur hum aapko waqt par yaad dila
         saken.
       </div>
-      <button class="onboarding-btn" id="btn-onboarding-permit">Enable Notifications 🔔</button>
+      <button class="onboarding-btn" id="btn-onboarding-permit" data-i18n="ob_enable_notif">Enable Notifications
+        🔔</button>
       <div style="margin-top:10px; font-size:0.8em; color:#64748b;">(Required to proceed)</div>
     </div>
 
     <!-- Step 2: Personalization -->
     <div id="onboarding-step-2" class="onboarding-step">
       <div class="onboarding-emoji">🌙</div>
-      <div class="onboarding-title">Thora aap ke baray mein</div>
-      <div class="onboarding-text" style="font-size:1em; margin-bottom:20px;">
+      <div class="onboarding-title" data-i18n="ob_personal_title">Thora aap ke baray mein</div>
+      <div class="onboarding-text" style="font-size:1em; margin-bottom:20px;" data-i18n="ob_personal_text">
         Taake hum app ko aap ke mutabiq dhaal saken.
       </div>
 
       <div class="onboarding-input-group">
-        <label class="onboarding-label">Aap raat ko kitnay bajay sotay hain?</label>
+        <label class="onboarding-label" data-i18n="ob_sleep_label">Aap raat ko kitnay bajay sotay hain?</label>
         <input type="time" id="input-sleep-time" class="onboarding-time" value="23:00">
-        <div style="font-size:0.75em; color:#64748b; margin-top:4px;">Hum usi waqt aapko sone se pehle Quran sunnay ka
-          reminder denge. 🎧</div>
       </div>
 
       <div class="onboarding-input-group">
-        <label class="onboarding-label">Sab se zyada kaunsi namaz miss hoti hai?</label>
+        <label class="onboarding-label" data-i18n="ob_struggle_label">Sab se zyada kaunsi namaz miss hoti hai?</label>
         <select id="input-struggle-prayer" class="onboarding-select">
-          <option value="Fajr">Fajr (Subah)</option>
-          <option value="Dhuhr">Dhuhr (Dopehar)</option>
-          <option value="Asr">Asr (Sham)</option>
-          <option value="Maghrib">Maghrib (Suraj dubne par)</option>
-          <option value="Isha">Isha (Raat)</option>
+          <option value="Fajr">Fajr</option>
+          <option value="Dhuhr">Dhuhr</option>
+          <option value="Asr">Asr</option>
+          <option value="Maghrib">Maghrib</option>
+          <option value="Isha">Isha</option>
         </select>
-        <div style="font-size:0.75em; color:#64748b; margin-top:4px;">Hum is namaz par zyada focus karenge. 💪</div>
       </div>
 
       <button class="onboarding-btn" id="btn-onboarding-next-2" style="background:#fcd34d; color:#0f172a;">Next
@@ -1161,8 +1189,8 @@
     </div>
 
   </div>
-  <script type="module" src="app.js?v=5.2"></script>
-  <script type="module" src="app2.js?v=1.1"></script>
+  <script type="module" src="app.js?v=6.4"></script>
+  <script type="module" src="app2.js?v=1.2"></script>
 </body>
 
 </html>
