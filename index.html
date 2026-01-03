@@ -74,6 +74,26 @@
         <!-- Preferences Group -->
         <div class="settings-group-card">
           <div class="settings-item-row" style="cursor: default;">
+            <div class="settings-item-icon">⚖️</div>
+            <div class="settings-item-label">Calc. Method</div>
+            <select id="settings-calc-method" class="settings-list-control">
+              <option value="0">Auto (Recommended)</option>
+              <option value="1">University of Islamic Sciences, Karachi</option>
+              <option value="2">ISNA (North America)</option>
+              <option value="3">Muslim World League</option>
+              <option value="4">Umm Al-Qura University, Makkah</option>
+              <option value="5">Egyptian General Authority of Survey</option>
+              <option value="7">Institute of Geophysics, University of Tehran</option>
+              <option value="8">Gulf Region</option>
+              <option value="9">Kuwait</option>
+              <option value="10">Qatar</option>
+              <option value="11">Majlis Ugama Islam Singapura, Singapore</option>
+              <option value="12">Union Organization islamic de France</option>
+              <option value="13">Diyanet İşleri Başkanlığı, Turkey</option>
+              <option value="14">Spiritual Administration of Muslims of Russia</option>
+            </select>
+          </div>
+          <div class="settings-item-row" style="cursor: default;">
             <div class="settings-item-icon">🌙</div>
             <div class="settings-item-label">Sleep Time</div>
             <input type="time" id="settings-sleep-time" class="settings-list-control">
@@ -148,16 +168,17 @@
     </div>
   </div>
 
-  <!-- What's New Modal -->
-  <div id="news-modal" class="modal">
-    <div class="modal-content" style="max-width: 400px; padding: 30px;">
-      <div style="font-size: 3.5em; margin-bottom: 15px;">✨</div>
-      <h2 style="margin:0 0 10px 0; color:#fff; font-size: 1.6em;">What's New!</h2>
-      <div id="news-content"
-        style="text-align: left; color: #94a3b8; font-size: 1em; line-height: 1.6; margin-bottom: 25px;">
-        <!-- Content will be injected -->
+  <!-- Daily Hadith Popup -->
+  <div id="hadith-modal" class="modal">
+    <div class="modal-content" style="max-width: 400px; padding: 30px; border-color: #6ee7b7;">
+      <div style="font-size: 3.5em; margin-bottom: 15px;">📜</div>
+      <h2 style="margin:0 0 10px 0; color:#fff; font-size: 1.6em;" data-i18n="hadith_title">Daily Hadith</h2>
+      <div id="hadith-content"
+        style="text-align: left; color: #e2e8f0; font-size: 1.1em; line-height: 1.6; margin-bottom: 25px; font-style: italic;">
+        <!-- Hadith will be injected -->
       </div>
-      <button id="close-news-btn" class="onboarding-btn" style="width: 100%;">MashaAllah, Got it!</button>
+      <div id="hadith-ref" style="text-align: right; color: #94a3b8; font-size: 0.85em; margin-bottom: 20px;"></div>
+      <button id="close-hadith-btn" class="onboarding-btn" style="width: 100%;">Alhamdulillah</button>
     </div>
   </div>
   <div class="container" id="home-section">
@@ -643,6 +664,42 @@
         </div>
         <div style="color:#6ee7b7;">&#8594;</div>
       </div>
+
+      <div class="card" onclick="openSubFeature('quran-read')"
+        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
+        <div
+          style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
+          📖</div>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_quran_read">Quran Read</div>
+          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_quran_read_desc">Parhein aur samjhein</div>
+        </div>
+        <div style="color:#6ee7b7;">&#8594;</div>
+      </div>
+
+      <div class="card" onclick="openSubFeature('zakat')"
+        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
+        <div
+          style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
+          💰</div>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_zakat">Zakat Calculator</div>
+          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_zakat_desc">Apni zakat calculate karein</div>
+        </div>
+        <div style="color:#6ee7b7;">&#8594;</div>
+      </div>
+
+      <div class="card" onclick="openSubFeature('masjid')"
+        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
+        <div
+          style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
+          🕌</div>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_masjid">Masjid Finder</div>
+          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_masjid_desc">Qareeb tareen masajid</div>
+        </div>
+        <div style="color:#6ee7b7;">&#8594;</div>
+      </div>
     </div>
 
     <!-- Deen Twins (Sub Feature) -->
@@ -940,6 +997,88 @@
                 style="background:#6ee7b7;color:#0f172a;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;font-weight:bold;">➤</button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quran Read (Sub Feature) -->
+    <div id="feature-quran-read" class="sub-feature-view" style="display:none;">
+      <div class="card"
+        style="text-align:center; min-height: 400px; display: flex; flex-direction: column; padding: 15px;">
+        <div style="display:flex;align-items:center;margin-bottom:16px;">
+          <button id="quran-read-back-btn"
+            style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding: 0 12px 0 0;">&#8592;</button>
+          <h2 style="margin:0;font-size:1.3em;">Quran Read</h2>
+        </div>
+
+        <!-- Surah List -->
+        <div id="quran-surah-list" style="flex: 1; overflow-y: auto; text-align: left; padding: 10px;">
+          <div style="text-align:center; padding: 20px; color: #94a3b8;">Loading Surahs... 📖</div>
+        </div>
+
+        <!-- Verses View -->
+        <div id="quran-verses-view" style="display:none; flex: 1; overflow-y: auto; text-align: right; padding: 10px;">
+          <!-- Verses injected here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Zakat Calculator (Sub Feature) -->
+    <div id="feature-zakat" class="sub-feature-view" style="display:none;">
+      <div class="card" style="text-align:center; padding: 20px;">
+        <div style="display:flex;align-items:center;margin-bottom:16px;">
+          <button onclick="closeSubFeature()"
+            style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding: 0 12px 0 0;">&#8592;</button>
+          <h2 style="margin:0;font-size:1.3em;">Zakat Calculator</h2>
+        </div>
+
+        <div style="text-align: left; display: flex; flex-direction: column; gap: 12px;">
+          <div>
+            <label style="font-size:0.85em; color:#94a3b8;">Cash (In Hand / Bank)</label>
+            <input type="number" id="zakat-cash" class="onboarding-time" placeholder="0 PKR" style="margin-top:4px;">
+          </div>
+          <div>
+            <label style="font-size:0.85em; color:#94a3b8;">Gold Value (Total Value in PKR)</label>
+            <input type="number" id="zakat-gold" class="onboarding-time" placeholder="0 PKR" style="margin-top:4px;">
+          </div>
+          <div>
+            <label style="font-size:0.85em; color:#94a3b8;">Silver Value (Total Value in PKR)</label>
+            <input type="number" id="zakat-silver" class="onboarding-time" placeholder="0 PKR" style="margin-top:4px;">
+          </div>
+          <div>
+            <label style="font-size:0.85em; color:#94a3b8;">Business Assets / Investments</label>
+            <input type="number" id="zakat-assets" class="onboarding-time" placeholder="0 PKR" style="margin-top:4px;">
+          </div>
+          <div>
+            <label style="font-size:0.85em; color:#94a3b8;">Debts / Liabilities (Subtract)</label>
+            <input type="number" id="zakat-debts" class="onboarding-time" placeholder="0 PKR" style="margin-top:4px;">
+          </div>
+
+          <button id="calculate-zakat-btn" class="thirty-day-btn" style="width:100%; margin-top:10px;">Calculate
+            Zakat</button>
+
+          <div id="zakat-result"
+            style="display:none; margin-top:20px; padding:15px; background:#0f172a; border-radius:12px; text-align:center; border:1px solid #6ee7b7;">
+            <div style="color:#94a3b8; font-size:0.9em;">Total Zakat Due:</div>
+            <div id="zakat-amount" style="font-size:1.8em; font-weight:700; color:#6ee7b7; margin:5px 0;">0 PKR</div>
+            <div style="font-size:0.75em; color:#64748b;">(2.5% of net wealth if above Nisab)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Masjid Finder (Sub Feature) -->
+    <div id="feature-masjid" class="sub-feature-view" style="display:none;">
+      <div class="card"
+        style="text-align:center; padding: 20px; min-height: 400px; display: flex; flex-direction: column;">
+        <div style="display:flex;align-items:center;margin-bottom:16px;">
+          <button onclick="closeSubFeature()"
+            style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding: 0 12px 0 0;">&#8592;</button>
+          <h2 style="margin:0;font-size:1.3em;">Masjid Finder</h2>
+        </div>
+
+        <div id="masjid-list" style="flex: 1; overflow-y: auto; text-align: left; padding: 5px;">
+          <div style="text-align:center; margin-top:20px; color:#94a3b8;">Searching nearby Masajid... 🕌</div>
         </div>
       </div>
     </div>
