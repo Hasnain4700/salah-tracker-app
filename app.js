@@ -196,9 +196,25 @@ async function requestNotificationPermission() {
     const messaging = getMessaging(app);
     const vapidKey = 'BBeVQ0f8nC--oymwOnsGfla9p5AB5h37TEPpf1EMY0QTz4pbdPjlmqn-8Rkjw8sAE71ksSnkqcvRpA7M0_64FBE';
 
-    const swUrl = './firebase-messaging-sw.js?v=3.7';
+    const swUrl = './firebase-messaging-sw.js?v=3.8';
     const registration = await navigator.serviceWorker.register(swUrl);
     console.log("[FCM] Service Worker registration successful. Status:", registration.active ? 'active' : 'pending');
+
+    // Wait for the service worker to be active
+    if (!registration.active) {
+      console.log("[FCM] Waiting for Service Worker to activate...");
+      await new Promise((resolve) => {
+        const sw = registration.installing || registration.waiting;
+        if (sw) {
+          sw.addEventListener('statechange', (e) => {
+            if (e.target.state === 'activated') resolve();
+          });
+        } else {
+          resolve(); // Fallback
+        }
+      });
+      console.log("[FCM] Service Worker is now active.");
+    }
 
     const currentToken = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
 
