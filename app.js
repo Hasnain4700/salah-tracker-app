@@ -163,7 +163,8 @@ async function sendFCMNotificationv1(token, title, body, sound) {
 
     if (!response.ok) {
       const errorMsg = data?.error || `Server returned ${response.status}`;
-      throw new Error(errorMsg);
+      const hint = data?.hint ? ` [Hint: ${data.hint}]` : "";
+      throw new Error(errorMsg + hint);
     }
 
     if (data && data.success) {
@@ -184,27 +185,37 @@ async function sendFCMNotificationv1(token, title, body, sound) {
 // =============================================================================
 
 async function requestNotificationPermission() {
+  console.log("[FCM] Requesting permission... current status:", Notification.permission);
+
+  if (Notification.permission === 'denied') {
+    console.warn("[FCM] Notification permission denied by user.");
+    return;
+  }
+
   try {
     const messaging = getMessaging(app);
-    // Real VAPID KEY from Firebase Console
     const vapidKey = 'BBeVQ0f8nC--oymwOnsGfla9p5AB5h37TEPpf1EMY0QTz4pbdPjlmqn-8Rkjw8sAE71ksSnkqcvRpA7M0_64FBE';
 
-    // Explicitly pass service worker registration to fix "no active service worker"
-    const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js?v=3.3');
+    const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js?v=3.6');
+    console.log("[FCM] Service Worker registered.");
+
     const currentToken = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
+
     if (currentToken) {
       const user = auth.currentUser;
       if (user) {
         await update(ref(db, `users/${user.uid}`), { fcmToken: currentToken });
-        console.log("FCM Token saved:", currentToken);
-        // After getting token, we can start checking for prayer alerts
+        console.log("[FCM] Token correctly generated and saved:", currentToken.substring(0, 10) + "...");
         startPrayerNotificationLoop();
       }
     } else {
-      console.log('No registration token available. Request permission to generate one.');
+      console.warn('[FCM] No registration token available. Request permission to generate one.');
     }
   } catch (err) {
-    console.log('An error occurred while retrieving token. ', err);
+    console.error('[FCM] An error occurred while retrieving token: ', err);
+    if (err.code === 'messaging/permission-blocked') {
+      showToast("Notifications are blocked in your browser settings.", "warning");
+    }
   }
 }
 
@@ -730,11 +741,9 @@ onAuthStateChanged(auth, user => {
     // Check if new user needs onboarding
     checkOnboardingStatus(user.uid);
 
-    // Wait for SW to be ready before requesting FCM token
+    // Request FCM token if user is logged in
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(() => {
-        requestNotificationPermission();
-      });
+      requestNotificationPermission();
     }
   }
 });
