@@ -49,6 +49,13 @@ export const translations = {
         "feature_series_desc": "Read and learn from series",
         "feature_bg": "Background Mode",
         "feature_bg_desc": "Fix Adhan & Counter issues",
+        "feature_quran_read": "Quran Read",
+        "feature_quran_read_desc": "Read and understand Quran",
+        "feature_zakat": "Zakat Calculator",
+        "feature_zakat_desc": "Calculate your Zakat",
+        "feature_masjid": "Masjid Finder",
+        "feature_masjid_desc": "Find nearby Masajid",
+        "hadith_title": "Daily Hadith",
 
         // Stats
         "streak_title": "Salah Streak",
@@ -105,6 +112,13 @@ export const translations = {
         "feature_series_desc": "Sabaq-amooz kahaniyan aur maloomat",
         "feature_bg": "Background Mode",
         "feature_bg_desc": "Adhan aur Counter ke masail theek karein",
+        "feature_quran_read": "Quran Parhein",
+        "feature_quran_read_desc": "Quran Majeed parhein aur samjhein",
+        "feature_zakat": "Zakat Calculator",
+        "feature_zakat_desc": "Apni zakat calculate karein",
+        "feature_masjid": "Masjid Finder",
+        "feature_masjid_desc": "Qareeb tareen masajid dhoondein",
+        "hadith_title": "Daily Hadith",
 
         // Stats
         "streak_title": "Salah Streak",
