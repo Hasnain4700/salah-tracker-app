@@ -1,4 +1,5 @@
 import { app, analytics, auth, db } from './firebase.js';
+import { translations } from './translations.js';
 const {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -16,6 +17,28 @@ const {
   orderByKey
 } = window.FirebaseExports;
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js";
+
+// --- Multi-language Support Logic ---
+function translateApp(lang = 'ur', save = false) {
+  if (save) localStorage.setItem('userLanguage', lang);
+  const strings = translations[lang];
+  if (!strings) return;
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (strings[key]) {
+      el.textContent = strings[key];
+    }
+  });
+
+  // Specifically handle prayer names in the tracker table and lists if they exist
+  // (We'll handle dynamic strings in their respective render functions)
+}
+
+// Global variable to keep track
+let storedLang = localStorage.getItem('userLanguage');
+let userLanguage = storedLang || 'ur';
+translateApp(userLanguage, false); // Don't auto-save on load
 
 // =============================================================================
 // GLOBAL UI ELEMENTS & SETTINGS
@@ -3005,15 +3028,35 @@ async function checkOnboardingStatus(uid) {
   const isComplete = snap.val();
 
   if (!isComplete) {
-    // Show Wizard
     const modal = document.getElementById('onboarding-modal');
     if (modal) modal.style.display = 'flex';
 
-    // Show Step 1
-    const step1 = document.getElementById('onboarding-step-1');
-    if (step1) step1.style.display = 'flex';
+    // Show Step 0 (Language) first if no lang set
+    const hasLang = localStorage.getItem('userLanguage');
+    if (!hasLang) {
+      document.querySelectorAll('.onboarding-step').forEach(s => s.style.display = 'none');
+      const stepLang = document.getElementById('onboarding-step-lang');
+      if (stepLang) stepLang.style.display = 'flex';
+    } else {
+      // If lang already set, show step 1
+      document.querySelectorAll('.onboarding-step').forEach(s => s.style.display = 'none');
+      const step1 = document.getElementById('onboarding-step-1');
+      if (step1) step1.style.display = 'flex';
+    }
   }
 }
+
+// Language Picker Listeners
+document.querySelectorAll('.lang-select-btn').forEach(btn => {
+  btn.onclick = () => {
+    const lang = btn.getAttribute('data-lang');
+    translateApp(lang, true);
+
+    // Move to Step 1 (Welcome)
+    document.getElementById('onboarding-step-lang').style.display = 'none';
+    document.getElementById('onboarding-step-1').style.display = 'flex';
+  };
+});
 
 // Wizard Event Listeners
 const btnOnboardingPermit = document.getElementById('btn-onboarding-permit');
@@ -3088,6 +3131,7 @@ if (settingsBtn) {
     document.getElementById('settings-display-name').value = data.displayName || user.email.split('@')[0];
     document.getElementById('settings-sleep-time').value = data.sleepTime || "22:00";
     document.getElementById('settings-struggle-prayer').value = data.strugglePrayer || "Fajr";
+    document.getElementById('settings-language').value = localStorage.getItem('userLanguage') || 'ur';
 
     const off = data.prayerOffsets || {};
     ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].forEach(p => {
@@ -3111,6 +3155,7 @@ if (saveSettingsBtn) {
     const newName = document.getElementById('settings-display-name').value;
     const newSleep = document.getElementById('settings-sleep-time').value;
     const newStruggle = document.getElementById('settings-struggle-prayer').value;
+    const newLang = document.getElementById('settings-language').value;
 
     const newOffsets = {};
     ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].forEach(p => {
@@ -3122,12 +3167,14 @@ if (saveSettingsBtn) {
         displayName: newName,
         sleepTime: newSleep,
         strugglePrayer: newStruggle,
-        prayerOffsets: newOffsets
+        prayerOffsets: newOffsets,
+        language: newLang
       });
 
       userOffsets = newOffsets;
       userDisplayName = newName;
       userStrugglePrayer = newStruggle;
+      translateApp(newLang, true); // Update immediately and save to localStorage
 
       showToast("Settings Saved! ✨", "#6ee7b7");
       settingsModal.style.display = 'none';
