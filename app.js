@@ -67,34 +67,114 @@ const GlobalAudit = {
   }
 };
 
+// =============================================================================
+// OFFLINE SYNC & CACHE MANAGERS
+// =============================================================================
+
+const PersistentCache = {
+  get: (key) => JSON.parse(localStorage.getItem(`cache_${key}`)) || null,
+  set: (key, data) => localStorage.setItem(`cache_${key}`, JSON.stringify(data)),
+  update: (key, partialData) => {
+    const current = PersistentCache.get(key) || {};
+    PersistentCache.set(key, { ...current, ...partialData });
+  }
+};
+
+const SyncQueue = {
+  get: () => JSON.parse(localStorage.getItem('sync_queue')) || [],
+  push: (action) => {
+    const queue = SyncQueue.get();
+    queue.push({ ...action, id: Date.now(), timestamp: new Date().toISOString() });
+    localStorage.setItem('sync_queue', JSON.stringify(queue));
+  },
+  pop: () => {
+    const queue = SyncQueue.get();
+    const item = queue.shift();
+    localStorage.setItem('sync_queue', JSON.stringify(queue));
+    return item;
+  },
+  isEmpty: () => SyncQueue.get().length === 0,
+
+  process: async () => {
+    if (!navigator.onLine || SyncQueue.isEmpty()) return;
+
+    console.log("Processing offline sync queue...");
+    let syncedCount = 0;
+
+    while (!SyncQueue.isEmpty()) {
+      const queue = SyncQueue.get();
+      if (queue.length === 0) break;
+      const item = queue[0]; // Peek
+
+      try {
+        const { type, path, data, method } = item;
+        const dbRef = ref(db, path);
+
+        if (type === 'set') await set(dbRef, data);
+        else if (type === 'update') await update(dbRef, data);
+        else if (type === 'transaction') {
+          await runTransaction(dbRef, (current) => {
+            if (method === 'increment') return (current || 0) + (data || 1);
+            return data;
+          });
+        }
+
+        SyncQueue.pop(); // Remove processed item
+        syncedCount++;
+      } catch (err) {
+        console.error("Sync failed for item:", item, err);
+        break; // Stop processing if a fatal error occurs (e.g. permission)
+      }
+    }
+
+    if (syncedCount > 0) {
+      showToast(`Synced ${syncedCount} offline updates!`, 'success');
+      if (typeof fetchAndDisplayTracker === 'function') fetchAndDisplayTracker();
+    }
+  }
+};
+
+// Global Listeners for Online/Offline
+window.addEventListener('online', () => {
+  showToast("Online: Syncing data...", "info");
+  SyncQueue.process();
+});
+window.addEventListener('offline', () => {
+  showToast("Offline: Saving changes locally", "warning");
+});
+
+// Sync on start
+onAuthStateChanged(auth, user => {
+  if (user) SyncQueue.process();
+});
+
 // --- FCM Backend Call ---
 async function sendFCMNotificationv1(token, title, body, sound) {
   try {
     const BACKEND_URL = 'https://salah-tracker-app.vercel.app/api/send-notification';
 
-    // Added security header to harden API
     const response = await fetch(BACKEND_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, title, body, sound })
     });
 
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.indexOf("application/json") !== -1) {
-      const data = await response.json();
-      if (!data.success) {
-        GlobalAudit.logError("FCM Backend Response", data.error);
-      }
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      const errorMsg = data?.error || `Server returned ${response.status}`;
+      throw new Error(errorMsg);
+    }
+
+    if (data && data.success) {
+      console.log("FCM Success:", data.messageId);
       return data;
     } else {
-      const text = await response.text();
-      GlobalAudit.logError("FCM Non-JSON Response", text);
-      return { success: false, error: "Server Error" };
+      throw new Error(data?.error || "Notification dispatch failed");
     }
   } catch (err) {
-    GlobalAudit.logError("FCM Network/Fetch", err);
+    handleApiError("Notification System", err);
+    return { success: false, error: err.message };
   }
 }
 
@@ -247,8 +327,13 @@ function updateDates() {
   gregorianDateEl.textContent = currentDate.toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'short', day: 'numeric'
   });
-  // Hijri (placeholder, real conversion needs API or library)
-  hijriDateEl.textContent = 'Hijri: ' + (currentDate.getDate() + 18) + ' Jumada II 1445';
+  // Hijri Date Calculation
+  const hijriFormatter = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+  hijriDateEl.textContent = 'Hijri: ' + hijriFormatter.format(currentDate);
 }
 updateDates();
 
@@ -295,20 +380,51 @@ async function fetchPrayerTimes(date = new Date()) {
 
   try {
     const pos = await new Promise((resolve, reject) => {
-      if (!navigator.geolocation) reject("No Geo support");
-      navigator.geolocation.getCurrentPosition(
-        p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-        () => reject("Loc error"),
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 600000 } // High accuracy, 10s timeout, allow 10min old cached pos
-      );
+      if (!navigator.geolocation) return reject("Geolocation NOT supported by this browser.");
+
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 15000, // 15 seconds
+        maximumAge: 60000 // 1 minute
+      };
+
+      const success = (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude });
+
+      const error = (err) => {
+        console.warn(`Geo High-Accuracy Failed (Code ${err.code}): ${err.message}`);
+
+        // Retry with low accuracy if it's not a permission error
+        if (err.code !== 1) {
+          console.log("Retrying with low accuracy...");
+          navigator.geolocation.getCurrentPosition(success, (err2) => {
+            console.error(`Geo Low-Accuracy Failed as well: ${err2.message}`);
+            reject(err2);
+          }, { enableHighAccuracy: false, timeout: 10000 });
+        } else {
+          reject(err);
+        }
+      };
+
+      navigator.geolocation.getCurrentPosition(success, error, options);
     });
+
     // Update Coords & Save
     coords = pos;
     localStorage.setItem('userLat', coords.lat);
     localStorage.setItem('userLng', coords.lng);
+    console.log("Location successfully updated:", coords);
   } catch (e) {
-    console.warn("Location fetch failed, using saved/default:", coords);
-    if (!savedLat && !cachedData) showToast("Check Location Permissions!", "#f59e0b");
+    const errorMsg = e.message || String(e);
+    console.warn("Location fetch final failure:", errorMsg);
+
+    // If we have no saved location AND no cache, we MUST warn the user
+    if (!savedLat && !cachedData) {
+      if (e.code === 1) {
+        showToast("Location Permission Denied. Using default (Riyadh).", "warning");
+      } else {
+        showToast("Could not determine location. Using default.", "warning");
+      }
+    }
   }
 
   // 3. Fetch API (Network)
@@ -341,9 +457,11 @@ async function fetchPrayerTimes(date = new Date()) {
       // Schedule Notifications
       checkAndTriggerPrayerNotifications(prayersWithTahajjud);
     } catch (err) {
-      console.error("API Fetch Error:", err);
-      if (!cachedData) showToast("Using Offline Mode (Data may be old next day)", "#f59e0b");
+      handleApiError("Prayer Times", err, !cachedData); // Only show error if no cache fallback
+      if (!cachedData) showToast("Check your connection to get latest times.", "warning");
     }
+  } else if (!cachedData) {
+    showToast("Offline: Connect to load prayer times.", "warning");
   }
 }
 
@@ -494,16 +612,6 @@ function getCachedPrayerTimes() {
   return JSON.parse(localStorage.getItem('prayerTimes'));
 }
 
-// --- Firebase Auth (basic UI prompt) ---
-function showAuthPrompt() {
-  const email = prompt('Enter email:');
-  const password = prompt('Enter password:');
-  signInWithEmailAndPassword(auth, email, password)
-    .catch(() => {
-      createUserWithEmailAndPassword(auth, email, password);
-    });
-}
-// Consolidated Auth Listener at line 421
 
 
 // --- Auth Modal Logic ---
@@ -568,22 +676,26 @@ authSubmit.onclick = async () => {
   try {
     if (isLoginMode) {
       await signInWithEmailAndPassword(auth, email, password);
+      showToast('Welcome back!', 'success');
     } else {
       await createUserWithEmailAndPassword(auth, email, password);
+      showToast('Account created successfully!', 'success');
     }
     hideAuthModal();
   } catch (e) {
-    if (e.code === 'auth/user-not-found') {
-      authError.textContent = 'User not found.';
-    } else if (e.code === 'auth/wrong-password') {
-      authError.textContent = 'Wrong password.';
-    } else if (e.code === 'auth/email-already-in-use') {
-      authError.textContent = 'Email already in use.';
-    } else if (e.code === 'auth/invalid-email') {
-      authError.textContent = 'Invalid email.';
-    } else {
-      authError.textContent = e.message || 'Authentication error.';
-    }
+    let friendlyMsg = "Authentication failed.";
+    const code = e.code;
+
+    if (code === 'auth/user-not-found') friendlyMsg = 'No account found with this email.';
+    else if (code === 'auth/wrong-password') friendlyMsg = 'Incorrect password.';
+    else if (code === 'auth/email-already-in-use') friendlyMsg = 'This email is already registered.';
+    else if (code === 'auth/invalid-email') friendlyMsg = 'Please enter a valid email address.';
+    else if (code === 'auth/weak-password') friendlyMsg = 'Password should be at least 6 characters.';
+    else if (code === 'auth/network-request-failed') friendlyMsg = 'Network error. Check your connection.';
+    else friendlyMsg = e.message;
+
+    authError.textContent = friendlyMsg;
+    showToast(friendlyMsg, 'error');
   }
 };
 
@@ -638,23 +750,16 @@ const streakBadgesRow = document.getElementById('streak-badges-row');
 let rewards = 0;
 let streak = 0;
 
-function updateStreakGamification() {
-  // Progress bar: 0-3, 3-7, 7-30, 30-100, 100+
-  let max = 3;
-  if (streak >= 100) max = 100;
-  else if (streak >= 30) max = 100;
-  else if (streak >= 7) max = 30;
-  else if (streak >= 3) max = 7;
-  // streakProgress removed in redesign
-  // streakProgress.style.width = Math.min((streak / max) * 100, 100) + '%';
+function updateStreakGamification(currentStreak) {
+  const s = currentStreak !== undefined ? currentStreak : streak;
   // Badges
   let badges = '';
-  if (streak >= 3) badges += '<span class="badge">🥉 3-Day Streak</span> ';
-  if (streak >= 7) badges += '<span class="badge">🥈 7-Day Streak</span> ';
-  if (streak >= 30) badges += '<span class="badge">🏅 30-Day Streak</span> ';
-  if (streak >= 100) badges += '<span class="badge">🏆 100-Day Streak</span> ';
+  if (s >= 3) badges += '<span class="badge">🥉 3-Day Streak</span> ';
+  if (s >= 7) badges += '<span class="badge">🥈 7-Day Streak</span> ';
+  if (s >= 30) badges += '<span class="badge">🏅 30-Day Streak</span> ';
+  if (s >= 100) badges += '<span class="badge">🏆 100-Day Streak</span> ';
   if (!badges) badges = '<span style="color:#888;font-size:0.98em;">Earn streak badges by praying all 5 for consecutive days!</span>';
-  streakBadgesRow.innerHTML = badges;
+  if (streakBadgesRow) streakBadgesRow.innerHTML = badges;
 }
 
 function getLevelFromXP(xp) {
@@ -675,12 +780,53 @@ function showLevelUp(level) {
 
 // --- Motivational Toast Popup ---
 const toastPopup = document.getElementById('toast-popup');
-function showToast(msg, color = '#6ee7b7') {
+function showToast(msg, type = 'info') {
+  if (!toastPopup) return;
+
   toastPopup.textContent = msg;
-  toastPopup.style.background = '#222c';
-  toastPopup.style.color = color;
+  toastPopup.className = 'toast-popup'; // Reset classes
+
+  // Set styles based on type
+  switch (type) {
+    case 'error':
+      toastPopup.style.background = '#ef4444cc'; // Red
+      toastPopup.style.color = '#fff';
+      break;
+    case 'success':
+      toastPopup.style.background = '#10b981cc'; // Green
+      toastPopup.style.color = '#fff';
+      break;
+    case 'warning':
+      toastPopup.style.background = '#f59e0bcc'; // Amber
+      toastPopup.style.color = '#fff';
+      break;
+    default:
+      toastPopup.style.background = '#1e293bcc'; // Slate
+      toastPopup.style.color = '#6ee7b7';
+  }
+
   toastPopup.classList.add('show');
-  setTimeout(() => toastPopup.classList.remove('show'), 2600);
+  setTimeout(() => toastPopup.classList.remove('show'), 3500);
+}
+
+/**
+ * Global helper to handle API errors consistently
+ */
+async function handleApiError(context, error, showUser = true) {
+  const message = error.message || String(error);
+  GlobalAudit.logError(context, error);
+
+  if (showUser) {
+    let userMsg = "Something went wrong.";
+    if (message.includes("network") || message.includes("Failed to fetch")) {
+      userMsg = "Connection lost. Please check your internet.";
+    } else if (message.includes("permission") || message.includes("unauthorized")) {
+      userMsg = "Access denied. Please login again.";
+    } else {
+      userMsg = `${context}: ${message}`;
+    }
+    showToast(userMsg, 'error');
+  }
 }
 const prayedMsgs = [
   'MashaAllah! Keep it up! 🌟',
@@ -726,114 +872,98 @@ const tahajjudMsgs = [
 // 4. PRAYER LOGGING & GAMIFICATION
 // =============================================================================
 
-function logPrayerStatus(prayerName, status) {
+async function logPrayerStatus(prayerName, status) {
   GlobalAudit.logActivity("Mark Prayer", { prayer: prayerName, status });
   const user = auth.currentUser;
   if (!user) return;
-  const today = getTodayDateString(); // Uses Local Date
+  const today = getTodayDateString();
 
-  // 1. Get Previous Status First (to adjust global count correctly)
-  const logRef = ref(db, `users/${user.uid}/logs/${today}/${prayerName}`);
-  get(logRef).then(snap => {
-    const prevStatus = snap.exists() ? snap.val() : null;
+  // 1. Optimistic Updates (Local Cache)
+  const userLogs = PersistentCache.get(`logs_${user.uid}`) || {};
+  if (!userLogs[today]) userLogs[today] = {};
+  const prevStatus = userLogs[today][prayerName];
 
-    // If status is same, do nothing (avoid double count)
-    if (prevStatus === status) return;
+  if (prevStatus === status) return;
 
-    // 2. Update to New Status
-    set(logRef, status).then(() => {
-      // 3. Update Global Counts via Transaction
-      const countRef = ref(db, `globalStats/${today}/${prayerName}`);
-      runTransaction(countRef, (currentCount) => {
-        if (currentCount === null) currentCount = 0;
+  userLogs[today][prayerName] = status;
+  PersistentCache.set(`logs_${user.uid}`, userLogs);
 
-        // Logic:
-        // If changing TO 'prayed' -> +1
-        // If changing FROM 'prayed' TO 'missed' -> -1
-        // If changing FROM 'null' TO 'missed' -> 0 (no global count change)
+  let isTahajjud = (prayerName === 'Tahajjud');
+  let pointsEarned = isTahajjud ? 20 : 10;
+
+  if (status === 'prayed') {
+    const rewards = (PersistentCache.get(`rewards_${user.uid}`) || 0) + pointsEarned;
+    const xp = (PersistentCache.get(`xp_${user.uid}`) || 0) + pointsEarned;
+    PersistentCache.set(`rewards_${user.uid}`, rewards);
+    PersistentCache.set(`xp_${user.uid}`, xp);
+
+    // Update UI immediately (Optimistic)
+    rewardsPointsEl.textContent = rewards;
+    xpPointsEl.textContent = xp;
+
+    if (isTahajjud) {
+      showToast(tahajjudMsgs[Math.floor(Math.random() * tahajjudMsgs.length)], 'success');
+    } else {
+      showToast(prayedMsgs[Math.floor(Math.random() * prayedMsgs.length)], 'success');
+      checkAndIncrementStreak(user); // Local streak check
+    }
+  } else {
+    showToast(missedMsgs[Math.floor(Math.random() * missedMsgs.length)], 'warning');
+  }
+
+  updateMarkPrayerBtn();
+  if (typeof fetchAndDisplayTracker === 'function') fetchAndDisplayTracker();
+
+  // 2. Database Synchronization (via SyncQueue)
+  const logPath = `users/${user.uid}/logs/${today}/${prayerName}`;
+  const rewardsPath = `users/${user.uid}/rewards`;
+  const xpPath = `users/${user.uid}/xp`;
+  const globalCountPath = `globalStats/${today}/${prayerName}`;
+
+  // Log update
+  SyncQueue.push({ type: 'set', path: logPath, data: status });
+
+  // Global Stat (Transaction)
+  if (status === 'prayed') {
+    SyncQueue.push({ type: 'transaction', path: globalCountPath, data: 1, method: 'increment' });
+  } else if (prevStatus === 'prayed') {
+    SyncQueue.push({ type: 'transaction', path: globalCountPath, data: -1, method: 'increment' });
+  }
+
+  // Rewards & XP
+  if (status === 'prayed') {
+    SyncQueue.push({ type: 'transaction', path: rewardsPath, data: pointsEarned, method: 'increment' });
+    SyncQueue.push({ type: 'transaction', path: xpPath, data: pointsEarned, method: 'increment' });
+  }
+
+  // Partner Notification & Deen Twin Sync (Only if Online)
+  if (navigator.onLine) {
+    try {
+      const tSnap = await get(ref(db, `users/${user.uid}/twins/pairId`));
+      if (tSnap.exists()) {
+        const pairId = tSnap.val();
+        await update(ref(db, `pairs/${pairId}/dailyStatus/${today}/${user.uid}`), { [prayerName]: status });
 
         if (status === 'prayed') {
-          return currentCount + 1;
-        } else if (prevStatus === 'prayed' && status !== 'prayed') {
-          return Math.max(0, currentCount - 1);
-        }
-        return currentCount; // No change for missed -> missed or null -> missed
-      });
-
-      // --- Deen Twins Status Sync & Notifications ---
-      get(ref(db, `users/${user.uid}/twins/pairId`)).then(tSnap => {
-        if (tSnap.exists()) {
-          const pairId = tSnap.val();
-          update(ref(db, `pairs/${pairId}/dailyStatus/${today}/${user.uid}`), {
-            [prayerName]: status
-          });
-
-          // Notify Partner if this user clicked 'prayed'
-          get(ref(db, `pairs/${pairId}`)).then(pSnap => {
-            if (pSnap.exists()) {
-              const pData = pSnap.val();
-              const partnerId = (pData.user1 === user.uid) ? pData.user2 : pData.user1;
-
-              if (status === 'prayed' && partnerId) {
-                // Get Partner's Token
-                get(ref(db, `users/${partnerId}/fcmToken`)).then(tokSnap => {
-                  const partnerToken = tokSnap.val();
-                  if (partnerToken) {
-                    sendFCMNotificationv1(
-                      partnerToken,
-                      "Partner Activity 🌟",
-                      `Your Deen Twin has just prayed ${prayerName}! MashaAllah.`,
-                      'reminder_tone'
-                    );
-                  }
-                });
-              }
+          const pSnap = await get(ref(db, `pairs/${pairId}`));
+          if (pSnap.exists()) {
+            const pData = pSnap.val();
+            const partnerId = (pData.user1 === user.uid) ? pData.user2 : pData.user1;
+            const tokSnap = await get(ref(db, `users/${partnerId}/fcmToken`));
+            const partnerToken = tokSnap.val();
+            if (partnerToken) {
+              sendFCMNotificationv1(partnerToken, "Partner Activity 🌟", `Your Deen Twin has just prayed ${prayerName}! MashaAllah.`, 'reminder_tone');
             }
-          });
+          }
         }
-      });
-
-      let isTahajjud = (prayerName === 'Tahajjud');
-      if (status === 'prayed') {
-        // Increment rewards only for prayed
-        get(ref(db, `users/${user.uid}/rewards`)).then(snap => {
-          let points = snap.exists() ? snap.val() : 0;
-          points += isTahajjud ? 20 : 10;
-          set(ref(db, `users/${user.uid}/rewards`), points).then(() => {
-            rewardsPointsEl.textContent = points;
-          });
-        });
-        // Increment XP
-        get(ref(db, `users/${user.uid}/xp`)).then(snap => {
-          let xp = snap.exists() ? snap.val() : 0;
-          const before = getLevelFromXP(xp).level;
-          xp += isTahajjud ? 20 : 10;
-          const after = getLevelFromXP(xp).level;
-          set(ref(db, `users/${user.uid}/xp`), xp).then(() => {
-            if (after > before) showLevelUp(after);
-            fetchAndDisplayTracker();
-          });
-        });
-
-        // --- NEW: Check & Update Streak ---
-        // If not Tahajjud (Tahajjud is bonus, doesn't affect core streak)
-        if (!isTahajjud) {
-          checkAndIncrementStreak(user);
-        }
-
-        // Motivational toast
-        if (isTahajjud) {
-          showToast(tahajjudMsgs[Math.floor(Math.random() * tahajjudMsgs.length)], '#a78bfa');
-        } else {
-          showToast(prayedMsgs[Math.floor(Math.random() * prayedMsgs.length)], '#6ee7b7');
-        }
-      } else {
-        fetchAndDisplayTracker();
-        showToast(missedMsgs[Math.floor(Math.random() * missedMsgs.length)], '#ff6b6b');
       }
-      updateMarkPrayerBtn();
-    });
-  });
+    } catch (err) {
+      console.warn("Deen Twin sync failed or skipped (Offline/Auth error)", err);
+    }
+  }
+
+  // Start Syncing
+  SyncQueue.process();
 }
 
 // --- Streak Calculation Helper ---
@@ -980,20 +1110,66 @@ function fetchAndDisplayTracker() {
   const user = auth.currentUser;
   if (!user) return;
 
-  // Re-trigger animations by toggling a class or clearing/re-adding content
+  // 1. Initial UI setup (Animation reset)
   const grid = document.querySelector('.stats-grid');
   if (grid) {
     grid.style.animation = 'none';
-    grid.offsetHeight; // trigger reflow
+    grid.offsetHeight;
     grid.style.animation = null;
   }
-  document.querySelectorAll('.stat-card-premium').forEach(card => {
-    card.style.animation = 'none';
-    card.offsetHeight; // trigger reflow
-    card.style.animation = null;
-  });
 
-  // Fetch last 7 days logs
+  // 2. Load from Cache First (Offline-first experience)
+  const cachedLogs = PersistentCache.get(`logs_${user.uid}`) || {};
+  const cachedRewards = PersistentCache.get(`rewards_${user.uid}`) || 0;
+  const cachedXP = PersistentCache.get(`xp_${user.uid}`) || 0;
+
+  renderTrackerUI(cachedLogs);
+  rewardsPointsEl.textContent = cachedRewards;
+  updateXPUI(cachedXP);
+
+  // 3. Fetch Fresh Data from Firebase
+  if (navigator.onLine) {
+    get(ref(db, `users/${user.uid}`)).then(snap => {
+      if (snap.exists()) {
+        const data = snap.val();
+        const freshLogs = data.logs || {};
+        const freshRewards = data.rewards || 0;
+        const freshXP = data.xp || 0;
+        const freshStats = data.stats || {};
+
+        // Update Persistent Cache
+        PersistentCache.set(`logs_${user.uid}`, freshLogs);
+        PersistentCache.set(`rewards_${user.uid}`, freshRewards);
+        PersistentCache.set(`xp_${user.uid}`, freshXP);
+        PersistentCache.set(`stats_${user.uid}`, freshStats);
+
+        // Update Globals
+        rewards = freshRewards;
+
+        // Re-render with fresh data
+        renderTrackerUI(freshLogs, freshStats);
+        rewardsPointsEl.textContent = freshRewards;
+        updateXPUI(freshXP);
+      }
+    }).catch(err => {
+      console.warn("Firebase fetch failed, staying with cached data", err);
+    });
+  }
+}
+
+// Helper to update XP UI
+function updateXPUI(xp) {
+  const { level, xpToNext, xpInLevel } = getLevelFromXP(xp);
+  levelNumEl.textContent = level;
+  xpPointsEl.textContent = xp;
+  const progressPercent = Math.min((xpInLevel / xpToNext) * 100, 100);
+  xpProgress.style.width = progressPercent + '%';
+}
+
+// Helper to render the tracker table and streak
+function renderTrackerUI(logs, stats = null) {
+  const user = auth.currentUser;
+  if (!user) return;
   const today = new Date();
   const days = [];
   for (let i = 0; i < 7; i++) {
@@ -1001,107 +1177,64 @@ function fetchAndDisplayTracker() {
     d.setDate(today.getDate() - i);
     days.push(getTodayDateString(d));
   }
-  get(ref(db, `users/${user.uid}/logs`)).then(snap => {
-    const logs = snap.val() || {};
-    let newStreak = 0;
-    let maxStreak = 0;
-    let tempStreak = 0;
-    trackerLogTableBody.innerHTML = '';
-    for (let i = 0; i < days.length; i++) {
-      const date = days[i];
-      const prayers = logs[date] || {};
-      const row = document.createElement('tr');
-      row.innerHTML = `<td>${date}</td>` +
-        ['Tahajjud', 'Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].map(p => {
-          if (prayers[p] === 'prayed') return `<td style='color:#6ee7b7;font-weight:bold;'>✅</td>`;
-          if (prayers[p] === 'missed') return `<td style='color:#ff6b6b;font-weight:bold;'>❌</td>`;
-          return `<td></td>`;
-        }).join('');
-      trackerLogTableBody.appendChild(row);
-      // Streak logic: all 6 prayers done (prayed only)
-      if (['Tahajjud', 'Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].every(p => prayers[p] === 'prayed')) {
-        tempStreak++;
-        if (i === 0) newStreak = tempStreak;
-      } else {
-        tempStreak = 0;
-      }
-      if (tempStreak > maxStreak) maxStreak = tempStreak;
+
+  trackerLogTableBody.innerHTML = '';
+  let calculatedStreak = 0;
+  let tempStreak = 0;
+
+  days.forEach((date, i) => {
+    const prayers = logs[date] || {};
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${date}</td>` +
+      ['Tahajjud', 'Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].map(p => {
+        if (prayers[p] === 'prayed') return `<td style='color:#6ee7b7;font-weight:bold;'>✅</td>`;
+        if (prayers[p] === 'missed') return `<td style='color:#ff6b6b;font-weight:bold;'>❌</td>`;
+        return `<td></td>`;
+      }).join('');
+    trackerLogTableBody.appendChild(row);
+
+    // Calc streak
+    if (['Tahajjud', 'Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].every(p => prayers[p] === 'prayed')) {
+      tempStreak++;
+      if (i === 0) calculatedStreak = tempStreak;
+    } else {
+      tempStreak = 0;
     }
-
-    // --- UPDATED STREAK DISPLAY ---
-    // Try to get robust streak from stats, fallback to 7-day calculation
-    get(ref(db, `users/${user.uid}/stats`)).then(statsSnap => {
-      const stats = statsSnap.exists() ? statsSnap.val() : {};
-
-      // If persisted streak exists, use it. Otherwise use the calculated 7-day streak.
-      // But verify: if 7-day calc is 0 (today not done + yesterday missed), persisted might still be old?
-      // No, checkAndIncrementStreak updates it.
-      // If user hasn't prayed today, persisted streak is valid (it holds yesterday's value).
-      // But if user missed yesterday, persisted streak (if not updated) might still show old info until they log something?
-      // We rely on the logic: if they miss a day, they break the streak.
-      // Ideally, we should check if 'lastStreakDate' < yesterday.
-
-      if (stats.streak !== undefined) {
-        streak = stats.streak;
-
-        // UI Check: has user broken the streak?
-        const lastStreakDate = stats.lastStreakDate;
-        const today = getTodayDateString();
-        const d = new Date(); d.setDate(d.getDate() - 1);
-        const yesterday = getTodayDateString(d);
-
-        if (lastStreakDate !== today && lastStreakDate !== yesterday) {
-          // Streak is stale (broken), show 0 visually (but don't delete from DB until they log next prayer to reset)
-          // Or strictly set to 0.
-          streak = 0;
-        }
-      } else {
-        streak = newStreak;
-      }
-
-      streakCountEl.textContent = streak;
-      updateStreakGamification(); // Updates badges
-
-      // Update Home Widget
-      const homeStreakWidget = document.getElementById('home-streak-widget');
-      const homeStreakValue = document.getElementById('home-streak-value');
-      if (homeStreakWidget && homeStreakValue) {
-        homeStreakValue.textContent = streak;
-        homeStreakWidget.style.display = 'block'; // Always show
-
-        if (streak === 0) {
-          homeStreakWidget.style.background = 'linear-gradient(135deg, #475569, #334155)'; // Grey for 0
-          homeStreakWidget.querySelector('.fire-core').textContent = '🌑'; // No fire yet
-          homeStreakWidget.querySelector('.fire-anim-container').style.animation = 'none';
-        } else {
-          homeStreakWidget.style.background = 'linear-gradient(135deg, #b45309, #78350f)';
-          homeStreakWidget.querySelector('.fire-core').textContent = '🔥';
-          homeStreakWidget.querySelector('.fire-anim-container').style.animation = 'fire-pulse 2s infinite ease-in-out';
-        }
-      }
-    });
   });
-  // Fetch rewards
-  get(ref(db, `users/${user.uid}/rewards`)).then(snap => {
-    rewards = snap.exists() ? snap.val() : 0;
-    rewardsPointsEl.textContent = rewards;
-  });
-  // Fetch XP/Level
-  get(ref(db, `users/${user.uid}/xp`)).then(snap => {
-    let xp = snap.exists() ? snap.val() : 0;
-    const { level, xpToNext, xpInLevel } = getLevelFromXP(xp);
-    levelNumEl.textContent = level;
-    xpPointsEl.textContent = xp;
 
-    const progressPercent = Math.min((xpInLevel / xpToNext) * 100, 100);
-    xpProgress.style.width = progressPercent + '%';
+  // Streak logic
+  if (!stats) stats = PersistentCache.get(`stats_${user.uid}`) || {};
+  let streakVal = stats.streak !== undefined ? stats.streak : calculatedStreak;
 
-    // Mini bar and labels
-    const xpMiniBar = document.getElementById('xp-progress-mini');
-    const xpMiniLabel = document.getElementById('xp-points-mini');
-    if (xpMiniBar) xpMiniBar.style.width = progressPercent + '%';
-    if (xpMiniLabel) xpMiniLabel.textContent = xp;
-  });
+  // Stale streak check
+  const lastStreakDate = stats.lastStreakDate;
+  const todayStr = getTodayDateString();
+  const d_y = new Date(); d_y.setDate(d_y.getDate() - 1);
+  const yesterdayStr = getTodayDateString(d_y);
+
+  if (lastStreakDate && lastStreakDate !== todayStr && lastStreakDate !== yesterdayStr) {
+    streakVal = 0;
+  }
+
+  // Update Global variable
+  streak = streakVal;
+
+  if (streakCountEl) streakCountEl.textContent = streak;
+  updateStreakGamification(streak);
+
+  const homeStreakValue = document.getElementById('home-streak-value');
+  const homeStreakWidget = document.getElementById('home-streak-widget');
+  if (homeStreakValue && homeStreakWidget) {
+    homeStreakValue.textContent = streak;
+    homeStreakWidget.style.display = 'block'; // Ensure visibility
+    if (streak === 0) {
+      homeStreakWidget.style.background = 'linear-gradient(135deg, #475569, #334155)';
+      homeStreakWidget.querySelector('.fire-core').textContent = '🌑';
+    } else {
+      homeStreakWidget.style.background = 'linear-gradient(135deg, #b45309, #78350f)';
+      homeStreakWidget.querySelector('.fire-core').textContent = '🔥';
+    }
+  }
 }
 
 // Update logPrayer to increment rewards and show message
@@ -1183,9 +1316,13 @@ function updateMarkPrayerBtn() {
     return;
   }
   const today = getTodayDateString();
-  get(ref(db, `users/${user.uid}/logs/${today}/${currentActivePrayer}`)).then(snap => {
-    if (snap.exists()) {
-      const status = snap.val();
+
+  // Check Local Cache First
+  const userLogs = PersistentCache.get(`logs_${user.uid}`) || {};
+  const localStatus = userLogs[today] ? userLogs[today][currentActivePrayer] : null;
+
+  const applyStatus = (status) => {
+    if (status) {
       markPrayerBtn.style.display = 'none';
       markMissedBtn.style.display = 'none';
       if (status === 'prayed') {
@@ -1206,7 +1343,25 @@ function updateMarkPrayerBtn() {
       markMissedBtn.disabled = false;
       prayerStatusLabel.textContent = '';
     }
-  });
+  };
+
+  applyStatus(localStatus);
+
+  // Still fetch from DB if online to ensure consistency
+  if (navigator.onLine) {
+    get(ref(db, `users/${user.uid}/logs/${today}/${currentActivePrayer}`)).then(snap => {
+      if (snap.exists()) {
+        const dbStatus = snap.val();
+        if (dbStatus !== localStatus) {
+          applyStatus(dbStatus);
+          // Update cache if DB is different
+          if (!userLogs[today]) userLogs[today] = {};
+          userLogs[today][currentActivePrayer] = dbStatus;
+          PersistentCache.set(`logs_${user.uid}`, userLogs);
+        }
+      }
+    });
+  }
 }
 setInterval(updateMarkPrayerBtn, 5000);
 updateMarkPrayerBtn();
@@ -3283,3 +3438,205 @@ document.addEventListener('click', (e) => {
     window.location.href = "mailto:support@salah-tracker.example.com?subject=Salah Tracker Feedback";
   }
 });
+
+// =============================================================================
+// 9. ISLAMIC SERIES (CLIENT SIDE)
+// =============================================================================
+
+{
+  // Cache keys
+  const CACHE_KEY_SERIES = 'salah_tracker_series_cache';
+
+  // Elements
+  const seriesListView = document.getElementById('series-list-view');
+  const episodeListView = document.getElementById('episode-list-view');
+  const articleView = document.getElementById('article-view');
+  const seriesGrid = document.getElementById('series-grid');
+  const episodesContainer = document.getElementById('episodes-container');
+  const articleTitleEl = document.getElementById('article-title');
+  const articleContentEl = document.getElementById('article-content');
+  const seriesLoading = document.getElementById('series-loading');
+
+  let currentSeriesData = null; // Store current series in memory
+
+  // --- 1. Load & Render Series List ---
+  window.renderSeriesList = async () => {
+    // Reset Views
+    if (seriesListView) seriesListView.style.display = 'block';
+    if (episodeListView) episodeListView.style.display = 'none';
+    if (articleView) articleView.style.display = 'none';
+
+    // 1. Try Local Cache First (Instant Load)
+    const cachedData = localStorage.getItem(CACHE_KEY_SERIES);
+    if (cachedData) {
+      try {
+        const series = JSON.parse(cachedData);
+        renderSeriesGrid(series);
+        if (seriesLoading) seriesLoading.style.display = 'none';
+        console.log("Loaded Series from Cache");
+      } catch (e) {
+        console.error("Cache Parse Error", e);
+      }
+    } else {
+      if (seriesLoading) seriesLoading.style.display = 'block';
+    }
+
+    // 2. Fetch Fresh Data from Firebase
+    // Using 'once' to get data, but 'on' listener is better for updates. 
+    // For static content like articles, 'once' or 'value' with caching is fine.
+    try {
+      const snap = await get(ref(db, 'series'));
+      if (snap.exists()) {
+        const data = snap.val();
+        const seriesList = Object.entries(data).map(([key, val]) => ({
+          key,
+          ...val
+        }));
+
+        // Update Cache
+        localStorage.setItem(CACHE_KEY_SERIES, JSON.stringify(seriesList));
+        console.log("Fetched & Cached Series from Firebase");
+
+        // Render Fresh
+        renderSeriesGrid(seriesList);
+      } else {
+        if (!cachedData && seriesGrid) seriesGrid.innerHTML = '<div style="color:#aaa; text-align:center;">No Series Available yet.</div>';
+      }
+      if (seriesLoading) seriesLoading.style.display = 'none';
+    } catch (err) {
+      console.error("Error fetching series", err);
+      if (!cachedData && seriesLoading) seriesLoading.innerText = "Error loading content.";
+    }
+  };
+
+  function renderSeriesGrid(list) {
+    if (!seriesGrid) return;
+    seriesGrid.innerHTML = '';
+    if (!list || list.length === 0) {
+      seriesGrid.innerHTML = '<div style="color:#aaa; text-align:center;">No Series Found</div>';
+      return;
+    }
+
+    list.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.padding = '0';
+      card.style.overflow = 'hidden';
+      card.style.cursor = 'pointer';
+      card.style.transition = 'transform 0.2s';
+
+      // Default Banner if missing (Handle legacy data)
+      const bannerUrl = item.banner || "https://cdn-icons-png.flaticon.com/512/3655/3655589.png";
+
+      card.innerHTML = `
+      <div style="height:140px; background:url('${bannerUrl}') center/cover;"></div>
+      <div style="padding:15px;">
+        <h3 style="margin:0 0 6px 0; font-size:1.1em; color:#fff;">${item.title}</h3>
+        <div style="font-size:0.85em; color:#94a3b8; margin-bottom:4px;">${item.episodeCount || 0} Episodes</div>
+         <p style="font-size:0.85em; color:#64748b; margin:0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.description || ''}</p>
+      </div>
+    `;
+
+      card.onclick = () => openSeriesEpisodes(item);
+      seriesGrid.appendChild(card);
+    });
+  }
+
+  // --- 2. Episodes Logic ---
+  window.openSeriesEpisodes = async (seriesItem) => {
+    console.log("🔥 [DEBUG] Opening Series:", seriesItem);
+    currentSeriesData = seriesItem; // Store for usage
+
+    if (seriesListView) seriesListView.style.display = 'none';
+    if (episodeListView) episodeListView.style.display = 'block';
+
+    const titleEl = document.getElementById('current-series-title');
+    if (titleEl) titleEl.textContent = seriesItem.title;
+
+    if (!episodesContainer) {
+      console.error("🔥 [DEBUG] episodesContainer element NOT FOUND!");
+      return;
+    }
+    episodesContainer.innerHTML = '<div style="color:#aaa; text-align:center; padding:20px;">Loading Episodes...</div>';
+
+    if (!seriesItem.key) {
+      console.error("🔥 [DEBUG] Series Key is MISSING in seriesItem object:", seriesItem);
+      episodesContainer.innerHTML = '<div style="color:#ff6b6b; text-align:center;">Error: Invalid Series ID</div>';
+      return;
+    }
+
+    try {
+      const path = `series/${seriesItem.key}/episodes`;
+      console.log("🔥 [DEBUG] Fetching Episodes from path:", path);
+
+      // Fetch fresh episodes for this series
+      const epSnap = await get(ref(db, path));
+
+      console.log("🔥 [DEBUG] Fetch complete. Exist?", epSnap.exists());
+
+      episodesContainer.innerHTML = '';
+
+      if (!epSnap.exists()) {
+        console.warn("🔥 [DEBUG] No episodes found at path.");
+        episodesContainer.innerHTML = '<div style="color:#aaa; text-align:center;">No Episodes Uploaded.</div>';
+        return;
+      }
+
+      const episodes = [];
+      epSnap.forEach(child => {
+        episodes.push({ key: child.key, ...child.val() });
+      });
+
+      console.log("🔥 [DEBUG] Parsed Episodes:", episodes);
+
+      // Optional: Sort by timestamp or title ?? keys are chronological usually
+
+      episodes.forEach((ep, index) => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.style.padding = '12px 16px';
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.cursor = 'pointer';
+        div.style.marginBottom = '0';
+        div.style.background = '#334155';
+
+        div.innerHTML = `
+                <div style="width:30px; height:30px; background:#1e293b; color:#6ee7b7; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-right:12px; font-weight:bold; font-size:0.9em;">${index + 1}</div>
+                <div style="flex:1; font-weight:500;">${ep.title}</div>
+                <div style="color:#64748b;">&#8594;</div>
+            `;
+
+        div.onclick = () => openEpisodeArticle(ep);
+        episodesContainer.appendChild(div);
+      });
+
+    } catch (e) {
+      console.error("🔥 [DEBUG] Error in openSeriesEpisodes:", e);
+      episodesContainer.innerHTML = `<div style="color:#ff6b6b; text-align:center;">Error: ${e.message}</div>`;
+    }
+  };
+
+  window.backToSeriesList = () => {
+    if (episodeListView) episodeListView.style.display = 'none';
+    if (seriesListView) seriesListView.style.display = 'block';
+  };
+
+  // --- 3. Article Viewer ---
+  window.openEpisodeArticle = (episode) => {
+    if (episodeListView) episodeListView.style.display = 'none';
+    if (articleView) articleView.style.display = 'block';
+
+    if (articleTitleEl) articleTitleEl.textContent = episode.title;
+    // Use innerHTML for Rich Text content
+    if (articleContentEl) articleContentEl.innerHTML = (episode.content || '').replace(/\n/g, '<br>');
+
+    // Scroll to top
+    if (articleView) articleView.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  window.backToEpisodeList = () => {
+    if (articleView) articleView.style.display = 'none';
+    if (episodeListView) episodeListView.style.display = 'block';
+  };
+}
