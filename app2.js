@@ -163,3 +163,77 @@
     }
 
 })();
+
+// --- Background Manager (Offline & Counter Sync) ---
+(function () {
+    async function syncToServiceWorker() {
+        if (!('serviceWorker' in navigator)) return;
+
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const now = new Date();
+            const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+
+            // Try to get data from localStorage (set by app.js)
+            const timingsRaw = localStorage.getItem(`prayerTimings_${today}`);
+            // Check for modern storage key too
+            const cachedData = localStorage.getItem('cachedPrayerData');
+
+            let prayersToSend = null;
+            if (timingsRaw) {
+                prayersToSend = JSON.parse(timingsRaw);
+            } else if (cachedData) {
+                const parsed = JSON.parse(cachedData);
+                if (parsed[today]) prayersToSend = parsed[today];
+            }
+
+            const struggle = localStorage.getItem('strugglePrayer') || "";
+
+            if (prayersToSend && registration.active) {
+                registration.active.postMessage({
+                    type: 'SYNC_DATA',
+                    prayers: prayersToSend,
+                    struggle: struggle
+                });
+                console.log("[Background] Prayer times synced to Service Worker.");
+            }
+        } catch (err) {
+            console.warn("[Background] Sync delayed:", err.message);
+        }
+    }
+
+    // Run sync on load and periodically
+    window.addEventListener('load', () => {
+        setTimeout(syncToServiceWorker, 3000);
+    });
+
+    // Also sync whenever storage changes
+    window.addEventListener('storage', (e) => {
+        if (e.key && (e.key.includes('prayer') || e.key === 'strugglePrayer')) {
+            syncToServiceWorker();
+        }
+    });
+
+    // Handle Background Permission Prompt
+    window.requestBackgroundPermission = () => {
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        if (isAndroid) {
+            const modal = document.createElement('div');
+            modal.style = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1f2937;color:white;padding:25px;border-radius:20px;z-index:10000;width:85%;max-width:350px;box-shadow:0 10px 25px rgba(0,0,0,0.5);text-align:center;border:1px solid #374151;";
+            modal.innerHTML = `
+                <h3 style="margin-top:0;color:#6ee7b7;">Keep App Alive 🔋</h3>
+                <p style="font-size:14px;line-height:1.5;color:#9ca3af;">To ensure Adhan and counter work in the background, please disable battery optimization for this app.</p>
+                <div style="background:#111827;padding:10px;border-radius:10px;text-align:left;font-size:13px;margin:15px 0;">
+                    1. Long-press <b>App Icon</b><br>
+                    2. Tap <b>App Info (i)</b><br>
+                    3. Go to <b>Battery</b><br>
+                    4. Set to <b>'Unrestricted'</b>
+                </div>
+                <button onclick="this.parentElement.remove()" style="background:#374151;color:white;border:none;padding:10px 20px;border-radius:10px;">Got it</button>
+            `;
+            document.body.appendChild(modal);
+        } else {
+            alert("Ensure 'Low Power Mode' is OFF and Notifications are ON for best results.");
+        }
+    };
+})();
