@@ -49,9 +49,12 @@ async function updateStickyNotification() {
     .sort((a, b) => a.date - b.date);
 
   let next = sortedPrayers.find(p => p.date > now);
+
+  // Handle Maghrib/Isha past midnight or next day Fajr
   if (!next) {
-    return self.registration.showNotification("Day Complete! 🌙", {
-      body: "All prayers for today are done. Alhamdulillah.",
+    // Show 'Day Complete' or just wait for next sync
+    return self.registration.showNotification("Alhamdulillah 🌙", {
+      body: "All prayers for today are complete.",
       icon: "./icon-192.png",
       tag: 'prayer-counter',
       renotify: false,
@@ -61,18 +64,33 @@ async function updateStickyNotification() {
   }
 
   const diffMs = next.date - now;
-  const minsLeft = Math.floor(diffMs / 1000 / 60);
+  const totalMins = Math.floor(diffMs / 1000 / 60);
+  const hrs = Math.floor(totalMins / 60);
+  const mins = totalMins % 60;
 
-  if (minsLeft === 0) triggerAdhanAlert(next.name);
+  // Format 12h time for body (like WeMuslim)
+  const [h24, m24] = next.timeStr.split(':').map(Number);
+  const period = h24 >= 12 ? 'PM' : 'AM';
+  const h12 = h24 % 12 || 12;
+  const timeLabel = `${h12}:${m24.toString().padStart(2, '0')} ${period}`;
 
-  self.registration.showNotification(`${next.name} in ${minsLeft} mins`, {
-    body: `Next: ${next.name} at ${next.timeStr}`,
+  // Format Countdown Label
+  const countdownLabel = hrs > 0 ? `-${hrs}h ${mins}m` : `-${mins}m`;
+
+  if (totalMins === 0) triggerAdhanAlert(next.name);
+
+  const isStruggle = next.name === strugglePrayer;
+  const title = isStruggle ? `⚠️ Next: ${next.name} (Struggle)` : `🕌 Next: ${next.name}`;
+
+  self.registration.showNotification(title, {
+    body: `${timeLabel} • ${countdownLabel}`,
     icon: "./icon-192.png",
     badge: "./icon-192.png",
     tag: 'prayer-counter',
     renotify: false,
     silent: true,
-    ongoing: true
+    ongoing: true, // Key for sticky
+    placeholder: "Salah Tracker"
   });
 }
 
@@ -120,7 +138,7 @@ self.addEventListener('sync', (event) => {
 });
 
 // --- Caching Logic ---
-const CACHE_NAME = 'salah-tracker-v4.1';
+const CACHE_NAME = 'salah-tracker-v4.3';
 const ASSETS = [
   './',
   './index.html',
