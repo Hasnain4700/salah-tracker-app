@@ -21,7 +21,7 @@ messaging.onBackgroundMessage(function (payload) {
 });
 
 // --- Caching Logic (Merged from sw.js) ---
-const CACHE_NAME = 'salah-tracker-v3.5';
+const CACHE_NAME = 'salah-tracker-v3.6';
 const ASSETS = [
   './',
   './index.html',
@@ -30,7 +30,9 @@ const ASSETS = [
   './firebase.js',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './favicon.ico',
+  './twa-manifest.json'
 ];
 
 self.addEventListener('install', (e) => {
