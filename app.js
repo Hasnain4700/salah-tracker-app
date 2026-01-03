@@ -61,6 +61,7 @@ const xpProgress = document.getElementById('xp-progress');
 let userOffsets = { Fajr: 0, Dhuhr: 0, Asr: 0, Maghrib: 0, Isha: 0 };
 let userDisplayName = "";
 let userStrugglePrayer = "";
+let userCalcMethod = 0; // Default to 0 (Auto)
 const settingsBtn = document.getElementById('settings-btn');
 let currentDate = new Date();
 
@@ -398,8 +399,54 @@ function getPrayersWithTahajjud(apiPrayers) {
 }
 
 // --- Location and Prayer Times Logic (Refactored for Offline & Accuracy) ---
+const prayersWithTahajjudRefNames = ['Tahajjud', 'Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
 let prayersWithTahajjud = [];
 let apiDate = new Date();
+
+/**
+ * Guesses coordinates based on the user's timezone.
+ */
+function detectRecommendedLocation() {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (!tz) return { lat: 24.7136, lng: 46.6753 }; // Riyadh
+
+  console.log("[Auto-Loc] Guessing location for timezone:", tz);
+
+  if (tz.includes('Karachi') || tz.includes('Lahore')) return { lat: 24.8607, lng: 67.0011 }; // Karachi
+  if (tz.includes('Dubai') || tz.includes('Abu_Dhabi')) return { lat: 25.2048, lng: 55.2708 }; // Dubai
+  if (tz.includes('London')) return { lat: 51.5074, lng: -0.1278 }; // London
+  if (tz.includes('New_York')) return { lat: 40.7128, lng: -74.0060 }; // New York
+  if (tz.includes('Los_Angeles')) return { lat: 34.0522, lng: -118.2437 }; // LA
+  if (tz.includes('Dhaka')) return { lat: 23.8103, lng: 90.4125 }; // Dhaka
+  if (tz.includes('Cairo')) return { lat: 30.0444, lng: 31.2357 }; // Cairo
+  if (tz.includes('Istanbul')) return { lat: 41.0082, lng: 28.9784 }; // Istanbul
+  if (tz.includes('Tokyo')) return { lat: 35.6895, lng: 139.6917 }; // Tokyo
+
+  return { lat: 24.7136, lng: 46.6753 }; // Riyadh default
+}
+
+/**
+ * Automatically detects the best prayer calculation method based on the user's timezone.
+ */
+function detectRecommendedMethod() {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (!tz) return 2; // Default to ISNA
+
+  console.log("[Auto-Calc] Detecting method for timezone:", tz);
+
+  if (tz.includes('Karachi') || tz.includes('Lahore')) return 1; // University of Islamic Sciences, Karachi
+  if (tz.includes('America') || tz.includes('Canada')) return 2; // ISNA
+  if (tz.includes('Europe/London') || tz.includes('Europe/Paris')) return 3; // Muslim World League
+  if (tz.includes('Riyadh') || tz.includes('Makkah')) return 4; // Umm Al-Qura
+  if (tz.includes('Cairo') || tz.includes('Africa')) return 5; // Egyptian General Authority of Survey
+  if (tz.includes('Tehran')) return 7; // Institute of Geophysics, University of Tehran
+  if (tz.includes('Dubai') || tz.includes('Qatar') || tz.includes('Kuwait')) return 8; // Gulf Region
+  if (tz.includes('Singapore')) return 11; // Singapore
+  if (tz.includes('Turkey')) return 13; // Turkey
+  if (tz.includes('Moscow')) return 14; // Russia
+
+  return 2; // Default fallback to ISNA
+}
 
 async function fetchPrayerTimes(date = new Date()) {
   const yyyy = date.getFullYear();
@@ -470,10 +517,12 @@ async function fetchPrayerTimes(date = new Date()) {
 
     // If we have no saved location AND no cache, we MUST warn the user
     if (!savedLat && !cachedData) {
+      coords = detectRecommendedLocation();
+      const locName = Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop().replace('_', ' ');
       if (e.code === 1) {
-        showToast("Location Permission Denied. Using default (Riyadh).", "warning");
+        showToast(`Location blocked. Guessed: ${locName}`, "info");
       } else {
-        showToast("Could not determine location. Using default.", "warning");
+        showToast(`Loc. Error. Guessed: ${locName}`, "info");
       }
     }
   }
@@ -481,7 +530,12 @@ async function fetchPrayerTimes(date = new Date()) {
   // 3. Fetch API (Network)
   if (navigator.onLine) {
     try {
-      const url = `https://api.aladhan.com/v1/timings/${dateKey}?latitude=${coords.lat}&longitude=${coords.lng}&method=2`;
+      let methodToUse = userCalcMethod;
+      if (methodToUse === 0) {
+        methodToUse = detectRecommendedMethod();
+      }
+
+      const url = `https://api.aladhan.com/v1/timings/${dateKey}?latitude=${coords.lat}&longitude=${coords.lng}&method=${methodToUse}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error("API Limit/Error");
       const data = await res.json();
@@ -563,7 +617,9 @@ function parseAndRenderPrayers(t) {
 function getNextPrayer() {
   const now = new Date();
   for (let i = 0; i < prayersWithTahajjud.length; i++) {
-    const [h, m] = prayersWithTahajjud[i].time.split(':').map(Number);
+    const pTimeStr = prayersWithTahajjud[i]?.time;
+    if (!pTimeStr) continue;
+    const [h, m] = pTimeStr.split(':').map(Number);
     const prayerTime = new Date(now);
     prayerTime.setHours(h, m, 0, 0);
     if (prayerTime > now) {
@@ -635,9 +691,13 @@ function updateCountdown() {
 setInterval(updateCountdown, 1000);
 
 function calcLastThird() {
-  if (!prayersWithTahajjud.length) return;
-  const fajr = prayersWithTahajjud[0].time.split(':').map(Number);
-  const maghrib = prayersWithTahajjud[4].time.split(':').map(Number);
+  if (!prayersWithTahajjud || prayersWithTahajjud.length < 5) return;
+  const fajrTime = prayersWithTahajjud[0]?.time;
+  const maghribTime = prayersWithTahajjud[4]?.time;
+  if (!fajrTime || !maghribTime) return;
+
+  const fajr = fajrTime.split(':').map(Number);
+  const maghrib = maghribTime.split(':').map(Number);
   const maghribDate = new Date();
   maghribDate.setHours(maghrib[0], maghrib[1], 0, 0);
   const fajrDate = new Date();
@@ -764,6 +824,7 @@ onAuthStateChanged(auth, user => {
     get(ref(db, `users/${user.uid}`)).then(snap => {
       const data = snap.val() || {};
       userOffsets = data.prayerOffsets || { Fajr: 0, Dhuhr: 0, Asr: 0, Maghrib: 0, Isha: 0 };
+      userCalcMethod = data.calcMethod || 2;
       userDisplayName = data.displayName || user.email.split('@')[0];
       userStrugglePrayer = data.strugglePrayer || "";
       localStorage.setItem('userStrugglePrayer', userStrugglePrayer);
@@ -1347,7 +1408,9 @@ function updateMarkPrayerBtn() {
   const now = new Date();
   let activeIndex = -1;
   for (let i = 0; i < prayersWithTahajjud.length; i++) {
-    const [h, m] = prayersWithTahajjud[i].time.split(':').map(Number);
+    const pTimeStr = prayersWithTahajjud[i]?.time;
+    if (!pTimeStr) continue;
+    const [h, m] = pTimeStr.split(':').map(Number);
     const prayerTime = new Date(now);
     prayerTime.setHours(h, m, 0, 0);
     if (prayerTime > now) {
@@ -3131,6 +3194,7 @@ if (settingsBtn) {
     document.getElementById('settings-display-name').value = data.displayName || user.email.split('@')[0];
     document.getElementById('settings-sleep-time').value = data.sleepTime || "22:00";
     document.getElementById('settings-struggle-prayer').value = data.strugglePrayer || "Fajr";
+    document.getElementById('settings-calc-method').value = data.calcMethod || 2;
     document.getElementById('settings-language').value = localStorage.getItem('userLanguage') || 'ur';
 
     const off = data.prayerOffsets || {};
@@ -3155,6 +3219,7 @@ if (saveSettingsBtn) {
     const newName = document.getElementById('settings-display-name').value;
     const newSleep = document.getElementById('settings-sleep-time').value;
     const newStruggle = document.getElementById('settings-struggle-prayer').value;
+    const newCalcMethod = parseInt(document.getElementById('settings-calc-method').value) || 2;
     const newLang = document.getElementById('settings-language').value;
 
     const newOffsets = {};
@@ -3167,10 +3232,12 @@ if (saveSettingsBtn) {
         displayName: newName,
         sleepTime: newSleep,
         strugglePrayer: newStruggle,
+        calcMethod: newCalcMethod,
         prayerOffsets: newOffsets,
         language: newLang
       });
 
+      userCalcMethod = newCalcMethod;
       userOffsets = newOffsets;
       userDisplayName = newName;
       userStrugglePrayer = newStruggle;
