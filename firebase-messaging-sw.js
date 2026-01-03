@@ -25,7 +25,7 @@ if (messaging) {
 }
 
 // --- Caching Logic (Merged from sw.js) ---
-const CACHE_NAME = 'salah-tracker-v3.7';
+const CACHE_NAME = 'salah-tracker-v3.8';
 const ASSETS = [
   './',
   './index.html',
@@ -42,7 +42,13 @@ const ASSETS = [
 self.addEventListener('install', (e) => {
   self.skipWaiting();
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log("[FCM SW] Caching essential assets...");
+      return cache.addAll(ASSETS).catch(err => {
+        console.warn("[FCM SW] some assets failed to cache, proceeding anyway.", err);
+        // We don't throw here to ensure the SW still installs and allows FCM to work
+      });
+    })
   );
 });
 
