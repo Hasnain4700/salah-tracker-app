@@ -13,19 +13,114 @@ if (typeof firebase !== 'undefined') {
     appId: "1:1051833345706:web:40977957e6bf792b1552d3"
   });
   messaging = firebase.messaging();
-} else {
-  console.error("[FCM SW] Firebase SDK failed to load. Notification support disabled.");
 }
 
-// --- Background Notifications ---
-if (messaging) {
-  messaging.onBackgroundMessage(function (payload) {
-    console.log('[firebase-messaging-sw.js] Received background message ', payload);
+// --- Offline & Sticky Counter State ---
+let prayerTimes = null;
+let strugglePrayer = "";
+let counterInterval = null;
+
+// Listen for updates from app.js / app2.js
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SYNC_DATA') {
+    prayerTimes = event.data.prayers;
+    strugglePrayer = event.data.struggle;
+    console.log('[FCM SW] Prayer times synced for offline alerts.');
+    startCounterLoop();
+  }
+});
+
+function startCounterLoop() {
+  if (counterInterval) clearInterval(counterInterval);
+  counterInterval = setInterval(updateStickyNotification, 60000);
+  updateStickyNotification();
+}
+
+async function updateStickyNotification() {
+  if (!prayerTimes) return;
+  const now = new Date();
+  const sortedPrayers = Object.entries(prayerTimes)
+    .map(([name, time]) => {
+      const [hrs, mins] = time.split(':').map(Number);
+      const pDate = new Date();
+      pDate.setHours(hrs, mins, 0, 0);
+      return { name, date: pDate, timeStr: time };
+    })
+    .sort((a, b) => a.date - b.date);
+
+  let next = sortedPrayers.find(p => p.date > now);
+  if (!next) {
+    return self.registration.showNotification("Day Complete! 🌙", {
+      body: "All prayers for today are done. Alhamdulillah.",
+      icon: "./icon-192.png",
+      tag: 'prayer-counter',
+      renotify: false,
+      silent: true,
+      ongoing: true
+    });
+  }
+
+  const diffMs = next.date - now;
+  const minsLeft = Math.floor(diffMs / 1000 / 60);
+
+  if (minsLeft === 0) triggerAdhanAlert(next.name);
+
+  self.registration.showNotification(`${next.name} in ${minsLeft} mins`, {
+    body: `Next: ${next.name} at ${next.timeStr}`,
+    icon: "./icon-192.png",
+    badge: "./icon-192.png",
+    tag: 'prayer-counter',
+    renotify: false,
+    silent: true,
+    ongoing: true
   });
 }
 
-// --- Caching Logic (Merged from sw.js) ---
-const CACHE_NAME = 'salah-tracker-v3.8';
+function triggerAdhanAlert(prayerName) {
+  let title = `🕌 Time for ${prayerName}`;
+  let body = "Hayya 'ala-s-Salah! Stand up for prayer.";
+  if (prayerName === strugglePrayer) {
+    title = `⚠️ High Priority: ${prayerName}`;
+    body = "Don't delay! Win against your struggle. 💪";
+  }
+  self.registration.showNotification(title, {
+    body: body,
+    icon: "./icon-192.png",
+    vibrate: [200, 100, 200, 100, 200, 100, 400],
+    tag: 'prayer-alert',
+    data: { url: 'https://hasnain4700.github.io/salah-tracker-app/' }
+  });
+}
+
+// --- Event Handlers ---
+if (messaging) {
+  messaging.onBackgroundMessage(function (payload) {
+    console.log('[FCM SW] Received background message ', payload);
+  });
+}
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const urlToOpen = 'https://hasnain4700.github.io/salah-tracker-app/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (var i = 0; i < windowClients.length; i++) {
+        var client = windowClients[i];
+        if (client.url === urlToOpen && 'focus' in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(urlToOpen);
+    })
+  );
+});
+
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-prayers') {
+    console.log('[FCM SW] Performing background sync...');
+  }
+});
+
+// --- Caching Logic ---
+const CACHE_NAME = 'salah-tracker-v4.1';
 const ASSETS = [
   './',
   './index.html',
