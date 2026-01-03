@@ -469,24 +469,28 @@ textarea {
   font-size: 1em;
 }
 
-#toast-popup {
+#toast-popup,
+.toast-popup {
   position: fixed;
   left: 50%;
-  bottom: 40px;
+  bottom: 100px;
   transform: translateX(-50%);
-  min-width: 220px;
-  max-width: 90vw;
-  background: #222c;
+  min-width: 250px;
+  max-width: 85vw;
+  background: rgba(30, 41, 59, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: #fff;
-  font-size: 1.08em;
-  font-weight: 600;
-  border-radius: 16px;
-  padding: 16px 28px;
-  box-shadow: 0 4px 24px #0008;
-  z-index: 2000;
+  font-size: 0.95em;
+  font-weight: 500;
+  border-radius: 12px;
+  padding: 14px 24px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  z-index: 9999;
   display: none;
   text-align: center;
-  letter-spacing: 0.01em;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  pointer-events: none;
 }
 
 #toast-popup.show {
@@ -821,7 +825,8 @@ textarea {
   transition: transform 0.1s;
 }
 
-transform: scale(0.95);
+.nudge-btn:active {
+  transform: scale(0.95);
 }
 
 .kick-btn {
