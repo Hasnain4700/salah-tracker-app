@@ -172,33 +172,28 @@
         try {
             const registration = await navigator.serviceWorker.ready;
             const now = new Date();
-            const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+            const yyyy = now.getFullYear();
+            const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+            const dd = now.getDate().toString().padStart(2, '0');
+            const dateKey = `${yyyy}-${mm}-${dd}`;
 
-            // Try to get data from localStorage (set by app.js)
-            const timingsRaw = localStorage.getItem(`prayerTimings_${today}`);
-            // Check for modern storage key too
-            const cachedData = localStorage.getItem('cachedPrayerData');
+            // Sync with app.js keys
+            const timingsRaw = localStorage.getItem(`prayers_${dateKey}`);
+            const struggle = localStorage.getItem('userStrugglePrayer') || "";
 
-            let prayersToSend = null;
-            if (timingsRaw) {
-                prayersToSend = JSON.parse(timingsRaw);
-            } else if (cachedData) {
-                const parsed = JSON.parse(cachedData);
-                if (parsed[today]) prayersToSend = parsed[today];
-            }
-
-            const struggle = localStorage.getItem('strugglePrayer') || "";
-
-            if (prayersToSend && registration.active) {
+            if (timingsRaw && registration.active) {
                 registration.active.postMessage({
                     type: 'SYNC_DATA',
-                    prayers: prayersToSend,
+                    prayers: JSON.parse(timingsRaw),
                     struggle: struggle
                 });
-                console.log("[Background] Prayer times synced to Service Worker.");
+                console.log(`[Background] Synced prayer times for ${dateKey}`);
+            } else if (!registration.active) {
+                console.warn("[Background] SW ready but not active. Retry in 2s.");
+                setTimeout(syncToServiceWorker, 2000);
             }
         } catch (err) {
-            console.warn("[Background] Sync delayed:", err.message);
+            console.warn("[Background] Sync error:", err.message);
         }
     }
 
@@ -209,9 +204,14 @@
 
     // Also sync whenever storage changes
     window.addEventListener('storage', (e) => {
-        if (e.key && (e.key.includes('prayer') || e.key === 'strugglePrayer')) {
+        if (e.key && (e.key.startsWith('prayers_') || e.key === 'userStrugglePrayer')) {
             syncToServiceWorker();
         }
+    });
+
+    // Sync on visibility
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') syncToServiceWorker();
     });
 
     // Handle Background Permission Prompt
