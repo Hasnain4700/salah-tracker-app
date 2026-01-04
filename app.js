@@ -26,8 +26,14 @@ function translateApp(lang = 'ur', save = false) {
 
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
-    if (strings[key]) {
-      el.textContent = strings[key];
+    const val = strings[key];
+    if (val) {
+      // Use innerHTML if string contains tags or is a known text block
+      if (val.includes('<') || key.includes('_text') || key.includes('_html')) {
+        el.innerHTML = val;
+      } else {
+        el.textContent = val;
+      }
     }
   });
 
@@ -489,13 +495,18 @@ async function fetchPrayerTimes(date = new Date()) {
       const success = (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude });
 
       const error = (err) => {
-        console.warn(`Geo High-Accuracy Failed (Code ${err.code}): ${err.message}`);
+        // Log as info/log instead of warn/error if permission is denied to keep console clean
+        if (err.code === 1) {
+          console.log(`[Location] Geo Permission Denied: ${err.message}`);
+        } else {
+          console.log(`[Location] Geo High-Accuracy Failed (Code ${err.code}): ${err.message}`);
+        }
 
         // Retry with low accuracy if it's not a permission error
         if (err.code !== 1) {
           console.log("Retrying with low accuracy...");
           navigator.geolocation.getCurrentPosition(success, (err2) => {
-            console.error(`Geo Low-Accuracy Failed as well: ${err2.message}`);
+            console.log(`[Location] Geo Low-Accuracy Failed: ${err2.message}`);
             reject(err2);
           }, { enableHighAccuracy: false, timeout: 10000 });
         } else {
@@ -513,16 +524,23 @@ async function fetchPrayerTimes(date = new Date()) {
     console.log("Location successfully updated:", coords);
   } catch (e) {
     const errorMsg = e.message || String(e);
-    console.warn("Location fetch final failure:", errorMsg);
+    if (e.code !== 1) {
+      console.log("[Location] fetch final failure:", errorMsg);
+    }
 
     // If we have no saved location AND no cache, we MUST warn the user
     if (!savedLat && !cachedData) {
       coords = detectRecommendedLocation();
       const locName = Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop().replace('_', ' ');
-      if (e.code === 1) {
-        showToast(`Location blocked. Guessed: ${locName}`, "info");
-      } else {
-        showToast(`Loc. Error. Guessed: ${locName}`, "info");
+
+      // Only toast once per session to avoid spamming
+      if (!window._fallbackToastShown) {
+        if (e.code === 1) {
+          showToast(`Location blocked. Guessed: ${locName}`, "info");
+        } else {
+          showToast(`Loc. Error. Guessed: ${locName}`, "info");
+        }
+        window._fallbackToastShown = true;
       }
     }
   }
@@ -831,6 +849,8 @@ onAuthStateChanged(auth, user => {
 
       // Now that offsets are loaded, we can fetch/refresh prayer times
       fetchPrayerTimes(currentDate);
+      // Check if new user needs onboarding
+      checkOnboardingStatus(user.uid, data);
     });
 
     fetchAndDisplayTracker();
@@ -839,9 +859,6 @@ onAuthStateChanged(auth, user => {
 
     // Check for app updates
     checkAppUpdates();
-
-    // Check if new user needs onboarding
-    checkOnboardingStatus(user.uid);
 
     // Request FCM token if user is logged in
     if ('serviceWorker' in navigator) {
@@ -3085,27 +3102,30 @@ function subscribeToPair(pairId, myUid) {
 listenToGlobalCounts();
 
 // --- User Onboarding Logic ---
-async function checkOnboardingStatus(uid) {
-  // Check if onboarding is already done
-  const snap = await get(ref(db, `users/${uid}/onboardingCompleted`));
-  const isComplete = snap.val();
+async function checkOnboardingStatus(uid, userData = null) {
+  let isComplete = false;
+
+  if (userData) {
+    isComplete = userData.onboardingCompleted;
+  } else {
+    // Fallback if data not passed
+    const snap = await get(ref(db, `users/${uid}/onboardingCompleted`));
+    isComplete = snap.val();
+  }
 
   if (!isComplete) {
+    console.log("[Onboarding] Starting for user:", uid);
     const modal = document.getElementById('onboarding-modal');
-    if (modal) modal.style.display = 'flex';
-
-    // Show Step 0 (Language) first if no lang set
-    const hasLang = localStorage.getItem('userLanguage');
-    if (!hasLang) {
-      document.querySelectorAll('.onboarding-step').forEach(s => s.style.display = 'none');
-      const stepLang = document.getElementById('onboarding-step-lang');
-      if (stepLang) stepLang.style.display = 'flex';
-    } else {
-      // If lang already set, show step 1
-      document.querySelectorAll('.onboarding-step').forEach(s => s.style.display = 'none');
-      const step1 = document.getElementById('onboarding-step-1');
-      if (step1) step1.style.display = 'flex';
+    if (modal) {
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
     }
+
+    // ALWAYS show Step 0 (Language) first if onboarding is not complete
+    // This ensures new users get to pick their preferred lang even if browser has a default
+    document.querySelectorAll('.onboarding-step').forEach(s => s.style.display = 'none');
+    const stepLang = document.getElementById('onboarding-step-lang');
+    if (stepLang) stepLang.style.display = 'flex';
   }
 }
 
@@ -3113,7 +3133,14 @@ async function checkOnboardingStatus(uid) {
 document.querySelectorAll('.lang-select-btn').forEach(btn => {
   btn.onclick = () => {
     const lang = btn.getAttribute('data-lang');
+    console.log("[Onboarding] Language selected:", lang);
     translateApp(lang, true);
+
+    // Also save to user profile in background if logged in
+    const user = auth.currentUser;
+    if (user) {
+      update(ref(db, `users/${user.uid}`), { language: lang });
+    }
 
     // Move to Step 1 (Welcome)
     document.getElementById('onboarding-step-lang').style.display = 'none';
@@ -3167,11 +3194,12 @@ if (btnOnboardingFinish) {
       strugglePrayer: strugglePrayer
     });
 
-    // Close Modal
     const modal = document.getElementById('onboarding-modal');
     if (modal) modal.style.display = 'none';
+    document.body.style.overflow = '';
 
-    showToast("Welcome to the family! 💚", "#6ee7b7");
+    showToast("Welcome to the family! 💚", "success");
+    fetchPrayerTimes(currentDate); // Refresh times in case lang/location changed
   };
 }
 
