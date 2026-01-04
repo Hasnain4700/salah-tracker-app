@@ -34,7 +34,13 @@ export const translations = {
         "ob_personal_text": "So we can tailor the app for you.",
         "ob_sleep_label": "What time do you sleep at night?",
         "ob_struggle_label": "Which prayer do you miss most?",
+        "ob_intro_title": "My Story",
+        "ob_intro_text": "My name is <b>Hasnain</b>. <br><br> I didn't make this app to earn money. <br> My goal is simple: to use modern technology (AI & Code) to bring us Muslims closer to Allah. <br><br> I've been working on this alone for months. If you see any issues, I apologize and I'm fixing them. <br><br>",
+        "ob_jazakallah": "JazakAllah Khair!",
         "ob_finish": "Get Started 🚀",
+        "ob_lang_title": "Select Language",
+        "ob_lang_text": "App ki zaban muntakhib karein.",
+        "ob_start_btn": "Next ➜",
 
         // Features (More Section)
         "feature_tree": "Jannat ka Darakht",
@@ -97,7 +103,13 @@ export const translations = {
         "ob_personal_text": "Taake hum app ko aap ke mutabiq dhaal sakein.",
         "ob_sleep_label": "Aap raat ko kitne bajay sote hain?",
         "ob_struggle_label": "Sab se zyada kaunsi namaz miss hoti hai?",
+        "ob_intro_title": "Meri Kahani",
+        "ob_intro_text": "Mera naam <b>Hasnain</b> hai. <br><br> Maine ye app paisa kamanay ke liye nahi banayi. <br> Mera maqsad sirf ye hai ke jadeed technology (AI & Code) ka istemal kar ke hum Musalmano ko Allah ke aur qareeb kar saken. <br><br> Main akela is app par mahino se kaam kar raha hoon. Agar kahin koi issue nazar aaye to maafi chahta hoon, main usay fix kar raha hoon. <br><br>",
+        "ob_jazakallah": "JazakAllah Khair!",
         "ob_finish": "Shuru Karein 🚀",
+        "ob_lang_title": "Select Language",
+        "ob_lang_text": "App ki zaban muntakhib karein.",
+        "ob_start_btn": "Next ➜",
 
         // Features (More Section)
         "feature_tree": "Jannat ka Darakht",
