@@ -138,6 +138,12 @@
 
         <!-- Support Group -->
         <div class="settings-group-card">
+          <div class="settings-item-row" onclick="window.requestBackgroundPermission()"
+            style="border-bottom: 1px dashed rgba(110, 231, 183, 0.3);">
+            <div class="settings-item-icon">🔋</div>
+            <div class="settings-item-label" data-i18n="feature_bg">Background Mode Fix</div>
+            <div class="settings-item-chevron">&#8250;</div>
+          </div>
           <div class="settings-item-row" id="export-data-btn">
             <div class="settings-item-icon">📥</div>
             <div class="settings-item-label">Export Logs</div>
@@ -586,6 +592,19 @@
 
     <!-- Features Menu List -->
     <div id="more-features-menu">
+      <!-- Quran Read (Top Priority) -->
+      <div class="card" onclick="openSubFeature('quran-read')"
+        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px; border: 1px solid rgba(110, 231, 183, 0.3);">
+        <div
+          style="background:rgba(110, 231, 183, 0.1);width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
+          📖</div>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_quran_read">Quran Read</div>
+          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_quran_read_desc">Parhein aur samjhein</div>
+        </div>
+        <div style="color:#6ee7b7;">&#8594;</div>
+      </div>
+
       <div class="card" onclick="openSubFeature('tree')"
         style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
         <div
@@ -597,6 +616,7 @@
         </div>
         <div style="color:#6ee7b7;">&#8594;</div>
       </div>
+
       <div class="card" onclick="openSubFeature('twins')"
         style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
         <div
@@ -608,51 +628,7 @@
         </div>
         <div style="color:#6ee7b7;">&#8594;</div>
       </div>
-      <div class="card" onclick="openSubFeature('qaza')"
-        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
-        <div
-          style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
-          📅</div>
-        <div style="flex:1;text-align:left;">
-          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_qaza">Qaza-e-Umri Tracker</div>
-          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_qaza_desc">Track your missed prayers</div>
-        </div>
-        <div style="color:#6ee7b7;">&#8594;</div>
-      </div>
-      <div class="card" onclick="openSubFeature('halaqa')"
-        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
-        <div
-          style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
-          👥</div>
-        <div style="flex:1;text-align:left;">
-          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_halaqa">Halaqa Circles</div>
-          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_halaqa_desc">Group Accountability & Stats</div>
-        </div>
-        <div style="color:#6ee7b7;">&#8594;</div>
-      </div>
-      <div class="card" onclick="openSubFeature('series')"
-        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
-        <div
-          style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
-          📚</div>
-        <div style="flex:1;text-align:left;">
-          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_series">Islamic Series</div>
-          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_series_desc">Read and learn from series</div>
-        </div>
-        <div style="color:#6ee7b7;">&#8594;</div>
-      </div>
-      <!-- Background Mode / Battery Fix -->
-      <div class="card" onclick="window.requestBackgroundPermission()"
-        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;border: 1px dashed #6ee7b7;">
-        <div
-          style="background:#064e3b;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
-          🔋</div>
-        <div style="flex:1;text-align:left;">
-          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_bg">Background Mode</div>
-          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_bg_desc">Fix Adhan & Counter issues</div>
-        </div>
-        <div style="color:#6ee7b7;">&#9881;</div>
-      </div>
+
       <div class="card" onclick="openSubFeature('qibla')"
         style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
         <div
@@ -665,14 +641,38 @@
         <div style="color:#6ee7b7;">&#8594;</div>
       </div>
 
-      <div class="card" onclick="openSubFeature('quran-read')"
+      <div class="card" onclick="openSubFeature('qaza')"
         style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
         <div
           style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
-          📖</div>
+          📅</div>
         <div style="flex:1;text-align:left;">
-          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_quran_read">Quran Read</div>
-          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_quran_read_desc">Parhein aur samjhein</div>
+          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_qaza">Qaza-e-Umri Tracker</div>
+          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_qaza_desc">Track your missed prayers</div>
+        </div>
+        <div style="color:#6ee7b7;">&#8594;</div>
+      </div>
+
+      <div class="card" onclick="openSubFeature('halaqa')"
+        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
+        <div
+          style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
+          👥</div>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_halaqa">Halaqa Circles</div>
+          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_halaqa_desc">Group Accountability & Stats</div>
+        </div>
+        <div style="color:#6ee7b7;">&#8594;</div>
+      </div>
+
+      <div class="card" onclick="openSubFeature('series')"
+        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
+        <div
+          style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
+          📚</div>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_series">Islamic Series</div>
+          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_series_desc">Read and learn from series</div>
         </div>
         <div style="color:#6ee7b7;">&#8594;</div>
       </div>
@@ -1009,6 +1009,25 @@
           <button id="quran-read-back-btn"
             style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding: 0 12px 0 0;">&#8592;</button>
           <h2 style="margin:0;font-size:1.3em;">Quran Read</h2>
+          <div id="quran-controls" style="margin-left:auto; display:none; align-items:center; gap:10px;">
+            <span style="font-size:0.7em; color:#94a3b8;">Aa</span>
+            <input type="range" id="quran-font-size" min="1.2" max="3.0" step="0.1" value="1.8"
+              style="width:60px; accent-color:#6ee7b7; cursor:pointer;">
+            <span style="font-size:1.1em; color:#6ee7b7;">Aa</span>
+          </div>
+        </div>
+
+        <!-- Last Read Banner -->
+        <div id="quran-last-read"
+          style="display:none; margin-bottom:15px; padding:12px; background:rgba(110, 231, 183, 0.1); border-radius:12px; border:1px solid rgba(110, 231, 183, 0.2); cursor:pointer;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:1.2em;">📖</span>
+            <div style="text-align:left;">
+              <div style="font-size:0.75em; color:#6ee7b7;">Last Read</div>
+              <div id="last-read-title" style="font-weight:700; font-size:0.9em; color:#fff;">Surah Al-Baqarah</div>
+            </div>
+            <span style="margin-left:auto; color:#6ee7b7;">➜</span>
+          </div>
         </div>
 
         <!-- Surah List -->
@@ -1258,8 +1277,8 @@
     <!-- Language Selection (Step 0) -->
     <div id="onboarding-step-lang" class="onboarding-step">
       <div class="onboarding-emoji">🌍</div>
-      <div class="onboarding-title">Select Language</div>
-      <div class="onboarding-text">App ki zaban muntakhib karein.</div>
+      <div class="onboarding-title" data-i18n="ob_lang_title">Select Language</div>
+      <div class="onboarding-text" data-i18n="ob_lang_text">App ki zaban muntakhib karein.</div>
       <div style="display:grid; grid-template-columns:1fr; gap:15px; width:100%; max-width:300px;">
         <button class="onboarding-btn lang-select-btn" data-lang="ur"
           style="background:#1e293b; color:#6ee7b7; border:1px solid #6ee7b7;">Roman Urdu</button>
@@ -1307,24 +1326,26 @@
         </select>
       </div>
 
-      <button class="onboarding-btn" id="btn-onboarding-next-2" style="background:#fcd34d; color:#0f172a;">Next
+      <button class="onboarding-btn" id="btn-onboarding-next-2" data-i18n="ob_start_btn"
+        style="background:#fcd34d; color:#0f172a;">Next
         ➜</button>
     </div>
 
     <!-- Step 3: Developer Mission -->
     <div id="onboarding-step-3" class="onboarding-step">
       <div class="onboarding-emoji">👨‍💻</div>
-      <div class="onboarding-title">Meri Kahani</div>
-      <div class="onboarding-text" style="text-align:left; max-width:85%;">
+      <div class="onboarding-title" data-i18n="ob_intro_title">Meri Kahani</div>
+      <div class="onboarding-text" data-i18n="ob_intro_text" style="text-align:left; max-width:85%;">
         Mera naam <b>Hasnain</b> hai. <br><br>
         Maine ye app paisa kamanay ke liye nahi banayi. <br>
         Mera maqsad sirf ye hai ke jadeed technology (AI & Code) ka istemal kar ke hum Musalmano ko Allah ke aur qareeb
         kar saken. <br><br>
         Main akela is app par mahino se kaam kar raha hoon. Agar kahin koi issue nazar aaye to maafi chahta hoon, main
         usay fix kar raha hoon. <br><br>
-        <div style="text-align:center; font-weight:700; color:#6ee7b7;">JazakAllah Khair!</div>
       </div>
-      <button class="onboarding-btn" id="btn-onboarding-finish">Get Started 🚀</button>
+      <div style="text-align:center; font-weight:700; color:#6ee7b7; margin-bottom: 20px;" data-i18n="ob_jazakallah">
+        JazakAllah Khair!</div>
+      <button class="onboarding-btn" id="btn-onboarding-finish" data-i18n="ob_finish">Get Started 🚀</button>
     </div>
 
   </div>
