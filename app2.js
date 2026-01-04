@@ -263,8 +263,8 @@
         if (!hadithContent || !hadithModal) return;
 
         try {
-            // Using a reliable free Hadith API
-            const response = await fetch('https://hadith-api.com/api/hadiths?apiKey=$2y$10$fWfI/kH06z.N.6F9M/Vv7uq3rUe/Yj9Ua5Gv7R8H/n6m/Yj9Ua5Gv7R8H/&limit=1&random=1');
+            // Using a reliable free Hadith API (hadithapi.com)
+            const response = await fetch('https://hadithapi.com/api/hadiths?apiKey=$2y$10$fWfI/kH06z.N.6F9M/Vv7uq3rUe/Yj9Ua5Gv7R8H/n6m/Yj9Ua5Gv7R8H/&limit=1&random=1');
             if (!response.ok) throw new Error("API Limit or DNS issue");
             const data = await response.json();
             const hadith = data.hadiths?.data?.[0];
@@ -310,9 +310,39 @@
     const surahListEl = document.getElementById('quran-surah-list');
     const versesViewEl = document.getElementById('quran-verses-view');
     const backBtn = document.getElementById('quran-read-back-btn');
+    const lastReadEl = document.getElementById('quran-last-read');
+    const lastReadTitle = document.getElementById('last-read-title');
+    const fontSlider = document.getElementById('quran-font-size');
+    const controlsEl = document.getElementById('quran-controls');
+
+    let currentQuranFontSize = localStorage.getItem('quran_font_size') || 1.8;
+    if (fontSlider) {
+        fontSlider.value = currentQuranFontSize;
+        fontSlider.oninput = (e) => {
+            currentQuranFontSize = e.target.value;
+            localStorage.setItem('quran_font_size', currentQuranFontSize);
+            document.querySelectorAll('.quran-verse-text').forEach(el => {
+                el.style.fontSize = `${currentQuranFontSize}em`;
+            });
+        };
+    }
+
+    let quranAudio = new Audio();
 
     async function fetchSurahs() {
         if (!surahListEl) return;
+
+        // Check Last Read
+        const lastSurahId = localStorage.getItem('last_read_surah_id');
+        const lastSurahName = localStorage.getItem('last_read_surah_name');
+        if (lastSurahId && lastSurahName && lastReadEl) {
+            lastReadTitle.textContent = `Surah ${lastSurahName}`;
+            lastReadEl.style.display = 'block';
+            lastReadEl.onclick = () => window.loadSurah(lastSurahId, lastSurahName);
+        } else if (lastReadEl) {
+            lastReadEl.style.display = 'none';
+        }
+
         try {
             const res = await fetch('https://api.quran.com/api/v4/chapters?language=ur');
             const data = await res.json();
@@ -324,21 +354,31 @@
 
     function renderSurahList(chapters) {
         if (!surahListEl) return;
-        surahListEl.innerHTML = chapters.map(c => `
-            <div class="card" style="padding:12px; margin-bottom:8px; cursor:pointer; background:#1e293b; display:flex; justify-content:space-between; align-items:center;" onclick="window.loadSurah(${c.id}, '${c.name_simple}')">
-                <div>
-                    <span style="color:#6ee7b7; font-weight:bold; margin-right:10px;">${c.id}.</span>
-                    <span>${c.name_simple}</span>
+        surahListEl.innerHTML = chapters.map(c => {
+            const escapedName = c.name_simple.replace(/'/g, "\\'");
+            return `
+                <div class="card" style="padding:12px; margin-bottom:8px; cursor:pointer; background:#1e293b; display:flex; justify-content:space-between; align-items:center;" onclick="window.loadSurah(${c.id}, '${escapedName}')">
+                    <div>
+                        <span style="color:#6ee7b7; font-weight:bold; margin-right:10px;">${c.id}.</span>
+                        <span>${c.name_simple}</span>
+                    </div>
+                    <div style="font-family:'Traditional Arabic', serif; font-size:1.1em;">${c.name_arabic}</div>
                 </div>
-                <div style="font-family:'Traditional Arabic', serif; font-size:1.1em;">${c.name_arabic}</div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     window.loadSurah = async (id, name) => {
         if (!surahListEl || !versesViewEl) return;
+
+        // Save Last Read
+        localStorage.setItem('last_read_surah_id', id);
+        localStorage.setItem('last_read_surah_name', name);
+        if (lastReadEl) lastReadEl.style.display = 'none';
+
         surahListEl.style.display = 'none';
         versesViewEl.style.display = 'block';
+        if (controlsEl) controlsEl.style.display = 'flex';
         versesViewEl.innerHTML = `<div style="text-align:center; padding:20px; color:#94a3b8;">Loading Verses... 📖</div>`;
 
         try {
@@ -360,8 +400,12 @@
             ${verses.map(v => `
                 <div style="margin-bottom:32px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:16px; text-align: right;">
                     <!-- Arabic Text (Top) -->
-                    <div style="font-size:1.8em; line-height:2.2; font-family:'Traditional Arabic', serif; color:#fff; direction: rtl; margin-bottom: 12px;">
-                        ${v.text_uthmani} <span style="font-size:0.5em; color:#6ee7b7; border:1px solid #6ee7b7; border-radius:50%; padding:2px 6px; vertical-align: middle; margin-right: 5px;">${v.verse_number}</span>
+                    <div class="quran-verse-text" style="font-size:${currentQuranFontSize}em; line-height:2.2; font-family:'Traditional Arabic', serif; color:#fff; direction: rtl; margin-bottom: 12px;">
+                        ${v.text_uthmani} 
+                        <span style="display:inline-flex; align-items:center; gap:5px; vertical-align:middle;">
+                           <button onclick="window.playAyah('${v.verse_key}', this)" style="background:rgba(110, 231, 183, 0.1); border:1px solid #6ee7b7; color:#6ee7b7; border-radius:50%; width:30px; height:30px; font-size:0.4em; cursor:pointer; display:flex; align-items:center; justify-content:center;">▶</button>
+                           <span style="font-size:0.5em; color:#6ee7b7; border:1px solid #6ee7b7; border-radius:50%; padding:2px 6px;">${v.verse_number}</span>
+                        </span>
                     </div>
                     <!-- Urdu Translation (Bottom) -->
                     <div style="font-size:1.05em; color:#a7f3d0; line-height:1.7; font-family:'Noto Nastaliq Urdu', serif; direction: rtl;">
@@ -373,11 +417,52 @@
         `;
     }
 
+    window.playAyah = async (key, btn) => {
+        try {
+            if (quranAudio.src && !quranAudio.paused && quranAudio.currentKey === key) {
+                quranAudio.pause();
+                btn.textContent = '▶';
+                return;
+            }
+
+            btn.textContent = '⏳';
+            // Alafasy recitation ID: 7
+            const res = await fetch(`https://api.quran.com/api/v4/recitations/7/by_ayah/${key}`);
+            const data = await res.json();
+            const audioUrl = data.audio_files[0]?.url;
+
+            if (audioUrl) {
+                if (!audioUrl.startsWith('http')) {
+                    quranAudio.src = `https://verses.quran.foundation/${audioUrl}`;
+                } else {
+                    quranAudio.src = audioUrl;
+                }
+                quranAudio.currentKey = key;
+                quranAudio.play();
+
+                // Reset other buttons
+                document.querySelectorAll('.quran-verse-text button').forEach(b => b.textContent = '▶');
+                btn.textContent = '⏸';
+
+                quranAudio.onended = () => { btn.textContent = '▶'; };
+            }
+        } catch (e) {
+            console.error("Audio play error", e);
+            btn.textContent = '❌';
+            setTimeout(() => { btn.textContent = '▶'; }, 2000);
+        }
+    };
+
     if (backBtn) {
         backBtn.onclick = () => {
             if (versesViewEl && versesViewEl.style.display === 'block') {
                 versesViewEl.style.display = 'none';
-                if (surahListEl) surahListEl.style.display = 'block';
+                if (controlsEl) controlsEl.style.display = 'none';
+                if (surahListEl) {
+                    surahListEl.style.display = 'block';
+                    fetchSurahs(); // Refresh to show Last Read banner
+                }
+                if (quranAudio) quranAudio.pause();
             } else {
                 // Custom closeSubFeature logic if it exists globally
                 if (window.closeSubFeature) window.closeSubFeature();
