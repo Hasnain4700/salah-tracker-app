@@ -53,14 +53,17 @@ async function updateStickyNotification() {
   // Handle Maghrib/Isha past midnight or next day Fajr
   if (!next) {
     // Show 'Day Complete' or just wait for next sync
-    return self.registration.showNotification("Alhamdulillah 🌙", {
-      body: "All prayers for today are complete.",
-      icon: "./icon-192.png",
-      tag: 'prayer-counter',
-      renotify: false,
-      silent: true,
-      ongoing: true
-    });
+    if (self.registration && self.registration.active) {
+      await self.registration.showNotification("Alhamdulillah 🌙", {
+        body: "All prayers for today are complete.",
+        icon: "./icon-192.png",
+        tag: 'prayer-counter',
+        renotify: false,
+        silent: true,
+        ongoing: true
+      });
+    }
+    return;
   }
 
   const diffMs = next.date - now;
@@ -82,16 +85,22 @@ async function updateStickyNotification() {
   const isStruggle = next.name === strugglePrayer;
   const title = isStruggle ? `⚠️ Next: ${next.name} (Struggle)` : `🕌 Next: ${next.name}`;
 
-  self.registration.showNotification(title, {
-    body: `${timeLabel} • ${countdownLabel}`,
-    icon: "./icon-192.png",
-    badge: "./icon-192.png",
-    tag: 'prayer-counter',
-    renotify: false,
-    silent: true,
-    ongoing: true, // Key for sticky
-    placeholder: "Salah Tracker"
-  });
+  try {
+    if (self.registration && self.registration.active) {
+      await self.registration.showNotification(title, {
+        body: `${timeLabel} • ${countdownLabel}`,
+        icon: "./icon-192.png",
+        badge: "./icon-192.png",
+        tag: 'prayer-counter',
+        renotify: false,
+        silent: true,
+        ongoing: true, // Key for sticky
+        placeholder: "Salah Tracker"
+      });
+    }
+  } catch (e) {
+    console.warn("[FCM SW] Failed to show sticky notification:", e.message);
+  }
 }
 
 function triggerAdhanAlert(prayerName) {
@@ -101,13 +110,15 @@ function triggerAdhanAlert(prayerName) {
     title = `⚠️ High Priority: ${prayerName}`;
     body = "Don't delay! Win against your struggle. 💪";
   }
-  self.registration.showNotification(title, {
-    body: body,
-    icon: "./icon-192.png",
-    vibrate: [200, 100, 200, 100, 200, 100, 400],
-    tag: 'prayer-alert',
-    data: { url: 'https://hasnain4700.github.io/salah-tracker-app/' }
-  });
+  if (self.registration && self.registration.active) {
+    self.registration.showNotification(title, {
+      body: body,
+      icon: "./icon-192.png",
+      vibrate: [200, 100, 200, 100, 200, 100, 400],
+      tag: 'prayer-alert',
+      data: { url: 'https://hasnain4700.github.io/salah-tracker-app/' }
+    });
+  }
 }
 
 // --- Event Handlers ---
