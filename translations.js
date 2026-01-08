@@ -67,7 +67,26 @@ export const translations = {
         "streak_title": "Salah Streak",
         "streak_desc": "Consistency is key! 🔑",
         "days": "Days",
-        "xp_progress": "XP PROGRESS"
+        "xp_progress": "XP PROGRESS",
+        "prayer_history_monthly": "Prayer History (Monthly)",
+        "prayed": "Prayed",
+        "not_prayed": "Not Prayed",
+
+        // Durood Expansion
+        "durood_ibrahim_ar": "اَللّٰھُمَّ صَلِّ عَلٰی مُحَمَّدٍ وَّعَلٰی اٰلِ مُحَمَّدٍ کَمَا صَلَّیْتَ عَلٰٓی اِبْرَاھِیْمَ وَعَلٰٓی اٰلِ اِبْرَاھِیْمَ اِنَّکَ حَمِیْدٌ مَّجِیْدٌ اَللّٰھُمَّ بَارِکْ عَلٰی مُحَمَّدٍ وَّعَلٰی اٰلِ مُحَمَّدٍ کَمَا بَارَکْتَ عَلٰٓی اِبْرَاھِیْمَ وَعَلٰٓی اٰلِ اِبْرَاھِیْمَ اِنَّکَ حَمِیْدٌ مَّجِیْدٌ",
+        "ref_ibrahim": "The famous companion Ka'ab bin Ujrah narrates that when asked how blessings should be sent to the Prophet (SAW), he replied in this manner. It is the most authentic and widely recited Durood.",
+
+        "durood_nahariya_ar": "اَللَّهُمَّ صَلِّ صَلَوٰةً كَامِلَةً وَسَلِّمْ سَلَامًا تَامًّا عَلَىٰ سَيِّدِنَا مُحَمَّدِ الَّذِي تَنْحَلُّ بِهِ الْعُقَدُ وَتَنْفَرِجُ بِهِ الْكُرَبُ وَتُقْضَىٰ بِهِ الْحَوَائِجُ وَتُنَالُ بِهِ الرَّغَائِبُ وَحُسْنُ الْخَوَاتِمِ وَيُسْتَسْقَى الْغَمَامُ بِوَجْهِهِ الْكَرِيمِ وَعَلَىٰ آلِهِ وَصَحْبِهِ فِي كُلِّ لَمْحَةٍ وَنَفَسٍ بِعَدَدِ كُلِّ مَعْلُومٍ لَكَ يَا اَللَّهُ يَا اَللَّهُ يَا اَللَّهُ",
+        "ref_nahariya": "Durood-e-Nahariya is a great power. If it is recited daily, it will give such strength and power to the reciter that no one on earth will be able to subdue him. It is a grand success in all the affairs of the world. It help's the reciter from unknown quarters and overcomes every barrier safely and soundly.",
+
+        "durood_fatih_ar": "اَللَّهُمَّ صَلِّ وَسَلِّمْ وَبَارِكْ عَلَىٰ سَيِّدِنَا مُحَمَّدِ الْفَاتِحِ لِمَا أُغْلِقَ وَالْخَاتِمِ لِمَا سَبَقَ نَاصِرِ الْحَقِّ بِالْحَقِّ وَالْهَادِي إِلَىٰ صِرَاطِكَ الْمُسْتَقِيمِ صَلَّى اللَّهُ عَلَيْهِ وَعَلَىٰ آلِهِ وَأَصْحَابِهِ حَقَّ قَدْرِهِ وَمِقْدَارِهِ الْعَظِيمِ",
+        "ref_fatih": "This Durood Shareef is in the Holy Quran but was kept secret. Reciting it daily relieves from the fire of Hell and brings 100% success and happiness. It solves complex problems by the Grace of Allah. When a man recites it, Angels of Allah surround him and mercy covers him.",
+
+        "durood_shafii_ar": "اَللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ كُلَّمَا ذَكَرَهُ الذَّاكِرُونَ وَكُلَّمَا غَفَلَ عَنْ ذِكْرِهِ الْغَافِلُونَ",
+        "ref_shafii": "Hadrat Imam Shafi'i used to recite it constantly and received glad tidings of Jannah. It brings tremendous prosperity, health, happiness and success in this world and the hereafter. It is of very great significance.",
+
+        "durood_dawaami_ar": "اَللَّهُمَّ صَلِّ عَلَىٰ سَيِّدِنَا مُحَمَّدٍ وَعَلَىٰ آلِ سَيِّدِنَا مُحَمَّدٍ عَدَدَ مَا فِي عِلْمِ اللَّهِ صَلَوٰةً دَائِمَةً بِدَوَامِ مُلْكِ اللَّهِ",
+        "ref_dawaami": "Reciting it only once amounts to rewards of all Duroods. One gets peace of mind and success in this world and the next. It brings relief and true happiness. Pious people and Saints recommend this for those in need."
     },
     ur: {
         // Navigation & General (Roman Urdu)
@@ -136,6 +155,25 @@ export const translations = {
         "streak_title": "Salah Streak",
         "streak_desc": "Pabandi hi kamyabi hai! 🔑",
         "days": "Din",
-        "xp_progress": "XP PROGRESS"
+        "xp_progress": "XP PROGRESS",
+        "prayer_history_monthly": "Mahana Attendance Chart",
+        "prayed": "Parh li",
+        "not_prayed": "Nahi Parhi",
+
+        // Durood Expansion
+        "durood_ibrahim_ar": "اَللّٰھُمَّ صَلِّ عَلٰی مُحَمَّدٍ وَّعَلٰی اٰلِ مُحَمَّدٍ کَمَا صَلَّیْتَ عَلٰٓی اِبْرَاھِیْمَ وَعَلٰٓی اٰلِ اِبْرَاھِیْمَ اِنَّکَ حَمِیْدٌ مَّجِیْدٌ اَللّٰھُمَّ بَارِکْ عَلٰی مُحَمَّدٍ وَّعَلٰی اٰلِ مُحَمَّدٍ کَمَا بَارَکْتَ عَلٰٓی اِبْرَاھِیْمَ وَعَلٰٓی اٰلِ اِبْرَاھِیْمَ اِنَّکَ حَمِیْدٌ مَّجِیْدٌ",
+        "ref_ibrahim": "Hazrat Ka'ab bin Ujrah farmate hain ke jab Huzoor (SAW) se pucha gaya ke un par darood kaise bheja jaye, to aap ne ye darood sikhaya. Ye sab se mustanad darood hai.",
+
+        "durood_nahariya_ar": "اَللَّهُمَّ صَلِّ صَلَوٰةً كَامِلَةً وَسَلِّمْ سَلَامًا تَامًّا عَلَىٰ سَيِّدِنَا مُحَمَّدِ الَّذِي تَنْحَلُّ بِهِ الْعُقَدُ وَتَنْفَرِجُ بِهِ الْكُرَبُ وَتُقْضَىٰ بِهِ الْحَوَائِجُ وَتُنَالُ بِهِ الرَّغَائِبُ وَحُسْنُ الْخَوَاتِمِ وَيُسْتَسْقَى الْغَمَامُ بِوَجْهِهِ الْكَرِيمِ وَعَلَىٰ آلِهِ وَصَحْبِهِ فِي كُلِّ لَمْحَةٍ وَنَفَسٍ بِعَدَدِ كُلِّ مَعْلُومٍ لَكَ يَا اَللَّهُ يَا اَللَّهُ يَا اَللَّهُ",
+        "ref_nahariya": "Durood-e-Nahariya ek Azeem taqat hai. Rozana parhne se insan ko itni quwwat milti hai ke koi usay maghloob nahi kar sakta. Ye dunya ke har muamlay mein kamyabi lata hai aur mushkilat ko door karta hai.",
+
+        "durood_fatih_ar": "اَللَّهُمَّ صَلِّ وَسَلِّمْ وَبَارِكْ عَلَىٰ سَيِّدِنَا مُحَمَّدِ الْفَاتِحِ لِمَا أُغْلِقَ وَالْخَاتِمِ لِمَا سَبَقَ نَاصِرِ الْحَقِّ بِالْحَقِّ وَالْهَادِي إِلَىٰ صِرَاطِكَ الْمُسْتَقِيمِ صَلَّى اللَّهُ عَلَيْهِ وَعَلَىٰ آلِهِ وَأَصْحَابِهِ حَقَّ قَدْرِهِ وَمِقْدَارِهِ الْعَظِيمِ",
+        "ref_fatih": "Durood-e-Fath Quran mein tha par poshida rakha gaya. Rozana parhne se dozakh ki aag se nijaat milti hai aur 100% kamyabi aur khushi hasil hoti hai. Ye mushkil tareen masail bhi hal karta hai.",
+
+        "durood_shafii_ar": "اَللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ كُلَّمَا ذَكَرَهُ الذَّاكِرُونَ وَكُلَّمَا غَفَلَ عَنْ ذِكْرِهِ الْغَافِلُونَ",
+        "ref_shafii": "Hazrat Imam Shafi'i ye darood kasrat se parhte thay aur unhein Jannat ki basharat mili. Ye dunya aur akhirat mein azeem kamyabi, sehat aur khushi ka zariye hai.",
+
+        "durood_dawaami_ar": "اَللَّهُمَّ صَلِّ عَلَىٰ سَيِّدِنَا مُحَمَّدٍ وَعَلَىٰ آلِ سَيِّدِنَا مُحَمَّدٍ عَدَدَ مَا فِي عِلْمِ اللَّهِ صَلَوٰةً دَائِمَةً بِدَوَامِ مُلْكِ اللَّهِ",
+        "ref_dawaami": "Sirf ek baar parhne se tamaam Darood Pak ka sawab milta hai. Is se dil ko sukoon aur dunya-o-akhirat mein kamyabi milti hai. Ye pareshaniyon se nijat aur sachi khushi lata hai."
     }
 };
