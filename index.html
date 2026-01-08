@@ -21,6 +21,8 @@
     };
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.6.1/jsrsasign-all-min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400;600;700&display=swap"
+    rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
 </head>
@@ -59,8 +61,7 @@
           <div class="settings-item-row" style="cursor: default;">
             <div class="settings-item-icon">👤</div>
             <div class="settings-item-label">Display Name</div>
-            <input type="text" id="settings-display-name" class="settings-list-control" placeholder="Name"
-              style="text-align: left; width: 100px;">
+            <input type="text" id="settings-display-name" class="settings-list-control" placeholder="Name">
           </div>
           <div class="settings-item-row" style="cursor: default;">
             <div class="settings-item-icon">🌍</div>
@@ -208,8 +209,8 @@
         </div>
       </div>
 
-      <!-- Compact Footer -->
-      <div class="settings-footer" style="padding: 16px 24px;">
+      <!-- Settings Footer -->
+      <div class="settings-footer">
         <button id="save-settings-btn" class="settings-save-btn">Save Changes</button>
       </div>
     </div>
@@ -253,7 +254,7 @@
     <!-- Partner Status Widget (Deen Twins) -->
     <div id="home-partner-widget" class="card"
       style="display:none;background:linear-gradient(135deg, #1e293b, #0f172a);border-left:4px solid #6ee7b7;cursor:pointer;margin-bottom:12px;"
-      onclick="navBtns[4].click(); setTimeout(()=>{openSubFeature('twins')}, 100);">
+      onclick="showSection('more'); setTimeout(()=>{openSubFeature('twins')}, 100);">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div style="display:flex;align-items:center;gap:10px;">
           <div id="hp-avatar" style="font-size:1.5em;">👤</div>
@@ -269,7 +270,7 @@
     <!-- Streak Widget (New) -->
     <div id="home-streak-widget" class="card"
       style="display:none;background:linear-gradient(135deg, #b45309, #78350f);border:none;position:relative;overflow:hidden;cursor:pointer;margin-bottom:12px;box-shadow:0 4px 15px rgba(245, 158, 11, 0.3);"
-      onclick="navBtns[3].click()">
+      onclick="showSection('tracker')">
       <div style="position:absolute;top:-20px;right:-20px;font-size:6em;opacity:0.1;transform:rotate(-15deg);">🔥</div>
       <div style="display:flex;justify-content:space-between;align-items:center;position:relative;z-index:2;">
         <div style="display:flex;align-items:center;gap:12px;">
@@ -284,6 +285,29 @@
         </div>
         <div style="font-size:1.5em;font-weight:800;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,0.3);">
           <span id="home-streak-value">0</span> <span data-i18n="days">Days</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Global Durood Counter Home Widget -->
+    <div id="home-durood-widget" class="card"
+      style="background:linear-gradient(135deg, #064e3b, #065f46);border:none;position:relative;overflow:hidden;cursor:pointer;margin-bottom:12px;box-shadow:0 4px 15px rgba(52, 211, 153, 0.2);"
+      onclick="showSection('more'); setTimeout(()=>{openSubFeature('durood')}, 120);">
+      <div style="position:absolute;top:-10px;right:-10px;font-size:5em;opacity:0.1;transform:rotate(10deg);">✨</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;position:relative;z-index:2;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="font-size:1.6em;filter: drop-shadow(0 0 8px rgba(110, 231, 183, 0.6));">✨</div>
+          <div style="text-align:left;">
+            <div style="font-weight:700;font-size:1.1em;color:#fff;">Global Salawat</div>
+            <div style="font-size:0.8em;color:rgba(255,255,255,0.8);">Read & Contribute 🤲</div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div id="home-durood-value"
+            style="font-size:1.4em;font-weight:800;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,0.3);">
+            0</div>
+          <div style="font-size:0.7em;text-transform:uppercase;letter-spacing:1px;color:#6ee7b7;font-weight:700;">World
+            Total</div>
         </div>
       </div>
     </div>
@@ -528,32 +552,48 @@
       </div>
     </div>
 
-    <!-- History Card -->
+    <!-- History Card (Monthly Attendance) -->
     <div class="stat-card-premium history-card-wrap">
       <div class="history-card-header">
         <div class="history-title-side">
           <span class="history-ico">📅</span>
-          <span class="history-txt">Prayer History (Last 7 Days)</span>
+          <span class="history-txt" data-i18n="prayer_history_monthly">Prayer History (Monthly)</span>
         </div>
-        <div class="history-menu-dots">•••</div>
       </div>
-      <div class="history-table-container">
-        <table id="tracker-log-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Tahaj.</th>
-              <th>Fajr</th>
-              <th>Dhuhr</th>
-              <th>Asr</th>
-              <th>Magh.</th>
-              <th>Isha</th>
-            </tr>
-          </thead>
-          <tbody id="tracker-log-table-body">
-            <!-- Filled by JS -->
-          </tbody>
-        </table>
+
+      <!-- New Monthly Grid -->
+      <div class="stats-monthly-container">
+        <div class="stats-labels">
+          <div class="stats-label-item">Fajr</div>
+          <div class="stats-label-item">Dhuhr</div>
+          <div class="stats-label-item">Asr</div>
+          <div class="stats-label-item">Magh.</div>
+          <div class="stats-label-item">Isha</div>
+        </div>
+        <div id="monthly-stats-grid" class="stats-grid-scroll">
+          <!-- Filled by JS -->
+          <div style="color:#64748b; padding:20px; font-size:0.9em;">Loading month view...</div>
+        </div>
+      </div>
+
+      <!-- Stats Summary Grid -->
+      <div class="stats-summary-grid">
+        <div class="stats-summary-card">
+          <div class="summary-title">🟢 <span data-i18n="prayed">Prayed</span></div>
+          <div id="summary-prayed-val" class="summary-value">0%</div>
+          <div id="summary-prayed-count" class="summary-count">0 times</div>
+          <div class="summary-bar-container">
+            <div id="summary-prayed-bar" class="summary-bar" style="background:#10b981; width:0%"></div>
+          </div>
+        </div>
+        <div class="stats-summary-card">
+          <div class="summary-title">🔴 <span data-i18n="not_prayed">Not Prayed</span></div>
+          <div id="summary-missed-val" class="summary-value">0%</div>
+          <div id="summary-missed-count" class="summary-count">0 times</div>
+          <div class="summary-bar-container">
+            <div id="summary-missed-bar" class="summary-bar" style="background:#ef4444; width:0%"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -618,32 +658,48 @@
   <!-- More Section (New Features) -->
   <div class="container" id="more-section" style="display:none">
 
-    <!-- Mood-Based Quran (Dil Ki Dawa) - Always Visible at Top -->
-    <div class="card" style="text-align:center;margin-bottom:16px;">
-      <h2 style="display:flex;align-items:center;gap:8px;justify-content:center;"><span
-          style="font-size:1.3em;">💖</span> <span>Dil Ki Dawa</span></h2>
-      <p style="margin-bottom:12px;color:#a7f3d0;font-size:0.95em;">Aaj aap kaisa feel kar rahe hain?</p>
-
-      <div id="mood-buttons" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-        <button class="thirty-day-btn mood-btn" data-mood="sad" style="background:#334155;">😢 Sad</button>
-        <button class="thirty-day-btn mood-btn" data-mood="anxious" style="background:#334155;">😰 Anxious</button>
-        <button class="thirty-day-btn mood-btn" data-mood="happy" style="background:#334155;">😊 Happy</button>
-        <button class="thirty-day-btn mood-btn" data-mood="angry" style="background:#334155;">😡 Angry</button>
-        <button class="thirty-day-btn mood-btn" data-mood="lazy" style="background:#334155;">😴 Lazy</button>
-        <button class="thirty-day-btn mood-btn" data-mood="lonely" style="background:#334155;">💔 Lonely</button>
-      </div>
-
-      <div id="mood-result"
-        style="display:none;background:#1a253a;border:1px solid #34d399;border-radius:12px;padding:14px;animation:fadeIn 0.5s;">
-        <div id="mood-verse-arabic"
-          style="font-size:1.4em;margin-bottom:8px;font-family:'Traditional Arabic', serif;color:#6ee7b7;"></div>
-        <div id="mood-verse-urdu" style="font-size:1.05em;margin-bottom:6px;"></div>
-        <div id="mood-verse-ref" style="font-size:0.85em;color:#94a3b8;"></div>
-      </div>
-    </div>
-
     <!-- Features Menu List -->
     <div id="more-features-menu">
+      <!-- Mood-Based Quran (Dil Ki Dawa) - Now inside menu to hide on sub-feature open -->
+      <div class="card" style="text-align:center;margin-bottom:16px;">
+        <h2 style="display:flex;align-items:center;gap:8px;justify-content:center;"><span
+            style="font-size:1.3em;">💖</span> <span>Dil Ki Dawa</span></h2>
+        <p style="margin-bottom:12px;color:#a7f3d0;font-size:0.95em;">Aaj aap kaisa feel kar rahe hain?</p>
+
+        <div id="mood-buttons" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+          <button class="thirty-day-btn mood-btn" data-mood="sad" style="background:#334155;">😢 Sad</button>
+          <button class="thirty-day-btn mood-btn" data-mood="anxious" style="background:#334155;">😰 Anxious</button>
+          <button class="thirty-day-btn mood-btn" data-mood="happy" style="background:#334155;">😊 Happy</button>
+          <button class="thirty-day-btn mood-btn" data-mood="angry" style="background:#334155;">😡 Angry</button>
+          <button class="thirty-day-btn mood-btn" data-mood="lazy" style="background:#334155;">😴 Lazy</button>
+          <button class="thirty-day-btn mood-btn" data-mood="lonely" style="background:#334155;">💔 Lonely</button>
+        </div>
+
+        <div id="mood-result"
+          style="display:none;background:#1a253a;border:1px solid #34d399;border-radius:12px;padding:14px;animation:fadeIn 0.5s;">
+          <div id="mood-verse-arabic"
+            style="font-size:1.4em;margin-bottom:8px;font-family:'Traditional Arabic', serif;color:#6ee7b7;"></div>
+          <div id="mood-verse-urdu" style="font-size:1.05em;margin-bottom:6px;"></div>
+          <div id="mood-verse-ref" style="font-size:0.85em;color:#94a3b8;"></div>
+        </div>
+      </div>
+      <!-- Global Durood Counter (Top Focus) -->
+      <div class="card" onclick="openSubFeature('durood')"
+        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid rgba(110,231,183,0.3);box-shadow: 0 4px 15px rgba(110, 231, 183, 0.1);">
+        <div
+          style="background:rgba(110,231,183,0.1);width:45px;height:45px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.6em;color:#6ee7b7;animation: durood-glow 2s infinite alternate;">
+          ✨</div>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:700;font-size:1.1em;color:#fff;">Global Durood Counter</div>
+          <div style="font-size:0.85em;color:#94a3b8;">Join millions in reading Durood Pak 🤲</div>
+        </div>
+        <div style="text-align:right; margin-right: 12px;">
+          <div id="more-durood-count" style="font-weight:800; color:#6ee7b7; font-size:1.1em;">...</div>
+          <div style="font-size:0.65em; color:#94a3b8; text-transform:uppercase;">TOTAL</div>
+        </div>
+        <div style="color:#6ee7b7;font-size:1.2em;">&#8594;</div>
+      </div>
+
       <!-- Quran Read (Top Priority) -->
       <div class="card" onclick="openSubFeature('quran-read')"
         style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px; border: 1px solid rgba(110, 231, 183, 0.3);">
@@ -692,6 +748,7 @@
         </div>
         <div style="color:#6ee7b7;">&#8594;</div>
       </div>
+      <!-- No content here, moving it to top -->
 
       <div class="card" onclick="openSubFeature('qaza')"
         style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
@@ -816,6 +873,80 @@
 
       </div>
     </div>
+    <!-- Global Durood Counter (Sub Feature) -->
+    <div id="feature-durood" class="sub-feature-view" style="display:none;">
+      <div class="card"
+        style="text-align:center; min-height: 500px; display: flex; flex-direction: column; background: #1e293b;">
+        <div style="display:flex;align-items:center;margin-bottom:20px;">
+          <button onclick="closeSubFeature()"
+            style="background:none;border:none;color:#6ee7b7;font-size:1.5em;cursor:pointer;padding:0 12px 0 0;">&#8592;</button>
+          <span class="durood-global-badge">Global Community</span>
+        </div>
+
+        <div id="durood-global-count" class="durood-global-count">0</div>
+        <div style="font-size:0.85em;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Total
+          Salawat Read</div>
+
+        <div style="margin: 20px 0 10px;">
+          <select id="durood-type-select" class="settings-list-control" style="width: 100%; padding: 10px;">
+            <option value="short">Short Durood (Allahumma Salli...)</option>
+            <option value="ibrahim">Durood-e-Ibrahim (Complete)</option>
+            <option value="nahariya">Durood-e-Nahariya (Taziyah)</option>
+            <option value="fath">Durood-e-Fath</option>
+            <option value="shafii">Durood-e-Shafi'i</option>
+            <option value="dawaami">Durood-e-Dawaami</option>
+          </select>
+        </div>
+
+        <div style="margin: 0 0 15px;">
+          <button id="durood-ref-btn" onclick="showDuroodRef()"
+            style="display:none; background:rgba(110,231,183,0.1); color:#6ee7b7; border:1px solid rgba(110,231,183,0.3); padding:8px 16px; border-radius:30px; font-size:0.85em; font-weight:700; cursor:pointer;">
+            📖 Reference & Benefits
+          </button>
+        </div>
+
+        <div id="durood-text-container" class="durood-arabic-text">
+          اَللّٰھُمَّ صَلِّ عَلٰی مُحَمَّدٍ وَّعَلٰی اٰلِ مُحَمَّدٍ
+        </div>
+
+        <div id="durood-trans-container" class="durood-trans-text">
+          "O Allah, send blessings upon Muhammad and the family of Muhammad."
+        </div>
+
+        <div id="durood-read-btn" class="durood-read-btn">
+          READ
+        </div>
+
+        <div class="durood-stats-grid">
+          <div class="durood-stat-item">
+            <span id="durood-session-count" class="durood-stat-val">0</span>
+            <span class="durood-stat-lbl">In this session</span>
+          </div>
+          <div class="durood-stat-item">
+            <span id="durood-user-total" class="durood-stat-val">0</span>
+            <span class="durood-stat-lbl">Your Total</span>
+          </div>
+        </div>
+
+        <div style="margin-top:25px; font-size:0.8em; color:#64748b;">
+          Last Read: <span id="durood-last-read">Never</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Durood Reference Modal -->
+    <div id="durood-ref-modal" class="modal"
+      style="display:none; align-items:center; justify-content:center; background:rgba(15,23,42,0.8); backdrop-filter:blur(10px); z-index:100000;">
+      <div class="modal-content"
+        style="max-width:400px; padding:25px; border:1px solid rgba(110,231,183,0.3); background: #1e293b;">
+        <h3 style="color:#6ee7b7; margin-top:0;">Reference & Benefits</h3>
+        <div id="durood-ref-content"
+          style="font-size:0.95em; color:#e2e8f0; line-height:1.6; max-height:300px; overflow-y:auto; margin-bottom:20px; text-align:left;">
+        </div>
+        <button onclick="closeDuroodRef()" class="thirty-day-btn" style="width:100%;">Close</button>
+      </div>
+    </div>
+
     <!-- Jannat ka Darakht (Sub Feature) -->
     <div id="feature-tree" class="sub-feature-view" style="display:none;">
       <div class="card" style="text-align:center;">
