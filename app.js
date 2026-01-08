@@ -68,6 +68,11 @@ let userOffsets = { Fajr: 0, Dhuhr: 0, Asr: 0, Maghrib: 0, Isha: 0 };
 let userDisplayName = "";
 let userStrugglePrayer = "";
 let userCalcMethod = 0; // Default to 0 (Auto)
+let locationMode = localStorage.getItem('locationMode') || 'auto';
+let manualLat = parseFloat(localStorage.getItem('manualLat')) || null;
+let manualLng = parseFloat(localStorage.getItem('manualLng')) || null;
+let locationName = localStorage.getItem('locationName') || '';
+
 const settingsBtn = document.getElementById('settings-btn');
 let currentDate = new Date();
 
@@ -418,17 +423,153 @@ function detectRecommendedLocation() {
 
   console.log("[Auto-Loc] Guessing location for timezone:", tz);
 
-  if (tz.includes('Karachi') || tz.includes('Lahore')) return { lat: 24.8607, lng: 67.0011 }; // Karachi
-  if (tz.includes('Dubai') || tz.includes('Abu_Dhabi')) return { lat: 25.2048, lng: 55.2708 }; // Dubai
-  if (tz.includes('London')) return { lat: 51.5074, lng: -0.1278 }; // London
-  if (tz.includes('New_York')) return { lat: 40.7128, lng: -74.0060 }; // New York
-  if (tz.includes('Los_Angeles')) return { lat: 34.0522, lng: -118.2437 }; // LA
-  if (tz.includes('Dhaka')) return { lat: 23.8103, lng: 90.4125 }; // Dhaka
-  if (tz.includes('Cairo')) return { lat: 30.0444, lng: 31.2357 }; // Cairo
-  if (tz.includes('Istanbul')) return { lat: 41.0082, lng: 28.9784 }; // Istanbul
-  if (tz.includes('Tokyo')) return { lat: 35.6895, lng: 139.6917 }; // Tokyo
+  if (tz.includes('Karachi') || tz.includes('Lahore')) {
+    locationName = "Pakistan (Auto)";
+    localStorage.setItem('locationName', locationName);
+    return { lat: 24.8607, lng: 67.0011 }; // Karachi
+  }
+  if (tz.includes('Dubai') || tz.includes('Abu_Dhabi')) {
+    locationName = "UAE (Auto)";
+    localStorage.setItem('locationName', locationName);
+    return { lat: 25.2048, lng: 55.2708 }; // Dubai
+  }
+  if (tz.includes('London')) {
+    locationName = "London, UK (Auto)";
+    localStorage.setItem('locationName', locationName);
+    return { lat: 51.5074, lng: -0.1278 }; // London
+  }
+  if (tz.includes('New_York')) {
+    locationName = "New York, US (Auto)";
+    localStorage.setItem('locationName', locationName);
+    return { lat: 40.7128, lng: -74.0060 }; // New York
+  }
+  if (tz.includes('Los_Angeles')) {
+    locationName = "Los Angeles, US (Auto)";
+    localStorage.setItem('locationName', locationName);
+    return { lat: 34.0522, lng: -118.2437 }; // LA
+  }
+  if (tz.includes('Dhaka')) {
+    locationName = "Dhaka, BD (Auto)";
+    localStorage.setItem('locationName', locationName);
+    return { lat: 23.8103, lng: 90.4125 }; // Dhaka
+  }
+  if (tz.includes('Cairo')) {
+    locationName = "Cairo, EG (Auto)";
+    localStorage.setItem('locationName', locationName);
+    return { lat: 30.0444, lng: 31.2357 }; // Cairo
+  }
+  if (tz.includes('Istanbul')) {
+    locationName = "Istanbul, TR (Auto)";
+    localStorage.setItem('locationName', locationName);
+    return { lat: 41.0082, lng: 28.9784 }; // Istanbul
+  }
+  if (tz.includes('Tokyo')) {
+    locationName = "Tokyo, JP (Auto)";
+    localStorage.setItem('locationName', locationName);
+    return { lat: 35.6895, lng: 139.6917 }; // Tokyo
+  }
 
+  // Final fallback: Riyadh, but set name
+  locationName = "Riyadh, SA";
+  localStorage.setItem('locationName', locationName);
   return { lat: 24.7136, lng: 46.6753 }; // Riyadh default
+}
+
+// --- Manual Location Search ---
+async function searchLocation(query) {
+  if (!query || query.length < 3) return;
+  const resultsEl = document.getElementById('location-search-results');
+  const searchBtn = document.getElementById('location-search-btn');
+
+  try {
+    searchBtn.disabled = true;
+    searchBtn.textContent = '...';
+
+    // Using timingsByAddress as a robust geocoder (it extracts coordinates from the address)
+    const url = `https://api.aladhan.com/v1/timingsByAddress?address=${encodeURIComponent(query)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    resultsEl.innerHTML = '';
+    resultsEl.style.display = 'block';
+
+    if (data.code === 200 && data.data && data.data.meta) {
+      const { latitude, longitude, timezone } = data.data.meta;
+      // We use the query as name, or clean it up
+      const formattedName = query.charAt(0).toUpperCase() + query.slice(1);
+
+      const div = document.createElement('div');
+      div.innerHTML = `
+        <strong>${formattedName}</strong>
+        <span class="search-result-subtext" style="font-size:0.8em; color:#94a3b8;">${timezone} (${latitude.toFixed(2)}, ${longitude.toFixed(2)})</span>
+        <div style="font-size:0.7em; color:#6ee7b7; margin-top:2px;">Tap to select this city</div>
+      `;
+      div.onclick = () => selectLocation(latitude, longitude, formattedName);
+      resultsEl.appendChild(div);
+    } else {
+      resultsEl.innerHTML = '<div style="padding:10px; color:#94a3b8;">No results found. Try "City, Country" (e.g. Kabirwala, Pakistan).</div>';
+    }
+  } catch (err) {
+    console.error("Search failed:", err);
+    resultsEl.innerHTML = '<div style="padding:10px; color:#ef4444;">Search error. Check internet.</div>';
+  } finally {
+    searchBtn.disabled = false;
+    searchBtn.textContent = 'Search';
+  }
+}
+
+function selectLocation(lat, lng, name) {
+  manualLat = lat;
+  manualLng = lng;
+  locationName = name;
+  locationMode = 'manual';
+
+  localStorage.setItem('manualLat', lat);
+  localStorage.setItem('manualLng', lng);
+  localStorage.setItem('locationName', name);
+  localStorage.setItem('locationMode', 'manual');
+
+  document.getElementById('location-search-results').style.display = 'none';
+  document.getElementById('location-search-input').value = '';
+  document.getElementById('settings-location-mode').value = 'manual';
+
+  updateLocationUI();
+  fetchPrayerTimes(currentDate, true); // Strict refresh to bypass cache
+  showToast(`Location set: ${name}`, 'success');
+}
+
+function openLocationSearch() {
+  const modal = document.getElementById('settings-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+    document.getElementById('settings-location-mode').value = 'manual';
+    const manualRow = document.getElementById('manual-location-row');
+    if (manualRow) manualRow.style.display = 'flex';
+    document.getElementById('location-search-input').focus();
+  }
+}
+
+function updateLocationUI() {
+  const alertEl = document.getElementById('location-alert');
+  const displayEl = document.getElementById('current-location-display');
+
+  if (displayEl) {
+    displayEl.textContent = locationName || (locationMode === 'auto' ? 'Auto (Detecting...)' : 'Not set');
+  }
+
+  // Hide alert if we have location (either auto or manual)
+  if (locationMode === 'manual' && manualLat) {
+    if (alertEl) alertEl.style.display = 'none';
+  } else if (locationMode === 'auto' && localStorage.getItem('userLat')) {
+    if (alertEl) alertEl.style.display = 'none';
+  }
+}
+
+function showGpsHelp() {
+  const msg = userLanguage === 'en'
+    ? "To reset GPS:\n1. Tap the 🔒 or ℹ️ icon in the address bar.\n2. Reset Location permission.\n3. Refresh the page."
+    : "GPS reset karne ke liye:\n1. Address bar mein 🔒 ya ℹ️ icon par tap karein.\n2. Location permission ko reset ya allow karein.\n3. Page ko refresh karein.";
+  alert(msg);
 }
 
 /**
@@ -454,93 +595,72 @@ function detectRecommendedMethod() {
   return 2; // Default fallback to ISNA
 }
 
-async function fetchPrayerTimes(date = new Date()) {
+async function fetchPrayerTimes(date = new Date(), forceRefresh = false) {
   const yyyy = date.getFullYear();
   const mm = (date.getMonth() + 1).toString().padStart(2, '0');
   const dd = date.getDate().toString().padStart(2, '0');
   const dateKey = `${yyyy}-${mm}-${dd}`;
 
   // 1. Try Loading from Local Cache (Offline/Speed)
-  const cachedData = localStorage.getItem('prayers_' + dateKey);
+  // Skip cache if location just changed (forceRefresh)
+  const cachedData = forceRefresh ? null : localStorage.getItem('prayers_' + dateKey);
   if (cachedData) {
     console.log("Using cached prayer times for", dateKey);
-    parseAndRenderPrayers(JSON.parse(cachedData));
-    checkAndTriggerPrayerNotifications(prayersWithTahajjud); // Schedule notifications from cache
-    // Even if cached, try to update in background if online + location changed
-    // But for now, valid cache is enough to be "offline ready"
+    const parsed = JSON.parse(cachedData);
+    // Extra safety: Verify if the cache is for the same lat/lng (optional)
+    parseAndRenderPrayers(parsed);
+    checkAndTriggerPrayerNotifications(prayersWithTahajjud);
   } else {
-    console.log("No cache found, fetching fresh data...");
+    console.log(forceRefresh ? "Force refreshing prayer times..." : "No cache found, fetching fresh data...");
   }
 
-  // 2. Get Location (High Accuracy)
+  // 2. Get Location
   let coords = { lat: 24.7136, lng: 46.6753 }; // Default Riyadh
 
-  // Try getting saved location first for fallback
-  const savedLat = localStorage.getItem('userLat');
-  const savedLng = localStorage.getItem('userLng');
-  if (savedLat && savedLng) {
-    coords = { lat: parseFloat(savedLat), lng: parseFloat(savedLng) };
-  }
-
-  try {
-    const pos = await new Promise((resolve, reject) => {
-      if (!navigator.geolocation) return reject("Geolocation NOT supported by this browser.");
-
-      const options = {
-        enableHighAccuracy: true,
-        timeout: 15000, // 15 seconds
-        maximumAge: 60000 // 1 minute
-      };
-
-      const success = (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude });
-
-      const error = (err) => {
-        // Log as info/log instead of warn/error if permission is denied to keep console clean
-        if (err.code === 1) {
-          console.log(`[Location] Geo Permission Denied: ${err.message}`);
-        } else {
-          console.log(`[Location] Geo High-Accuracy Failed (Code ${err.code}): ${err.message}`);
-        }
-
-        // Retry with low accuracy if it's not a permission error
-        if (err.code !== 1) {
-          console.log("Retrying with low accuracy...");
-          navigator.geolocation.getCurrentPosition(success, (err2) => {
-            console.log(`[Location] Geo Low-Accuracy Failed: ${err2.message}`);
-            reject(err2);
-          }, { enableHighAccuracy: false, timeout: 10000 });
-        } else {
-          reject(err);
-        }
-      };
-
-      navigator.geolocation.getCurrentPosition(success, error, options);
-    });
-
-    // Update Coords & Save
-    coords = pos;
-    localStorage.setItem('userLat', coords.lat);
-    localStorage.setItem('userLng', coords.lng);
-    console.log("Location successfully updated:", coords);
-  } catch (e) {
-    const errorMsg = e.message || String(e);
-    if (e.code !== 1) {
-      console.log("[Location] fetch final failure:", errorMsg);
+  if (locationMode === 'manual' && manualLat && manualLng) {
+    coords = { lat: manualLat, lng: manualLng };
+    updateLocationUI(); // Ensure alert is hidden if manual location is valid
+  } else {
+    // Auto Mode Logic
+    const savedLat = localStorage.getItem('userLat');
+    const savedLng = localStorage.getItem('userLng');
+    if (savedLat && savedLng) {
+      coords = { lat: parseFloat(savedLat), lng: parseFloat(savedLng) };
     }
 
-    // If we have no saved location AND no cache, we MUST warn the user
-    if (!savedLat && !cachedData) {
-      coords = detectRecommendedLocation();
-      const locName = Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop().replace('_', ' ');
+    try {
+      const pos = await new Promise((resolve, reject) => {
+        if (!navigator.geolocation) return reject({ code: 0, message: "Geolocation NOT supported" });
 
-      // Only toast once per session to avoid spamming
-      if (!window._fallbackToastShown) {
-        if (e.code === 1) {
-          showToast(`Location blocked. Guessed: ${locName}`, "info");
-        } else {
-          showToast(`Loc. Error. Guessed: ${locName}`, "info");
-        }
-        window._fallbackToastShown = true;
+        const options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 };
+        const success = (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude });
+        const error = (err) => {
+          if (err.code === 1) console.log(`[Location] Geo Permission Denied`);
+          else console.log(`[Location] Geo Error (Code ${err.code})`);
+
+          if (err.code !== 1) {
+            navigator.geolocation.getCurrentPosition(success, (err2) => reject(err2), { enableHighAccuracy: false, timeout: 8000 });
+          } else {
+            reject(err);
+          }
+        };
+        navigator.geolocation.getCurrentPosition(success, error, options);
+      });
+
+      coords = pos;
+      localStorage.setItem('userLat', coords.lat);
+      localStorage.setItem('userLng', coords.lng);
+      updateLocationUI(); // Hide alert if successful
+    } catch (e) {
+      // Permission Denied or Fetch Failed
+      if (e.code === 1 || e.code === 0) {
+        const alertEl = document.getElementById('location-alert');
+        if (alertEl && locationMode === 'auto') alertEl.style.display = 'block';
+      }
+
+      if (!savedLat && !cachedData) {
+        coords = detectRecommendedLocation();
+        updateLocationUI(); // Call UI update to show guessed name
       }
     }
   }
@@ -1403,10 +1523,6 @@ bellBtns.forEach((btn, i) => {
   };
 });
 
-// --- 30-Day Button ---
-document.querySelector('.thirty-day-btn').onclick = () => {
-  alert('30-Day Prayer Times coming soon!');
-};
 
 // --- Mark as Prayed Button Logic ---
 const markPrayerBtn = document.getElementById('mark-prayer-btn');
@@ -2558,118 +2674,7 @@ window.nudgeMember = (targetUid) => {
   });
 };
 
-// --- Islamic Series Logic (Migrated to Firebase) ---
-let SERIES_DATA = [];
-
-const seriesListView = document.getElementById('series-list-view');
-const episodeListView = document.getElementById('episode-list-view');
-const articleView = document.getElementById('article-view');
-const seriesBackBtn = document.getElementById('series-back-btn');
-const seriesHeaderTitle = document.getElementById('series-header-title');
-const articleTitleEl = document.getElementById('article-title');
-const articleContentEl = document.getElementById('article-content');
-
-let seriesCurrentView = 'list'; // list, episodes, article
-let activeSeries = null;
-
-async function renderSeriesList() {
-  seriesCurrentView = 'list';
-  seriesHeaderTitle.textContent = "Islamic Series";
-  seriesListView.style.display = 'block';
-  episodeListView.style.display = 'none';
-  articleView.style.display = 'none';
-
-  // Fetch from Firebase if not already loaded
-  if (SERIES_DATA.length === 0) {
-    seriesListView.innerHTML = '<div class="card" style="text-align:center;color:#94a3b8;">Loading Series... ⏳</div>';
-    try {
-      let snap = await get(ref(db, 'series'));
-      // Fallback: Check '0/series' if root/series is missing (User Import Error Fix)
-      if (!snap.exists()) {
-        console.warn("Root 'series' not found, checking '0/series'...");
-        snap = await get(ref(db, '0/series'));
-      }
-
-      if (snap.exists()) {
-        const val = snap.val();
-        // Convert Object to Array if needed (Firebase sometimes treats arrays as objects)
-        if (Array.isArray(val)) {
-          SERIES_DATA = val;
-        } else {
-          SERIES_DATA = Object.values(val);
-        }
-        console.log("Series Data Loaded:", SERIES_DATA);
-      } else {
-        seriesListView.innerHTML = '<div class="card" style="text-align:center;color:#94a3b8;">No series found in Database.</div>';
-        return;
-      }
-    } catch (err) {
-      console.error("Firebase Series Error:", err);
-      seriesListView.innerHTML = `<div class="card" style="text-align:center;color:#ff6b6b;">Error loading series: ${err.message}</div>`;
-      return;
-    }
-  }
-
-  seriesListView.innerHTML = SERIES_DATA.map((series, idx) => `
-    <div class="card" onclick="openSeriesEpisodes(${idx})" style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:12px;background:#1e293b;border:1px solid #334155;">
-      <div style="background:#334155;width:45px;height:45px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.5em;">📜</div>
-      <div style="flex:1;text-align:left;">
-        <div style="font-weight:600;font-size:1.1em;color:#6ee7b7;">${series.title}</div>
-        <div style="font-size:0.85em;color:#94a3b8;line-height:1.3;">${series.desc}</div>
-      </div>
-      <div style="color:#6ee7b7;">&#8594;</div>
-    </div>
-  `).join('');
-}
-// Migrated series data removed.
-// Cleanup start
-// End of Islamic Series Migrated Logic
-
-window.openSeriesEpisodes = (idx) => {
-  activeSeries = idx;
-  seriesCurrentView = 'episodes';
-  const series = SERIES_DATA[idx];
-  seriesHeaderTitle.textContent = series.title;
-  seriesListView.style.display = 'none';
-  episodeListView.style.display = 'block';
-  articleView.style.display = 'none';
-
-  episodeListView.innerHTML = series.episodes.map((ep, epIdx) => `
-    <div class="card" onclick="openSeriesArticle(${epIdx})" style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;background:#1e293b;border:1px solid #334155;padding:12px;">
-      <div style="font-weight:600;color:#fcd34d;font-size:0.9em;">EP ${epIdx + 1}</div>
-      <div style="flex:1;text-align:left;">
-        <div style="font-weight:600;font-size:1em;">${ep.title}</div>
-      </div>
-      <div style="color:#6ee7b7;">&#8594;</div>
-    </div>
-  `).join('');
-};
-
-window.openSeriesArticle = (epIdx) => {
-  seriesCurrentView = 'article';
-  const series = SERIES_DATA[activeSeries];
-  const episode = series.episodes[epIdx];
-  seriesHeaderTitle.textContent = "Reading Episode";
-  seriesListView.style.display = 'none';
-  episodeListView.style.display = 'none';
-  articleView.style.display = 'block';
-
-  articleTitleEl.textContent = episode.title;
-  // Simple markdown conversion for **bold**
-  const formattedContent = episode.content.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-  articleContentEl.innerHTML = formattedContent;
-  articleView.scrollTop = 0;
-};
-
-seriesBackBtn.onclick = () => {
-  if (seriesCurrentView === 'article') {
-    openSeriesEpisodes(activeSeries);
-  } else if (seriesCurrentView === 'episodes') {
-    renderSeriesList();
-  } else {
-    closeSubFeature();
-  }
-};
+// --- End of Legacy Series Segment ---
 
 // --- Deen Twins (Salah Partner) Logic ---
 const twinsLobby = document.getElementById('twins-lobby');
@@ -3225,6 +3230,14 @@ if (settingsBtn) {
     document.getElementById('settings-calc-method').value = data.calcMethod || 2;
     document.getElementById('settings-language').value = localStorage.getItem('userLanguage') || 'ur';
 
+    // Load Location Mode
+    const modeSelect = document.getElementById('settings-location-mode');
+    if (modeSelect) {
+      modeSelect.value = locationMode;
+      document.getElementById('manual-location-row').style.display = (locationMode === 'manual') ? 'flex' : 'none';
+    }
+    updateLocationUI();
+
     const off = data.prayerOffsets || {};
     ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].forEach(p => {
       const input = document.getElementById(`offset-${p}`);
@@ -3262,25 +3275,51 @@ if (saveSettingsBtn) {
         strugglePrayer: newStruggle,
         calcMethod: newCalcMethod,
         prayerOffsets: newOffsets,
-        language: newLang
+        language: newLang,
+        locationMode: document.getElementById('settings-location-mode').value
       });
+
+      locationMode = document.getElementById('settings-location-mode').value;
+      localStorage.setItem('locationMode', locationMode);
 
       userCalcMethod = newCalcMethod;
       userOffsets = newOffsets;
       userDisplayName = newName;
       userStrugglePrayer = newStruggle;
       translateApp(newLang, true); // Update immediately and save to localStorage
+      fetchPrayerTimes(currentDate, true);
 
-      showToast("Settings Saved! ✨", "#6ee7b7");
       settingsModal.style.display = 'none';
-
-      fetchPrayerTimes(currentDate);
-
-    } catch (e) {
-      showToast("Error saving settings", "#ff6b6b");
+      showToast("Settings Saved!", "success");
+    } catch (err) {
+      handleApiError("Settings Save", err);
     }
   };
 }
+
+// Add Location Management Listeners
+document.getElementById('settings-location-mode').onchange = (e) => {
+  const mode = e.target.value;
+  document.getElementById('manual-location-row').style.display = (mode === 'manual') ? 'flex' : 'none';
+};
+
+document.getElementById('location-search-btn').onclick = () => {
+  const query = document.getElementById('location-search-input').value.trim();
+  searchLocation(query);
+};
+
+document.getElementById('location-search-input').onkeypress = (e) => {
+  if (e.key === 'Enter') {
+    searchLocation(e.target.value.trim());
+  }
+};
+
+// Global Exports for HTML onclicks
+window.openLocationSearch = openLocationSearch;
+window.showGpsHelp = showGpsHelp;
+window.requestNotificationPermission = requestNotificationPermission;
+
+
 
 if (settingsLogoutBtn) {
   settingsLogoutBtn.onclick = async () => {
@@ -3297,28 +3336,28 @@ if (settingsLogoutBtn) {
 
 // --- Community Updates & Export Logic ---
 async function checkAppUpdates() {
-  const localVersion = localStorage.getItem('appVersion') || "1.0.0";
+  try {
+    const newsSnap = await get(ref(db, 'app'));
+    if (!newsSnap.exists()) return;
 
-  if (localVersion !== APP_VERSION) {
-    const newsModal = document.getElementById('news-modal');
-    const newsContent = document.getElementById('news-content');
-    if (!newsModal || !newsContent) return;
+    const { news, newsVersion } = newsSnap.val();
+    const localNewsVersion = localStorage.getItem('lastNewsVersion') || "0";
 
-    // Latest Update Summary
-    newsContent.innerHTML = `
-      <ul style="padding-left: 20px;">
-        <li><b>Halaqa Circles:</b> Join groups, chat & compete with friends! 👥</li>
-        <li><b>Salah Streak:</b> Track your consistency & keep the fire burning! 🔥</li>
-      </ul>
-      <p style="margin-top: 15px; font-style: italic;">Connect, Compete, and Pray together! 🤲</p>
-    `;
+    if (news && newsVersion && localNewsVersion !== newsVersion.toString()) {
+      const newsModal = document.getElementById('news-modal');
+      const newsContent = document.getElementById('news-content');
+      if (!newsModal || !newsContent) return;
 
-    newsModal.style.display = 'flex';
+      newsContent.innerHTML = news;
+      newsModal.style.display = 'flex';
 
-    document.getElementById('close-news-btn').onclick = () => {
-      newsModal.style.display = 'none';
-      localStorage.setItem('appVersion', APP_VERSION);
-    };
+      document.getElementById('close-news-btn').onclick = () => {
+        newsModal.style.display = 'none';
+        localStorage.setItem('lastNewsVersion', newsVersion.toString());
+      };
+    }
+  } catch (err) {
+    console.error("Check app updates failed:", err);
   }
 }
 
@@ -3367,6 +3406,17 @@ function listenToDonationStats() {
   });
 }
 listenToDonationStats();
+
+window.triggerConfetti = () => {
+  if (typeof confetti === 'function') {
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#6ee7b7', '#34d399', '#10b981']
+    });
+  }
+};
 
 // --- Copy JazzCash Logic ---
 const copyJazzcashBtn = document.getElementById('copy-jazzcash-btn');
@@ -3443,7 +3493,9 @@ if (donateSubmitBtn) {
         if (userStreakEl) userStreakEl.textContent = `${stats.streak} 🔥`;
 
         // Celebration!
-        triggerConfetti ? triggerConfetti() : null;
+        if (typeof triggerConfetti === 'function') {
+          triggerConfetti();
+        }
         showToast(`Streak Increased! ${stats.streak} Weeks 🔥`, "#fcd34d");
       } else {
         showToast("Claim Submitted! (Streak already active for this week)", "#6ee7b7");
@@ -3622,6 +3674,7 @@ document.addEventListener('click', (e) => {
   const articleView = document.getElementById('article-view');
   const seriesGrid = document.getElementById('series-grid');
   const episodesContainer = document.getElementById('episodes-container');
+  const seriesHeaderTitle = document.getElementById('series-header-title');
   const articleTitleEl = document.getElementById('article-title');
   const articleContentEl = document.getElementById('article-content');
   const seriesLoading = document.getElementById('series-loading');
@@ -3789,6 +3842,19 @@ document.addEventListener('click', (e) => {
   window.backToSeriesList = () => {
     if (episodeListView) episodeListView.style.display = 'none';
     if (seriesListView) seriesListView.style.display = 'block';
+    if (articleView) articleView.style.display = 'none';
+    if (seriesHeaderTitle) seriesHeaderTitle.textContent = "Islamic Series";
+  };
+
+  window.backToSeriesFlow = () => {
+    if (articleView && articleView.style.display === 'block') {
+      if (episodeListView) episodeListView.style.display = 'block';
+      if (articleView) articleView.style.display = 'none';
+    } else if (episodeListView && episodeListView.style.display === 'block') {
+      window.backToSeriesList();
+    } else {
+      closeSubFeature();
+    }
   };
 
   // --- 3. Article Viewer ---
