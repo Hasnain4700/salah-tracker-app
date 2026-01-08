@@ -265,20 +265,23 @@
         try {
             // Using a reliable free Hadith API (hadithapi.com)
             const response = await fetch('https://hadithapi.com/api/hadiths?apiKey=$2y$10$fWfI/kH06z.N.6F9M/Vv7uq3rUe/Yj9Ua5Gv7R8H/n6m/Yj9Ua5Gv7R8H/&limit=1&random=1');
-            if (!response.ok) throw new Error("API Limit or DNS issue");
+            if (response.status === 401 || response.status === 403) {
+                showFallback();
+                return;
+            }
+            if (!response.ok) throw new Error("API Status: " + response.status);
             const data = await response.json();
             const hadith = data.hadiths?.data?.[0];
 
             if (hadith) {
                 hadithContent.textContent = hadith.hadithUrdu || hadith.hadithEnglish;
-                if (hadithRef) hadithRef.textContent = `— ${hadith.bookName}, Hadith: ${hadith.hadithNumber}`;
+                if (hadithRef) hadithRef.textContent = `— ${hadith.bookName}, ${hadith.hadithNumber}`;
                 hadithModal.style.display = 'flex';
                 localStorage.setItem('last_hadith_date', today);
             } else {
                 showFallback();
             }
         } catch (err) {
-            console.warn("Hadith API failed, using fallback.");
             showFallback();
         }
 
