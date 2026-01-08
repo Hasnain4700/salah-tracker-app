@@ -180,7 +180,10 @@ window.addEventListener('offline', () => {
 
 // Sync on start
 onAuthStateChanged(auth, user => {
-  if (user) SyncQueue.process();
+  if (user) {
+    SyncQueue.process();
+    startGlobalDuroodSync();
+  }
 });
 
 // --- FCM Backend Call ---
@@ -365,13 +368,13 @@ const sections = {
 };
 const navBtns = document.querySelectorAll('.bottom-nav .nav-btn');
 
-function showSection(section) {
+window.showSection = (section) => {
   Object.values(sections).forEach(sec => { if (sec) sec.style.display = 'none'; });
   if (sections[section]) sections[section].style.display = '';
   navBtns.forEach(btn => btn.classList.remove('active'));
   const idx = ["home", "donate", "quran", "tracker", "more"].indexOf(section);
   if (idx !== -1 && navBtns[idx]) navBtns[idx].classList.add('active');
-}
+};
 navBtns[0].onclick = () => showSection('home');
 navBtns[1].onclick = () => showSection('donate');
 navBtns[2].onclick = () => showSection('quran');
@@ -991,7 +994,7 @@ onAuthStateChanged(auth, user => {
 // --- Tracker/Rewards Logic ---
 const rewardsPointsEl = document.getElementById('rewards-points');
 const streakCountEl = document.getElementById('streak-count');
-const trackerLogTableBody = document.querySelector('#tracker-log-table tbody');
+const monthlyStatsGrid = document.getElementById('monthly-stats-grid');
 const streakProgress = document.getElementById('streak-progress');
 const streakBadgesRow = document.getElementById('streak-badges-row');
 
@@ -1414,34 +1417,97 @@ function updateXPUI(xp) {
   xpProgress.style.width = progressPercent + '%';
 }
 
-// Helper to render the tracker table and streak
+// Helper to render the monthly attendance grid and aggregate stats
 function renderTrackerUI(logs, stats = null) {
   const user = auth.currentUser;
   if (!user) return;
-  const today = new Date();
-  const days = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    days.push(getTodayDateString(d));
+
+  const gridEl = monthlyStatsGrid;
+  if (!gridEl) return;
+  gridEl.innerHTML = '';
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const lastDay = new Date(year, month + 1, 0).getDate();
+
+  let totalPrayed = 0;
+  let totalMissed = 0;
+  let totalTracked = 0;
+
+  for (let d = 1; d <= lastDay; d++) {
+    const dObj = new Date(year, month, d);
+    const dateStr = getTodayDateString(dObj);
+    const dayPrayers = logs[dateStr] || {};
+    const isToday = (d === now.getDate());
+
+    const col = document.createElement('div');
+    col.className = 'day-column';
+    if (isToday) col.classList.add('today');
+
+    col.innerHTML = `<div class="day-header">${d}</div>`;
+
+    ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].forEach(p => {
+      const dot = document.createElement('div');
+      dot.className = 'status-dot';
+      if (dayPrayers[p] === 'prayed') {
+        dot.classList.add('prayed');
+        totalPrayed++;
+        totalTracked++;
+      } else if (dayPrayers[p] === 'missed') {
+        dot.classList.add('missed');
+        totalMissed++;
+        totalTracked++;
+      }
+      col.appendChild(dot);
+    });
+
+    gridEl.appendChild(col);
+    if (isToday) {
+      setTimeout(() => col.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }), 100);
+    }
   }
 
-  trackerLogTableBody.innerHTML = '';
+  // Summary Update
+  const summaryPrayedVal = document.getElementById('summary-prayed-val');
+  const summaryPrayedCount = document.getElementById('summary-prayed-count');
+  const summaryPrayedBar = document.getElementById('summary-prayed-bar');
+  const summaryMissedVal = document.getElementById('summary-missed-val');
+  const summaryMissedCount = document.getElementById('summary-missed-count');
+  const summaryMissedBar = document.getElementById('summary-missed-bar');
+
+  if (totalTracked > 0) {
+    const prayedPerc = Math.round((totalPrayed / totalTracked) * 100);
+    const missedPerc = Math.round((totalMissed / totalTracked) * 100);
+
+    if (summaryPrayedVal) summaryPrayedVal.textContent = prayedPerc + '%';
+    if (summaryPrayedCount) summaryPrayedCount.textContent = totalPrayed + ' times';
+    if (summaryPrayedBar) summaryPrayedBar.style.width = prayedPerc + '%';
+
+    if (summaryMissedVal) summaryMissedVal.textContent = missedPerc + '%';
+    if (summaryMissedCount) summaryMissedCount.textContent = totalMissed + ' times';
+    if (summaryMissedBar) summaryMissedBar.style.width = missedPerc + '%';
+  } else {
+    if (summaryPrayedVal) summaryPrayedVal.textContent = '0%';
+    if (summaryPrayedCount) summaryPrayedCount.textContent = '0 times';
+    if (summaryPrayedBar) summaryPrayedBar.style.width = '0%';
+    if (summaryMissedVal) summaryMissedVal.textContent = '0%';
+    if (summaryMissedCount) summaryMissedCount.textContent = '0 times';
+    if (summaryMissedBar) summaryMissedBar.style.width = '0%';
+  }
+
+  // --- Streak Logic (Simplified for widget use) ---
   let calculatedStreak = 0;
+  const streakDays = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+    streakDays.push(getTodayDateString(d));
+  }
+
   let tempStreak = 0;
-
-  days.forEach((date, i) => {
+  streakDays.forEach((date, i) => {
     const prayers = logs[date] || {};
-    const row = document.createElement('tr');
-    row.innerHTML = `<td>${date}</td>` +
-      ['Tahajjud', 'Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].map(p => {
-        if (prayers[p] === 'prayed') return `<td style='color:#6ee7b7;font-weight:bold;'>✅</td>`;
-        if (prayers[p] === 'missed') return `<td style='color:#ff6b6b;font-weight:bold;'>❌</td>`;
-        return `<td></td>`;
-      }).join('');
-    trackerLogTableBody.appendChild(row);
-
-    // Calc streak
     if (['Tahajjud', 'Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].every(p => prayers[p] === 'prayed')) {
       tempStreak++;
       if (i === 0) calculatedStreak = tempStreak;
@@ -1450,11 +1516,8 @@ function renderTrackerUI(logs, stats = null) {
     }
   });
 
-  // Streak logic
   if (!stats) stats = PersistentCache.get(`stats_${user.uid}`) || {};
   let streakVal = stats.streak !== undefined ? stats.streak : calculatedStreak;
-
-  // Stale streak check
   const lastStreakDate = stats.lastStreakDate;
   const todayStr = getTodayDateString();
   const d_y = new Date(); d_y.setDate(d_y.getDate() - 1);
@@ -1464,9 +1527,7 @@ function renderTrackerUI(logs, stats = null) {
     streakVal = 0;
   }
 
-  // Update Global variable
   streak = streakVal;
-
   if (streakCountEl) streakCountEl.textContent = streak;
   updateStreakGamification(streak);
 
@@ -1474,13 +1535,15 @@ function renderTrackerUI(logs, stats = null) {
   const homeStreakWidget = document.getElementById('home-streak-widget');
   if (homeStreakValue && homeStreakWidget) {
     homeStreakValue.textContent = streak;
-    homeStreakWidget.style.display = 'block'; // Ensure visibility
+    homeStreakWidget.style.display = 'block';
     if (streak === 0) {
       homeStreakWidget.style.background = 'linear-gradient(135deg, #475569, #334155)';
-      homeStreakWidget.querySelector('.fire-core').textContent = '🌑';
+      const fire = homeStreakWidget.querySelector('.fire-core');
+      if (fire) fire.textContent = '🌑';
     } else {
       homeStreakWidget.style.background = 'linear-gradient(135deg, #b45309, #78350f)';
-      homeStreakWidget.querySelector('.fire-core').textContent = '🔥';
+      const fire = homeStreakWidget.querySelector('.fire-core');
+      if (fire) fire.textContent = '🔥';
     }
   }
 }
@@ -2319,6 +2382,9 @@ window.openSubFeature = (feature) => {
   if (feature === 'halaqa' && auth.currentUser) {
     checkHalaqaStatus();
   }
+  if (feature === 'durood' && auth.currentUser) {
+    initDuroodFeature();
+  }
 };
 
 // --- Halaqa Circles Logic ---
@@ -2501,6 +2567,183 @@ function listenToChat(circleId) {
       console.error("[Chat] Error rendering messages:", err);
     }
   });
+}
+
+// --- Global Durood Counter Logic ---
+let duroodSessionCount = 0;
+let duroodUserTotal = 0;
+let duroodGlobalUnsubscribe = null;
+
+function startGlobalDuroodSync() {
+  if (duroodGlobalUnsubscribe) {
+    duroodGlobalUnsubscribe();
+    duroodGlobalUnsubscribe = null;
+  }
+  duroodGlobalUnsubscribe = onValue(ref(db, 'global/duroodCount'), (snap) => {
+    const count = snap.val() || 0;
+    const formattedCount = count.toLocaleString();
+
+    // 1. Feature View
+    const featureEl = document.getElementById('durood-global-count');
+    if (featureEl) {
+      featureEl.textContent = formattedCount;
+      featureEl.classList.add('updating');
+      setTimeout(() => featureEl.classList.remove('updating'), 400);
+    }
+
+    // 2. Home Screen Widget
+    const homeEl = document.getElementById('home-durood-value');
+    if (homeEl) homeEl.textContent = formattedCount;
+
+    // 3. More Section Card
+    const moreEl = document.getElementById('more-durood-count');
+    if (moreEl) moreEl.textContent = formattedCount;
+  });
+}
+
+function initDuroodFeature() {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  // Reset session
+  duroodSessionCount = 0;
+  document.getElementById('durood-session-count').textContent = '0';
+
+  // Load User Stats
+  get(ref(db, `users/${user.uid}/durood`)).then(snap => {
+    const data = snap.val() || { total: 0, lastRead: null };
+    duroodUserTotal = data.total || 0;
+    document.getElementById('durood-user-total').textContent = duroodUserTotal.toLocaleString();
+    const lastReadEl = document.getElementById('durood-last-read');
+    if (data.lastRead) {
+      const d = new Date(data.lastRead);
+      lastReadEl.textContent = d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else {
+      lastReadEl.textContent = 'Never';
+    }
+  });
+
+  // Ensure global listener is active (fallback if it didn't start)
+  if (!duroodGlobalUnsubscribe) startGlobalDuroodSync();
+
+  // Read Button Handle
+  const readBtn = document.getElementById('durood-read-btn');
+  if (readBtn) {
+    readBtn.onclick = () => {
+      duroodSessionCount++;
+      duroodUserTotal++;
+
+      // UI Update
+      document.getElementById('durood-session-count').textContent = duroodSessionCount.toLocaleString();
+      document.getElementById('durood-user-total').textContent = duroodUserTotal.toLocaleString();
+      document.getElementById('durood-last-read').textContent = "Just now";
+
+      // Haptic feedback for "tap" feel
+      if (window.navigator.vibrate) window.navigator.vibrate(20);
+
+      // DB Update: Atomic Global Increment
+      runTransaction(ref(db, 'global/duroodCount'), (current) => {
+        return (current || 0) + 1;
+      });
+
+      // DB Update: User Total
+      update(ref(db, `users/${user.uid}/durood`), {
+        total: duroodUserTotal,
+        lastRead: Date.now()
+      });
+
+      // Extra visual juice
+      if (duroodSessionCount % 33 === 0) {
+        if (typeof triggerConfetti === 'function') triggerConfetti();
+        showToast("SubhanAllah! Keep going! ✨", "#6ee7b7");
+      }
+    };
+  }
+
+  // Handle Durood Type Change
+  const typeSelect = document.getElementById('durood-type-select');
+  const textEl = document.getElementById('durood-text-container');
+  const transEl = document.getElementById('durood-trans-container');
+  const refBtn = document.getElementById('durood-ref-btn');
+
+  const getDuroodData = () => {
+    const s = translations[userLanguage];
+    return {
+      short: {
+        arabic: "اَللّٰھُمَّ صَلِّ عَلٰی مُحَمَّدٍ وَّعَلٰی اٰلِ مُحَمَّدٍ",
+        trans: '"O Allah, send blessings upon Muhammad and the family of Muhammad."'
+      },
+      ibrahim: {
+        arabic: s.durood_ibrahim_ar,
+        refKey: "ref_ibrahim"
+      },
+      nahariya: {
+        arabic: s.durood_nahariya_ar,
+        refKey: "ref_nahariya"
+      },
+      fath: {
+        arabic: s.durood_fatih_ar,
+        refKey: "ref_fatih"
+      },
+      shafii: {
+        arabic: s.durood_shafii_ar,
+        refKey: "ref_shafii"
+      },
+      dawaami: {
+        arabic: s.durood_dawaami_ar,
+        refKey: "ref_dawaami"
+      }
+    };
+  };
+
+  // Expose for Modal
+  window.showDuroodRef = () => {
+    const val = typeSelect.value;
+    const data = getDuroodData()[val];
+    if (data && data.refKey) {
+      const modal = document.getElementById('durood-ref-modal');
+      const content = document.getElementById('durood-ref-content');
+      if (modal && content) {
+        content.textContent = translations[userLanguage][data.refKey];
+        modal.style.display = 'flex';
+      }
+    }
+  };
+  window.closeDuroodRef = () => {
+    const modal = document.getElementById('durood-ref-modal');
+    if (modal) modal.style.display = 'none';
+  };
+
+  if (typeSelect) {
+    typeSelect.onchange = (e) => {
+      const val = e.target.value;
+      const data = getDuroodData()[val];
+      if (data) {
+        textEl.style.opacity = '0';
+        transEl.style.opacity = '0';
+        if (refBtn) refBtn.style.display = 'none';
+
+        setTimeout(() => {
+          textEl.textContent = data.arabic;
+          if (data.trans) {
+            transEl.textContent = data.trans;
+            transEl.style.display = 'block';
+            transEl.style.opacity = '1';
+          } else {
+            transEl.style.display = 'none';
+          }
+
+          if (data.refKey && refBtn) {
+            refBtn.style.display = 'inline-block';
+          }
+
+          textEl.style.opacity = '1';
+          textEl.style.transition = 'opacity 0.3s';
+          if (data.trans) transEl.style.transition = 'opacity 0.3s';
+        }, 300);
+      }
+    };
+  }
 }
 
 async function sendMessage(circleId, text, memberIds, circleName) {
