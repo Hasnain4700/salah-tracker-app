@@ -21,6 +21,7 @@
     };
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.6.1/jsrsasign-all-min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
 </head>
 
@@ -136,7 +137,47 @@
           </div>
         </div>
 
-        <!-- Support Group -->
+        <!-- Location Group -->
+        <div class="settings-section-title" style="margin: 0 24px 8px;">Location & Region</div>
+        <div class="settings-group-card">
+          <div class="settings-item-row" style="cursor: default;">
+            <div class="settings-item-icon">🛰️</div>
+            <div class="settings-item-label">Location Mode</div>
+            <select id="settings-location-mode" class="settings-list-control">
+              <option value="auto">Auto (GPS)</option>
+              <option value="manual">Manual (Search)</option>
+            </select>
+          </div>
+
+          <!-- Manual Search Row (Conditional) -->
+          <div id="manual-location-row" class="settings-item-row"
+            style="display:none; flex-direction:column; align-items:stretch; gap:10px; padding:15px 24px;">
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="location-search-input" class="settings-list-control"
+                placeholder="Search City (e.g. Lahore)" style="flex:1; text-align:left;">
+              <button id="location-search-btn"
+                style="background:#6ee7b7; color:#0f172a; border:none; padding:8px 12px; border-radius:8px; font-weight:700; cursor:pointer;">Search</button>
+            </div>
+            <div id="location-search-results"
+              style="display:none; background:#0f172a; border:1px solid #334155; border-radius:10px; max-height:150px; overflow-y:auto; font-size:0.9em;">
+              <!-- Results injected here -->
+            </div>
+          </div>
+
+          <div class="settings-item-row" style="cursor: default;">
+            <div class="settings-item-icon">📍</div>
+            <div class="settings-item-label">Current City</div>
+            <div id="current-location-display" style="font-size:0.9em; color:#6ee7b7; font-weight:600;">Detecting...
+            </div>
+          </div>
+
+          <div class="settings-item-row" onclick="showGpsHelp()" style="cursor:pointer; opacity:0.8;">
+            <div class="settings-item-icon">❓</div>
+            <div class="settings-item-label" style="font-size:0.85em;">Reset GPS Permissions</div>
+            <div class="settings-item-chevron">&#8250;</div>
+          </div>
+        </div>
+
         <div class="settings-group-card">
           <div class="settings-item-row" onclick="window.requestBackgroundPermission()"
             style="border-bottom: 1px dashed rgba(110, 231, 183, 0.3);">
@@ -188,6 +229,17 @@
     </div>
   </div>
   <div class="container" id="home-section">
+    <!-- Location Alert (Dynamic) -->
+    <div id="location-alert" class="card"
+      style="display:none; background:rgba(245, 158, 11, 0.15); border:1px solid #f59e0b; margin-bottom:12px; padding:16px; text-align:center; animation: fadeIn 0.5s;">
+      <div style="font-size:2.2em; margin-bottom:8px;">📍</div>
+      <div style="font-weight:700; color:#fcd34d; margin-bottom:4px;" data-i18n="loc_alert_title">Location Missing</div>
+      <p style="font-size:0.9em; color:#cbd5e1; margin-bottom:12px;" data-i18n="loc_alert_text">Auto-location access
+        denied. Please set your city manually for exact prayer times.</p>
+      <button id="set-city-manually-btn" class="thirty-day-btn" onclick="openLocationSearch()"
+        style="background:#f59e0b; color:#000; font-weight:700; width:100%;">Set City Manually</button>
+    </div>
+
     <!-- Date Section -->
     <div class="date-section card">
       <button class="calendar-arrow" id="prev-date">&#8592;</button>
@@ -893,19 +945,25 @@
     <div id="feature-series" class="sub-feature-view" style="display:none;">
       <div class="card" style="text-align:center; min-height: 400px; display: flex; flex-direction: column;">
         <div style="display:flex;align-items:center;margin-bottom:16px;">
-          <button id="series-back-btn"
+          <button onclick="backToSeriesFlow()"
             style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding: 0 12px 0 0;">&#8592;</button>
           <h2 id="series-header-title" style="margin:0;font-size:1.3em;">Islamic Series</h2>
         </div>
 
         <!-- Series List View -->
         <div id="series-list-view" style="flex: 1; overflow-y: auto;">
-          <!-- Series cards will be injected here -->
+          <div id="series-loading" style="text-align:center; padding:20px; display:none;">Loading...</div>
+          <div id="series-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <!-- Series cards will be injected here -->
+          </div>
         </div>
 
         <!-- Episode List View -->
         <div id="episode-list-view" style="display:none; flex: 1; overflow-y: auto;">
-          <!-- Episode cards will be injected here -->
+          <h3 id="current-series-title" style="margin:0 0 15px 0; font-size:1.1em; color:#6ee7b7;"></h3>
+          <div id="episodes-container" style="display:flex; flex-direction:column; gap:10px;">
+            <!-- Episode cards will be injected here -->
+          </div>
         </div>
 
         <!-- Article View -->
