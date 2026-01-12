@@ -1699,16 +1699,36 @@ let quranXpInterval = null;
 
 // List of available Para files (update this array if you add/remove files)
 const QURAN_PARAS = [
-  { file: "Quran para's urdu/Quran Para 1 With Urdu Translation _ Quran Urdu Translation (online-audio-converter.com).mp3", label: 'Para 1 - Urdu Translation' },
-  { file: "Quran para's urdu/Quran Para 2 With Urdu Translation  Quran Urdu Translation.mp3", label: 'Para 2 - Urdu Translation' },
-  { file: "Quran para's urdu/Quran Para 3 With Urdu Translation  Quran Urdu Translation_2.mp3", label: 'Para 3 - Urdu Translation' },
-  { file: "Quran para's urdu/Quran Para 4 With Urdu Translation  Quran Urdu Translation.mp3", label: 'Para 4 - Urdu Translation' },
-  { file: "Quran para's urdu/Quran Para 5 With Urdu Translation  Quran Urdu Translation.mp3", label: 'Para 5 - Urdu Translation' },
-  { file: "Quran para's urdu/Quran Para 6 With Urdu Translation  Quran Urdu Translation.mp3", label: 'Para 6 - Urdu Translation' },
-  { file: "Quran para's urdu/Quran Para 7 With Urdu Translation  Quran Urdu Translation.mp3", label: 'Para 7 - Urdu Translation' },
-  { file: "Quran para's urdu/Quran Para 8 With Urdu Translation  Quran Urdu Translation.mp3", label: 'Para 8 - Urdu Translation' },
-  { file: "Quran para's urdu/Quran Para 9 With Urdu Translation  Quran Urdu Translation.mp3", label: 'Para 9 - Urdu Translation' },
-  { file: "Quran para's urdu/Quran Para 10 With Urdu Translation  Quran Urdu Translation.mp3", label: 'Para 10 - Urdu Translation' },
+  { file: "Quran para's urdu/Quran Para 1 With Urdu Translation _ Quran Urdu Translation (online-audio-converter.com).mp3", label: 'Para 1 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 2 With Urdu Translation  Quran Urdu Translation.mp3", label: 'Para 2 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 3 With Urdu Translation  Quran Urdu Translation.mp3", label: 'Para 3 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 4 With Urdu Translation  Quran Urdu Translation.mp3", label: 'Para 4 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 5 With Urdu Translation  Quran Urdu Translation.mp3", label: 'Para 5 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 6 With Urdu Translation  Quran Urdu Translation.mp3", label: 'Para 6 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 7 With Urdu Translation  Quran Urdu Translation.mp3", label: 'Para 7 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 8 With Urdu Translation  Quran Urdu Translation.mp3", label: 'Para 8 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 9 With Urdu Translation  Quran Urdu Translation.mp3", label: 'Para 9 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 10 With Urdu Translation  Quran Urdu Translation.mp3", label: 'Para 10 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 11 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 11 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 12 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 12 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 13 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 13 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 14 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 14 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 15 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 15 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 16 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 16 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 17 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 17 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 18 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 18 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 19 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 19 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 20 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 20 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 21 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 21 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 22 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 22 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 23 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 23 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 24 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 24 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 25 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip (1).mp3", label: 'Para 25 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 26 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 26 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 27 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 27 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 28 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 28 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 29 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 29 - Urdu translation' },
+  { file: "Quran para's urdu/Quran Para 30 With Urdu Translation  Quran Urdu Translation - Quran Translation Short Clip.mp3", label: 'Para 30 - Urdu translation' },
 ];
 
 let currentQuranPara = QURAN_PARAS[0].file;
@@ -3398,7 +3418,6 @@ document.querySelectorAll('.lang-select-btn').forEach(btn => {
 
 // Wizard Event Listeners
 const btnOnboardingPermit = document.getElementById('btn-onboarding-permit');
-const btnOnboardingNext2 = document.getElementById('btn-onboarding-next-2');
 const btnOnboardingFinish = document.getElementById('btn-onboarding-finish');
 
 if (btnOnboardingPermit) {
@@ -3415,15 +3434,6 @@ if (btnOnboardingPermit) {
     const step2 = document.getElementById('onboarding-step-2');
     if (step1) step1.style.display = 'none';
     if (step2) step2.style.display = 'flex';
-  };
-}
-
-if (btnOnboardingNext2) {
-  btnOnboardingNext2.onclick = () => {
-    const step2 = document.getElementById('onboarding-step-2');
-    const step3 = document.getElementById('onboarding-step-3');
-    if (step2) step2.style.display = 'none';
-    if (step3) step3.style.display = 'flex';
   };
 }
 
