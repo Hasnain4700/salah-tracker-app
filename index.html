@@ -13,10 +13,14 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    import {
+      getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut,
+      GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
     import { getDatabase, ref, set, get, onValue, update, runTransaction, push, query, limitToLast, orderByKey } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
     window.FirebaseExports = {
       initializeApp, getAnalytics, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut,
+      GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail,
       getDatabase, ref, set, get, onValue, update, runTransaction, push, query, limitToLast, orderByKey
     };
   </script>
@@ -614,8 +618,26 @@
         <input id="auth-password" type="password" placeholder="Password"
           style="width:100%;padding:10px 12px;border-radius:12px;border:none;font-size:1em;" />
       </div>
+      <div id="auth-forgot-container" style="text-align: center; margin-top: -5px; margin-bottom: 15px;">
+        <button id="auth-forgot-btn" data-i18n="auth_forgot_password"
+          style="background:none; border:none; color:#94a3b8; font-size:0.85em; cursor:pointer;">Forgot
+          Password?</button>
+      </div>
       <div id="auth-error" style="color:#ff6b6b;font-size:0.98em;height:1.5em;margin-bottom:8px;"></div>
       <button id="auth-submit" class="thirty-day-btn" style="width:100%;margin-bottom:8px;">Login</button>
+
+      <div style="margin: 15px 0; color: #475569; font-size: 0.85em; display: flex; align-items: center; gap: 10px;">
+        <div style="flex: 1; height: 1px; background: #334155;"></div>
+        OR
+        <div style="flex: 1; height: 1px; background: #334155;"></div>
+      </div>
+
+      <button id="auth-google-btn" class="thirty-day-btn"
+        style="width:100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fff; color: #000; margin-bottom: 15px;">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18" alt="G">
+        <span data-i18n="auth_google_login">Login with Google</span>
+      </button>
+
       <div>
         <span id="auth-switch-text">Don't have an account?</span>
         <button id="auth-switch-btn"
@@ -824,13 +846,56 @@
         <div id="twins-lobby" style="padding:20px 0;">
           <div style="font-size:4em;margin-bottom:12px;">🤝</div>
           <p style="font-size:1.1em;margin-bottom:8px;">Find a Prayer Partner</p>
-          <p style="color:#94a3b8;font-size:0.9em;margin-bottom:20px;">
-            Connect with a random user for a 7-day challenge. Motivate each other to never miss a Salah!
-          </p>
-          <button id="find-partner-btn" class="thirty-day-btn"
-            style="width:100%;background:#6ee7b7;color:#222;font-weight:bold;">Find Partner</button>
-          <div id="twins-loading" style="display:none;margin-top:20px;color:#6ee7b7;">
-            Searching for partner... ⏳
+
+          <!-- Choice Section -->
+          <div id="twins-choice-ui">
+            <p style="color:#94a3b8;font-size:0.9em;margin-bottom:20px;">
+              Connect with a random user or invite a friend for a 7-day challenge. Motivate each other to never miss a
+              Salah!
+            </p>
+            <div style="display:grid; gap:10px;">
+              <button id="twins-match-global-btn" class="thirty-day-btn" data-i18n="twins_global_btn"
+                style="width:100%;background:#6ee7b7;color:#222;font-weight:bold;">Global Partner (Random) 🌍</button>
+              <button id="twins-invite-friend-btn" class="thirty-day-btn" data-i18n="twins_private_btn"
+                style="width:100%;background:#334155;color:#fff;font-weight:bold;">Invite a Friend (Get Code)
+                🏢</button>
+            </div>
+
+            <!-- Join with Code Section -->
+            <div style="margin-top:30px; border-top:1px solid #334155; padding-top:20px;">
+              <p style="font-size:0.95em; margin-bottom:12px;" data-i18n="twins_join_title">Already have a code?</p>
+              <div style="display:flex; gap:8px;">
+                <input type="text" id="twins-join-code-input" placeholder="123456"
+                  style="flex:1; padding:10px; border-radius:10px; border:none; background:#1e293b; color:#fff; text-align:center; font-weight:bold; letter-spacing:2px;">
+                <button id="twins-join-submit-btn" class="thirty-day-btn" data-i18n="twins_join_btn"
+                  style="padding:10px 20px; background:#6ee7b7; color:#222; font-weight:bold; width:auto; border-radius:10px;">Join</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Waiting/Private Code UI -->
+          <div id="twins-waiting-ui" style="display:none; margin-top:20px;">
+            <!-- For Global -->
+            <div id="twins-global-loading" style="display:none; color:#6ee7b7; margin-bottom:20px;"
+              data-i18n="twins_finding_global">
+              Searching for a global partner... ⏳
+            </div>
+
+            <!-- For Private -->
+            <div id="twins-private-code-display" style="display:none;">
+              <p style="font-size:0.9em; color:#94a3b8; margin-bottom:8px;" data-i18n="twins_my_code_label">Your Invite
+                Code
+              </p>
+              <div id="twins-my-code"
+                style="font-size:2.5em; font-weight:800; color:#6ee7b7; letter-spacing:5px; margin-bottom:15px; background:rgba(0,0,0,0.2); border-radius:12px; padding:10px;">
+                000000</div>
+              <p style="font-size:0.85em; color:#94a3b8; margin-bottom:20px;" data-i18n="twins_share_desc">Share this
+                code
+                with your friend. They can join using the button below.</p>
+            </div>
+
+            <button id="twins-cancel-match-btn" class="thirty-day-btn" data-i18n="twins_cancel_btn"
+              style="width:100%;background:#ff6b6b;color:#fff;font-weight:bold;">Cancel Request</button>
           </div>
         </div>
 
@@ -1520,8 +1585,8 @@
     </div>
 
   </div>
-  <script type="module" src="app.js?v=6.4"></script>
-  <script type="module" src="app2.js?v=1.2"></script>
+  <script type="module" src="app.js?v=6.5"></script>
+  <script type="module" src="app2.js?v=1.3"></script>
 </body>
 
 </html>
