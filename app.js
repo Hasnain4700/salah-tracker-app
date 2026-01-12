@@ -4,7 +4,9 @@ const {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
-  signOut,
+  GoogleAuthProvider,
+  signInWithPopup,
+  sendPasswordResetEmail,
   ref,
   set,
   get,
@@ -234,9 +236,9 @@ async function requestNotificationPermission() {
     const messaging = getMessaging(app);
     const vapidKey = 'BBeVQ0f8nC--oymwOnsGfla9p5AB5h37TEPpf1EMY0QTz4pbdPjlmqn-8Rkjw8sAE71ksSnkqcvRpA7M0_64FBE';
 
-    const swUrl = './firebase-messaging-sw.js?v=4.0';
+    const swUrl = './firebase-messaging-sw.js?v=4.5';
     const registration = await navigator.serviceWorker.register(swUrl);
-    console.log("[FCM] Service Worker registered (v4.0)");
+    console.log("[FCM] Service Worker registered (v4.5)");
 
     // Wait for the service worker to be active
     if (!registration.active) {
@@ -875,6 +877,9 @@ const authSubmit = document.getElementById('auth-submit');
 const authSwitchBtn = document.getElementById('auth-switch-btn');
 const authSwitchText = document.getElementById('auth-switch-text');
 const authModalTitle = document.getElementById('auth-modal-title');
+const authGoogleBtn = document.getElementById('auth-google-btn');
+const authForgotBtn = document.getElementById('auth-forgot-btn');
+const authForgotContainer = document.getElementById('auth-forgot-container');
 
 let isLoginMode = true;
 function showAuthModal() {
@@ -902,11 +907,13 @@ function updateAuthMode() {
     authSubmit.textContent = 'Login';
     authSwitchText.textContent = "Don't have an account?";
     authSwitchBtn.textContent = 'Sign up';
+    if (authForgotContainer) authForgotContainer.style.display = 'block';
   } else {
     authModalTitle.textContent = 'Sign Up';
     authSubmit.textContent = 'Sign Up';
     authSwitchText.textContent = 'Already have an account?';
     authSwitchBtn.textContent = 'Login';
+    if (authForgotContainer) authForgotContainer.style.display = 'none';
   }
 }
 authSwitchBtn.onclick = () => {
@@ -950,6 +957,47 @@ authSubmit.onclick = async () => {
     showToast(friendlyMsg, 'error');
   }
 };
+
+if (authGoogleBtn) {
+  authGoogleBtn.onclick = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      showToast("Logged in with Google! 🚀", "success");
+      hideAuthModal();
+    } catch (e) {
+      console.error(e);
+      let msg = e.message;
+      if (e.code === 'auth/popup-blocked') msg = "Popup blocked by browser.";
+      else if (e.code === 'auth/cancelled-popup-request') msg = "Popup closed.";
+      authError.textContent = msg;
+      showToast(msg, "error");
+    }
+  };
+}
+
+if (authForgotBtn) {
+  authForgotBtn.onclick = async () => {
+    const email = authEmail.value.trim();
+    if (!email) {
+      authError.textContent = "Please enter your email first.";
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, email);
+      const strings = translations[userLanguage];
+      const successMsg = strings.auth_reset_sent || "Reset email sent!";
+      showToast(successMsg, "success");
+      authError.style.color = "#6ee7b7";
+      authError.textContent = successMsg;
+    } catch (e) {
+      console.error(e);
+      authError.style.color = "#ff6b6b";
+      authError.textContent = e.message;
+      showToast(e.message, "error");
+    }
+  };
+}
 
 
 
@@ -1767,7 +1815,7 @@ function renderQuranAudioList() {
       }, 10);
       currentQuranPara = para.file;
       currentQuranParaLabel = para.label;
-      quranAudioSource.src = para.file;
+      quranAudioSource.src = encodeURI(para.file);
       quranAudioPlayer.load();
       loadQuranAudioProgress();
       quranAudioPlayer.play();
@@ -2942,8 +2990,11 @@ window.nudgeMember = (targetUid) => {
 // --- Deen Twins (Salah Partner) Logic ---
 const twinsLobby = document.getElementById('twins-lobby');
 const twinsActive = document.getElementById('twins-active');
-const findPartnerBtn = document.getElementById('find-partner-btn');
-const twinsLoading = document.getElementById('twins-loading');
+const twinsChoiceUI = document.getElementById('twins-choice-ui');
+const twinsWaitingUI = document.getElementById('twins-waiting-ui');
+const twinsGlobalLoading = document.getElementById('twins-global-loading');
+const twinsPrivateCodeDisplay = document.getElementById('twins-private-code-display');
+const twinsMyCodeEl = document.getElementById('twins-my-code');
 const partnerNameEl = document.getElementById('partner-name');
 const partnerAvatarEl = document.getElementById('partner-avatar');
 const partnerStatusEl = document.getElementById('partner-status');
@@ -2951,6 +3002,12 @@ const twinsNudgeBtn = document.getElementById('twins-nudge-btn');
 const twinsLeaveBtn = document.getElementById('twins-leave-btn');
 const twinsProgress = document.getElementById('twins-progress');
 const twinsTodayStatus = document.getElementById('twins-today-status');
+
+// New Buttons
+const twinsMatchGlobalBtn = document.getElementById('twins-match-global-btn');
+const twinsInviteFriendBtn = document.getElementById('twins-invite-friend-btn');
+const twinsJoinSubmitBtn = document.getElementById('twins-join-submit-btn');
+const twinsCancelMatchBtn = document.getElementById('twins-cancel-match-btn');
 
 let twinsUnsubscribe = null;
 
@@ -2964,16 +3021,13 @@ async function checkTwinsStatus() {
   twinsUnsubscribe = onValue(twinsRef, async (snap) => {
     const data = snap.val();
 
-    // Auto Popup Logic
+    // Auto Popup Logic (Simplified)
     const hasSkipped = localStorage.getItem('skipPartner');
     if (!data && !hasSkipped) {
-      setTimeout(() => {
-        const packet = document.getElementById('modal-partner-invite');
-        const twinsSection = document.getElementById('twins-active');
-        if (packet && twinsSection.style.display === 'none' && packet.style.display !== 'flex') {
-          packet.style.display = 'flex';
-        }
-      }, 3000);
+      const packet = document.getElementById('modal-partner-invite');
+      if (packet && packet.style.display !== 'flex') {
+        packet.style.display = 'flex';
+      }
     }
 
     if (data && data.pairId) {
@@ -2981,46 +3035,177 @@ async function checkTwinsStatus() {
       subscribeToPair(data.pairId, user.uid);
       syncHistoricalLogsToPair(data.pairId, user.uid);
 
-      twinsLobby.style.display = 'none';
-      twinsActive.style.display = 'block';
+      if (twinsLobby) twinsLobby.style.display = 'none';
+      if (twinsActive) twinsActive.style.display = 'block';
 
-    } else if (data && data.inLobby) {
-      // --- STATE 2: WAITING IN LOBBY ---
+    } else if (data && (data.inLobby || data.inPrivateLobby)) {
+      // --- STATE 2: WAITING ---
       document.getElementById('home-partner-widget').style.display = 'none';
+      if (twinsLobby) twinsLobby.style.display = 'block';
+      if (twinsActive) twinsActive.style.display = 'none';
 
-      twinsLobby.style.display = 'block';
-      twinsActive.style.display = 'none';
+      if (twinsChoiceUI) twinsChoiceUI.style.display = 'none';
+      if (twinsWaitingUI) twinsWaitingUI.style.display = 'block';
 
-      twinsLoading.style.display = 'block'; // Show Loading Text
-      findPartnerBtn.style.display = 'none'; // Hide Find Button
-
-      let lobbyMsg = "Request Saved! You will be paired automatically when someone joins. You can close the app.";
-      if (Notification.permission !== 'granted') {
-        lobbyMsg += "<br><br><span style='color:#f59e0b;font-weight:bold;'>⚠️ Please Enable Notifications to get alerted! <button onclick='requestNotificationPermission()' style='background:#f59e0b;color:#000;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;margin-top:4px;'>Enable</button></span>";
+      if (data.inLobby) {
+        if (twinsGlobalLoading) twinsGlobalLoading.style.display = 'block';
+        if (twinsPrivateCodeDisplay) twinsPrivateCodeDisplay.style.display = 'none';
+      } else {
+        if (twinsGlobalLoading) twinsGlobalLoading.style.display = 'none';
+        if (twinsPrivateCodeDisplay) {
+          twinsPrivateCodeDisplay.style.display = 'block';
+          if (twinsMyCodeEl) twinsMyCodeEl.textContent = data.code;
+        }
       }
-      twinsLoading.innerHTML = lobbyMsg;
-
     } else {
       // --- STATE 3: NOTHING / NEW ---
       document.getElementById('home-partner-widget').style.display = 'none';
+      if (twinsLobby) twinsLobby.style.display = 'block';
+      if (twinsActive) twinsActive.style.display = 'none';
 
-      twinsLobby.style.display = 'block';
-      twinsActive.style.display = 'none';
-
-      twinsLoading.style.display = 'none'; // Hide Loading Text
-      findPartnerBtn.style.display = 'inline-block'; // Show Find Button
+      if (twinsChoiceUI) twinsChoiceUI.style.display = 'block';
+      if (twinsWaitingUI) twinsWaitingUI.style.display = 'none';
     }
   });
 }
 
-// --- Event Listeners for Dynamic UI ---
+// --- Matchmaking Buttons ---
+
+if (twinsMatchGlobalBtn) {
+  twinsMatchGlobalBtn.onclick = async () => {
+    const user = auth.currentUser;
+    if (!user) return showToast("Login first", "#ff6b6b");
+
+    try {
+      showToast("Searching for partner... 🌍", "#6ee7b7");
+
+      // 1. Check Global Lobby
+      const lobbySnap = await get(ref(db, 'lobby'));
+      const lobbyData = lobbySnap.val();
+      let foundPartnerId = null;
+
+      if (lobbyData) {
+        foundPartnerId = Object.keys(lobbyData).find(id => id !== user.uid);
+      }
+
+      if (foundPartnerId) {
+        // MATCH FOUND
+        const waitingUid = foundPartnerId;
+        await set(ref(db, `lobby/${waitingUid}`), null);
+
+        const pairId = 'pair_' + Date.now();
+        const pairData = {
+          user1: waitingUid,
+          user2: user.uid,
+          streak: 0,
+          startedAt: Date.now(),
+          [waitingUid]: lobbyData[waitingUid] || { name: 'Partner', avatar: '👤' },
+          [user.uid]: { name: (userDisplayName || user.email.split('@')[0]), avatar: '🧑🏽' }
+        };
+
+        await set(ref(db, `pairs/${pairId}`), pairData);
+        await set(ref(db, `users/${waitingUid}/twins`), { pairId: pairId });
+        await set(ref(db, `users/${user.uid}/twins`), { pairId: pairId });
+        showToast("Partner Found! 🤝", "#6ee7b7");
+      } else {
+        // JOIN LOBBY
+        await set(ref(db, `lobby/${user.uid}`), {
+          name: (userDisplayName || user.email.split('@')[0]),
+          avatar: '🧑🏽',
+          joinedAt: Date.now()
+        });
+        await set(ref(db, `users/${user.uid}/twins`), { inLobby: true });
+        showToast("Request Saved! You will be paired soon.", "#6ee7b7");
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Matchmaking failed", "#ff6b6b");
+    }
+  };
+}
+
+if (twinsInviteFriendBtn) {
+  twinsInviteFriendBtn.onclick = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    // Generate 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    try {
+      await set(ref(db, `privateLobby/${code}`), {
+        uid: user.uid,
+        name: (userDisplayName || user.email.split('@')[0]),
+        avatar: '🧑🏽',
+        timestamp: Date.now()
+      });
+      await set(ref(db, `users/${user.uid}/twins`), { inPrivateLobby: true, code: code });
+      showToast("Code Generated! Share with a friend.", "#6ee7b7");
+    } catch (e) {
+      showToast("Failed to generate code", "#ff6b6b");
+    }
+  };
+}
+
+if (twinsJoinSubmitBtn) {
+  twinsJoinSubmitBtn.onclick = async () => {
+    const user = auth.currentUser;
+    const code = document.getElementById('twins-join-code-input').value.trim();
+    if (code.length !== 6) return showToast("Enter a 6-digit code", "#ff6b6b");
+
+    try {
+      const snap = await get(ref(db, `privateLobby/${code}`));
+      if (!snap.exists()) return showToast("Invalid or expired code", "#ff6b6b");
+
+      const hostData = snap.val();
+      if (hostData.uid === user.uid) return showToast("You cannot join your own code", "#ff6b6b");
+
+      // Create Pair
+      const pairId = 'pair_private_' + code;
+      const pairData = {
+        user1: hostData.uid,
+        user2: user.uid,
+        streak: 0,
+        startedAt: Date.now(),
+        [hostData.uid]: { name: hostData.name, avatar: hostData.avatar },
+        [user.uid]: { name: (userDisplayName || user.email.split('@')[0]), avatar: '🧑🏽' }
+      };
+
+      await set(ref(db, `pairs/${pairId}`), pairData);
+      await set(ref(db, `privateLobby/${code}`), null); // Clean up
+
+      await set(ref(db, `users/${hostData.uid}/twins`), { pairId: pairId });
+      await set(ref(db, `users/${user.uid}/twins`), { pairId: pairId });
+
+      showToast("Connected with your friend! 🤝", "#6ee7b7");
+    } catch (e) {
+      showToast("Join failed", "#ff6b6b");
+    }
+  };
+}
+
+if (twinsCancelMatchBtn) {
+  twinsCancelMatchBtn.onclick = async () => {
+    const user = auth.currentUser;
+    const snap = await get(ref(db, `users/${user.uid}/twins`));
+    const data = snap.val();
+
+    if (data && data.code) {
+      await set(ref(db, `privateLobby/${data.code}`), null);
+    }
+    await set(ref(db, `lobby/${user.uid}`), null);
+    await set(ref(db, `users/${user.uid}/twins`), null);
+    showToast("Request Cancelled", "#94a3b8");
+  };
+}
+
+// --- Event Listeners for Dynamic UI (Restored) ---
 const homePartnerWidget = document.getElementById('home-partner-widget');
 const btnModalFind = document.getElementById('btn-modal-find-partner');
 const btnModalNotNow = document.getElementById('btn-modal-not-now');
 
 if (homePartnerWidget) {
   homePartnerWidget.onclick = () => {
-    // Navigate to Deen Twins
     showSection('more');
     setTimeout(() => {
       if (typeof window.openSubFeature === 'function') window.openSubFeature('twins');
@@ -3044,99 +3229,6 @@ if (btnModalNotNow) {
     localStorage.setItem('skipPartner', 'true');
   };
 }
-
-findPartnerBtn.onclick = async () => {
-  const user = auth.currentUser;
-  if (!user) return alert("Please login first.");
-
-  findPartnerBtn.style.display = 'none';
-  twinsLoading.style.display = 'block';
-  twinsLoading.textContent = "Searching for partner... ⏳";
-
-  try {
-    // 1. Check Lobby
-    const lobbySnap = await get(ref(db, 'lobby'));
-    const lobby = lobbySnap.val();
-
-    console.log("Lobby Snap:", lobby);
-
-    let foundPartnerId = null;
-
-    if (lobby) {
-      const ids = Object.keys(lobby);
-      // Find one that isn't me
-      foundPartnerId = ids.find(id => id !== user.uid);
-    }
-
-    if (foundPartnerId) {
-      // --- Match found! ---
-      const waitingUid = foundPartnerId;
-      console.log("Partner Found:", waitingUid);
-
-      // Remove from lobby
-      await set(ref(db, `lobby/${waitingUid}`), null);
-      // Ensure I am removed too just in case
-      await set(ref(db, `lobby/${user.uid}`), null);
-
-      // Create Pair
-      const pairId = 'pair_' + Date.now();
-      const pairData = {
-        user1: waitingUid,
-        user2: user.uid,
-        streak: 0,
-        startedAt: Date.now(),
-        [waitingUid]: lobby[waitingUid] || { name: 'Partner', avatar: '👤' },
-        [user.uid]: { name: (userDisplayName || user.email.split('@')[0]), avatar: '🧑🏽' }
-      };
-
-      await set(ref(db, `pairs/${pairId}`), pairData);
-
-      // Update both users
-      await set(ref(db, `users/${waitingUid}/twins`), { pairId: pairId });
-      await set(ref(db, `users/${user.uid}/twins`), { pairId: pairId });
-
-      showToast("Partner Found!", "#6ee7b7");
-
-      // --- Notify the Waiting User (Async) ---
-      get(ref(db, `users/${waitingUid}/fcmToken`)).then(snap => {
-        const token = snap.val();
-        if (token) {
-          sendFCMNotificationv1(
-            token,
-            "New Partner Assigned! 🤝",
-            `${(userDisplayName || user.email.split('@')[0])} has accepted your partnership request.`,
-            'reminder_tone'
-          ).catch(err => console.error("Notification Failed:", err));
-        }
-      });
-
-    } else {
-      // --- No one available, join lobby & SAVE REQUEST ---
-      console.log("No valid partner found, joining lobby.");
-
-      await set(ref(db, `lobby/${user.uid}`), {
-        name: (userDisplayName || user.email.split('@')[0]),
-        avatar: '🧑🏽',
-        joinedAt: Date.now()
-      });
-
-      // Update self state
-      await set(ref(db, `users/${user.uid}/twins`), { inLobby: true });
-
-      // Update UI
-      let lobbyMsg = "Request Saved! You will be paired automatically when someone joins. You can close the app.";
-      if (Notification.permission !== 'granted') {
-        lobbyMsg += "<br><br><span style='color:#f59e0b;font-weight:bold;'>⚠️ Please Enable Notifications to get alerted! <button onclick='requestNotificationPermission()' style='background:#f59e0b;color:#000;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;margin-top:4px;'>Enable</button></span>";
-      }
-      twinsLoading.innerHTML = lobbyMsg;
-      showToast("Request Saved 💾", "#6ee7b7");
-    }
-  } catch (err) {
-    console.error("Find Partner Error:", err);
-    twinsLoading.textContent = "Error occurred. Please try again.";
-    findPartnerBtn.style.display = 'inline-block';
-  }
-};
 
 twinsNudgeBtn.onclick = async () => {
   const user = auth.currentUser;
