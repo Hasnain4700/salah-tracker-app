@@ -149,7 +149,7 @@ self.addEventListener('sync', (event) => {
 });
 
 // --- Caching Logic ---
-const CACHE_NAME = 'salah-tracker-v4.4';
+const CACHE_NAME = 'salah-tracker-v4.6';
 const ASSETS = [
   './',
   './index.html',
@@ -168,10 +168,12 @@ self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log("[FCM SW] Caching essential assets...");
-      return cache.addAll(ASSETS).catch(err => {
-        console.warn("[FCM SW] some assets failed to cache, proceeding anyway.", err);
-        // We don't throw here to ensure the SW still installs and allows FCM to work
-      });
+      // Cache assets individually so one failure does not break the entire process
+      return Promise.all(
+        ASSETS.map(url =>
+          cache.add(url).catch(err => console.warn(`[FCM SW] Failed to cache asset: ${url}`, err))
+        )
+      );
     })
   );
 });
@@ -217,8 +219,10 @@ self.addEventListener('fetch', (e) => {
         });
 
         return networkResponse;
-      }).catch(() => {
-        // Fail silently
+      }).catch((err) => {
+        // Return original error instead of undefined to satisfy respondWith
+        console.warn("[FCM SW] Fetch failed:", url, err);
+        return fetch(e.request);
       });
     })
   );
