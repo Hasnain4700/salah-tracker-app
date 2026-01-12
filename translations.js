@@ -60,6 +60,16 @@ export const translations = {
         "feature_masjid_desc": "Find nearby Masajid",
         "hadith_title": "Daily Hadith",
 
+        // Deen Twins Enhancement
+        "twins_global_btn": "Global Partner (Random) 🌍",
+        "twins_private_btn": "Invite a Friend (Get Code) 🏢",
+        "twins_join_title": "Already have a code?",
+        "twins_join_btn": "Join Partner",
+        "twins_my_code_label": "Your Invite Code",
+        "twins_share_desc": "Share this code with your friend. They can join using the button below.",
+        "twins_cancel_btn": "Cancel Request",
+        "twins_finding_global": "Searching for a global partner... ⏳",
+
         // Stats
         "streak_title": "Salah Streak",
         "streak_desc": "Consistency is key! 🔑",
@@ -83,7 +93,13 @@ export const translations = {
         "ref_shafii": "Hadrat Imam Shafi'i used to recite it constantly and received glad tidings of Jannah. It brings tremendous prosperity, health, happiness and success in this world and the hereafter. It is of very great significance.",
 
         "durood_dawaami_ar": "اَللَّهُمَّ صَلِّ عَلَىٰ سَيِّدِنَا مُحَمَّدٍ وَعَلَىٰ آلِ سَيِّدِنَا مُحَمَّدٍ عَدَدَ مَا فِي عِلْمِ اللَّهِ صَلَوٰةً دَائِمَةً بِدَوَامِ مُلْكِ اللَّهِ",
-        "ref_dawaami": "Reciting it only once amounts to rewards of all Duroods. One gets peace of mind and success in this world and the next. It brings relief and true happiness. Pious people and Saints recommend this for those in need."
+        "ref_dawaami": "Reciting it only once amounts to rewards of all Duroods. One gets peace of mind and success in this world and the next. It brings relief and true happiness. Pious people and Saints recommend this for those in need.",
+
+        // Auth
+        "auth_google_login": "Login with Google",
+        "auth_forgot_password": "Forgot Password?",
+        "auth_reset_sent": "Password reset email sent!",
+        "auth_reset_error": "Failed to send reset email."
     },
     ur: {
         // Navigation & General (Roman Urdu)
@@ -145,6 +161,16 @@ export const translations = {
         "feature_masjid_desc": "Qareeb tareen masajid dhoondein",
         "hadith_title": "Daily Hadith",
 
+        // Deen Twins Enhancement
+        "twins_global_btn": "Global Partner (Random) 🌍",
+        "twins_private_btn": "Friend ko bulayein (Get Code) 🏢",
+        "twins_join_title": "Kya aapke paas code hai?",
+        "twins_join_btn": "Partner Join Karein",
+        "twins_my_code_label": "Aapka Invite Code",
+        "twins_share_desc": "Ye code apne dost ko bhejein taake wo join kar sakein.",
+        "twins_cancel_btn": "Request Khatam karein",
+        "twins_finding_global": "Global partner dhoonda ja raha hai... ⏳",
+
         // Stats
         "streak_title": "Salah Streak",
         "streak_desc": "Pabandi hi kamyabi hai! 🔑",
@@ -168,6 +194,12 @@ export const translations = {
         "ref_shafii": "Hazrat Imam Shafi'i ye darood kasrat se parhte thay aur unhein Jannat ki basharat mili. Ye dunya aur akhirat mein azeem kamyabi, sehat aur khushi ka zariye hai.",
 
         "durood_dawaami_ar": "اَللَّهُمَّ صَلِّ عَلَىٰ سَيِّدِنَا مُحَمَّدٍ وَعَلَىٰ آلِ سَيِّدِنَا مُحَمَّدٍ عَدَدَ مَا فِي عِلْمِ اللَّهِ صَلَوٰةً دَائِمَةً بِدَوَامِ مُلْكِ اللَّهِ",
-        "ref_dawaami": "Sirf ek baar parhne se tamaam Darood Pak ka sawab milta hai. Is se dil ko sukoon aur dunya-o-akhirat mein kamyabi milti hai. Ye pareshaniyon se nijat aur sachi khushi lata hai."
+        "ref_dawaami": "Sirf ek baar parhne se tamaam Darood Pak ka sawab milta hai. Is se dil ko sukoon aur dunya-o-akhirat mein kamyabi milti hai. Ye pareshaniyon se nijat aur sachi khushi lata hai.",
+
+        // Auth
+        "auth_google_login": "Google ke sath Login",
+        "auth_forgot_password": "Password bhool gaye?",
+        "auth_reset_sent": "Password reset link bhej di gayi hai!",
+        "auth_reset_error": "Reset link bhejne mein nakami."
     }
 };
