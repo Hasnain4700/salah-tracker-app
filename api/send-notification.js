@@ -18,7 +18,14 @@ module.exports = async (req, res) => {
 
     // --- Authorization Check ---
     const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret && req.headers['x-cron-auth'] !== cronSecret) {
+    const authHeader = req.headers['x-cron-auth'];
+
+    // Strict check for Cron Job (Heartbeat), but allow Client Nudges (which don't have secret)
+    // If it's a "Nudge" request (has token + title), we skip the Secret check.
+    // If it's a "Global Check" (no body/cron job), we enforce the Secret.
+    const isClientNudge = req.body && req.body.token && req.body.title;
+
+    if (!isClientNudge && cronSecret && authHeader !== cronSecret) {
         console.log("[FCM API] Unauthorized attempt blocked.");
         return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
