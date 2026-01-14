@@ -17,11 +17,11 @@
       getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut,
       GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail
     } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-    import { getDatabase, ref, set, get, onValue, update, runTransaction, push, query, limitToLast, orderByKey } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+    import { getDatabase, ref, set, get, onValue, update, runTransaction, push, query, limitToLast, orderByKey, goOnline, goOffline } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
     window.FirebaseExports = {
       initializeApp, getAnalytics, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut,
       GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail,
-      getDatabase, ref, set, get, onValue, update, runTransaction, push, query, limitToLast, orderByKey
+      getDatabase, ref, set, get, onValue, update, runTransaction, push, query, limitToLast, orderByKey, goOnline, goOffline
     };
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.6.1/jsrsasign-all-min.js"></script>
