@@ -281,15 +281,34 @@ async function requestNotificationPermission() {
         await update(ref(db, `users/${user.uid}`), { fcmToken: currentToken });
         console.log("[FCM] Token correctly generated and saved.");
 
-        // --- Subscribe to Heartbeat Topic for background reliability ---
-        fetch('/api/subscribe', {
+        // --- Hybrid API Routing ---
+        // UI stays on GitHub Pages (Play Store), Engine runs on Vercel
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+        // Final Vercel Engine URL
+        const VERCEL_URL = "https://salah-tracker-app.vercel.app";
+
+        const API_BASE_URL = isLocal ? "" : VERCEL_URL;
+
+        fetch(`${API_BASE_URL}/api/subscribe`, {
           method: 'POST',
+          mode: 'cors',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: currentToken, topic: 'all_users' })
-        }).then(res => res.json())
+        }).then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.indexOf("application/json") !== -1) {
+            return res.json();
+          } else {
+            throw new Error("API not available on this host (Vercel required)");
+          }
+        })
           .then(data => console.log("[FCM] Topic Subscription:", data.message))
-          .catch(err => console.error("[FCM] Subscription failed:", err));
-
+          .catch(err => {
+            console.warn("[FCM] Subscription info:", err.message);
+            console.log("[FCM] Note: /api/ features only work when deployed on Vercel.");
+          });
         startPrayerNotificationLoop();
       }
     } else {
