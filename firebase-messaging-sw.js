@@ -151,16 +151,12 @@ if (messaging) {
       return;
     }
 
-    const notificationTitle = payload.notification?.title || "Salah Tracker";
-    const notificationOptions = {
-      body: payload.notification?.body,
-      icon: payload.notification?.icon || './icon-192.png',
-      data: {
-        url: payload.data?.url || self.location.origin + '/'
-      }
-    };
-
-    self.registration.showNotification(notificationTitle, notificationOptions);
+    // Stop! If the payload has a 'notification' property, the BROWSER ALREADY SHOWS IT automatically in the background.
+    // If we call showNotification here, we get a DUPLICATE.
+    if (payload.notification) {
+      console.log('[FCM SW] Standard notification received (Browser handles this).');
+      return;
+    }
   });
 }
 
