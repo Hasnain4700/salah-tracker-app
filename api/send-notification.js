@@ -11,16 +11,16 @@ module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-cron-auth');
 
+    // Handle Preflight request (MUST BE BEFORE AUTH CHECK)
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
     // --- Authorization Check ---
     const cronSecret = process.env.CRON_SECRET;
     if (cronSecret && req.headers['x-cron-auth'] !== cronSecret) {
         console.log("[FCM API] Unauthorized attempt blocked.");
         return res.status(401).json({ success: false, error: 'Unauthorized' });
-    }
-
-    // Handle Preflight request
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
     }
 
     if (!project_id || !client_email || !private_key) {
