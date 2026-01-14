@@ -2761,18 +2761,25 @@ function initDuroodFeature() {
       duroodSessionCount++;
       duroodUserTotal++;
 
-      // UI Update
+      // Optimistic UI Update (Immediate)
       document.getElementById('durood-session-count').textContent = duroodSessionCount.toLocaleString();
       document.getElementById('durood-user-total').textContent = duroodUserTotal.toLocaleString();
       document.getElementById('durood-last-read').textContent = "Just now";
 
-      // Haptic feedback for "tap" feel
+      const globalEl = document.getElementById('durood-global-count');
+      if (globalEl) {
+        // Parse current global, increment, and show immediately
+        let currentGlobal = parseInt(globalEl.textContent.replace(/,/g, '')) || 0;
+        globalEl.textContent = (currentGlobal + 1).toLocaleString();
+      }
+
+      // Haptic feedback
       if (window.navigator.vibrate) window.navigator.vibrate(20);
 
-      // DB Update: Atomic Global Increment
+      // DB Update: Atomic Global Increment (Background)
       runTransaction(ref(db, 'global/duroodCount'), (current) => {
         return (current || 0) + 1;
-      });
+      }).catch(e => console.warn("Global sync lag (benign)", e));
 
       // DB Update: User Total
       update(ref(db, `users/${user.uid}/durood`), {
