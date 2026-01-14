@@ -32,7 +32,8 @@ self.addEventListener('message', (event) => {
 
 function startCounterLoop() {
   if (counterInterval) clearInterval(counterInterval);
-  counterInterval = setInterval(updateStickyNotification, 60000);
+  // Increase interval to 5 minutes to save battery, or use shorter if app is active
+  counterInterval = setInterval(updateStickyNotification, 300000);
   updateStickyNotification();
 }
 
@@ -80,7 +81,20 @@ async function updateStickyNotification() {
   // Format Countdown Label
   const countdownLabel = hrs > 0 ? `-${hrs}h ${mins}m` : `-${mins}m`;
 
-  if (totalMins === 0) triggerAdhanAlert(next.name);
+  // --- Robust Adhan Trigger ---
+  // Since updateStickyNotification runs every 5 mins, we trigger if we are within the minute
+  // OR if we just passed it (within 5 mins) and haven't notified for this prayer today.
+  const nowStr = now.getHours() + ":" + now.getMinutes();
+  const prayerKey = `${next.name}_${now.toDateString()}`;
+
+  // Use a global-ish state (self) to track last notified prayer
+  if (!self.lastAdhanNotified) self.lastAdhanNotified = "";
+
+  if (totalMins <= 0 && totalMins > -10 && self.lastAdhanNotified !== prayerKey) {
+    self.lastAdhanNotified = prayerKey;
+    console.log(`[FCM SW] Triggering Adhan Alert for ${next.name}`);
+    triggerAdhanAlert(next.name);
+  }
 
   const isStruggle = next.name === strugglePrayer;
   const title = isStruggle ? `⚠️ Next: ${next.name} (Struggle)` : `🕌 Next: ${next.name}`;
@@ -114,9 +128,13 @@ function triggerAdhanAlert(prayerName) {
     self.registration.showNotification(title, {
       body: body,
       icon: "./icon-192.png",
-      vibrate: [200, 100, 200, 100, 200, 100, 400],
+      badge: "./icon-192.png",
+      vibrate: [500, 110, 500, 110, 450, 110, 200, 110, 170, 40, 450, 110, 200, 110, 170, 40, 500],
       tag: 'prayer-alert',
-      data: { url: 'https://hasnain4700.github.io/salah-tracker-app/' }
+      sound: './tones/azan_tone.mp3', // Note: Browser support for custom sounds in webpush is limited
+      data: { url: self.location.origin + '/' },
+      requireInteraction: true,
+      silent: false
     });
   }
 }
@@ -124,13 +142,31 @@ function triggerAdhanAlert(prayerName) {
 // --- Event Handlers ---
 if (messaging) {
   messaging.onBackgroundMessage(function (payload) {
-    console.log('[FCM SW] Received background message ', payload);
+    console.log('[FCM SW] Received background message: ', payload);
+
+    // Check if it's a Heartbeat Sync signal from our Cron job
+    if (payload.data && payload.data.type === 'HEARTBEAT_SYNC') {
+      console.log('[FCM SW] Heartbeat received. Refreshing local notification triggers...');
+      updateStickyNotification();
+      return;
+    }
+
+    const notificationTitle = payload.notification?.title || "Salah Tracker";
+    const notificationOptions = {
+      body: payload.notification?.body,
+      icon: payload.notification?.icon || './icon-192.png',
+      data: {
+        url: payload.data?.url || self.location.origin + '/'
+      }
+    };
+
+    self.registration.showNotification(notificationTitle, notificationOptions);
   });
 }
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const urlToOpen = 'https://hasnain4700.github.io/salah-tracker-app/';
+  const urlToOpen = self.location.origin + '/';
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
       for (var i = 0; i < windowClients.length; i++) {
@@ -149,7 +185,7 @@ self.addEventListener('sync', (event) => {
 });
 
 // --- Caching Logic ---
-const CACHE_NAME = 'salah-tracker-v4.6';
+const CACHE_NAME = 'salah-tracker-v4.7';
 const ASSETS = [
   './',
   './index.html',
@@ -160,7 +196,9 @@ const ASSETS = [
   './icon-192.png',
   './icon-512.png',
   './favicon.ico',
-  './twa-manifest.json'
+  './twa-manifest.json',
+  './tones/azan_tone.mp3',
+  './tones/reminder_tone.mp3'
 ];
 
 self.addEventListener('install', (e) => {
