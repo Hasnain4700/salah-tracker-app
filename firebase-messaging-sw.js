@@ -195,7 +195,6 @@ const ASSETS = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './favicon.ico',
   './twa-manifest.json',
   './tones/azan_tone.mp3',
   './tones/reminder_tone.mp3'
