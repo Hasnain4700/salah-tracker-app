@@ -3315,6 +3315,10 @@ if (btnModalNotNow) {
 }
 
 twinsNudgeBtn.onclick = async () => {
+  if (twinsNudgeBtn.disabled) return; // Prevent double clicks
+  twinsNudgeBtn.disabled = true;
+  setTimeout(() => { twinsNudgeBtn.disabled = false; }, 5000); // Re-enable after 5s
+
   const user = auth.currentUser;
   if (!user) return;
   // Get pairId
