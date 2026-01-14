@@ -16,8 +16,25 @@ const {
   push,
   query,
   limitToLast,
-  orderByKey
+  orderByKey,
+  goOnline,
+  goOffline
 } = window.FirebaseExports;
+
+// --- Spark Plan (Free) Connection Management ---
+function manageConnection() {
+  if (document.visibilityState === 'visible') {
+    goOnline(db);
+    console.log("[Firebase] Connection Online.");
+  } else {
+    // Only go offline if we are not in the middle of an important social interaction
+    // (e.g., if a modal for chat is open, we might want to stay online, but for simplicity:)
+    goOffline(db);
+    console.log("[Firebase] Connection Offline (Saved a slot).");
+  }
+}
+document.addEventListener('visibilitychange', manageConnection);
+manageConnection();
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js";
 
 // --- Multi-language Support Logic ---
@@ -262,7 +279,17 @@ async function requestNotificationPermission() {
       const user = auth.currentUser;
       if (user) {
         await update(ref(db, `users/${user.uid}`), { fcmToken: currentToken });
-        console.log("[FCM] Token correctly generated and saved:", currentToken.substring(0, 10) + "...");
+        console.log("[FCM] Token correctly generated and saved.");
+
+        // --- Subscribe to Heartbeat Topic for background reliability ---
+        fetch('/api/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: currentToken, topic: 'all_users' })
+        }).then(res => res.json())
+          .then(data => console.log("[FCM] Topic Subscription:", data.message))
+          .catch(err => console.error("[FCM] Subscription failed:", err));
+
         startPrayerNotificationLoop();
       }
     } else {
@@ -2621,11 +2648,21 @@ function listenToChat(circleId) {
         const isMe = (auth.currentUser && msg.senderId === auth.currentUser.uid);
         const div = document.createElement('div');
         div.className = `chat-msg ${isMe ? 'me' : 'others'}`;
-        div.innerHTML = `
-           <div class="chat-sender-name">${isMe ? 'You' : msg.senderName}</div>
-           <div>${msg.text}</div>
-           <div class="chat-time">${new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-        `;
+
+        const senderName = document.createElement('div');
+        senderName.className = 'chat-sender-name';
+        senderName.textContent = isMe ? 'You' : msg.senderName;
+
+        const textDiv = document.createElement('div');
+        textDiv.textContent = msg.text;
+
+        const timeDiv = document.createElement('div');
+        timeDiv.className = 'chat-time';
+        timeDiv.textContent = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        div.appendChild(senderName);
+        div.appendChild(textDiv);
+        div.appendChild(timeDiv);
         chatContainer.appendChild(div);
       });
 
@@ -2643,30 +2680,34 @@ let duroodUserTotal = 0;
 let duroodGlobalUnsubscribe = null;
 
 function startGlobalDuroodSync() {
+  // To keep connections free for 1M users, we stop live listening.
+  // We use 10-minute polling instead of permanent sockets.
   if (duroodGlobalUnsubscribe) {
-    duroodGlobalUnsubscribe();
+    if (typeof duroodGlobalUnsubscribe === 'function') duroodGlobalUnsubscribe();
+    else clearInterval(duroodGlobalUnsubscribe);
     duroodGlobalUnsubscribe = null;
   }
-  duroodGlobalUnsubscribe = onValue(ref(db, 'global/duroodCount'), (snap) => {
-    const count = snap.val() || 0;
-    const formattedCount = count.toLocaleString();
 
-    // 1. Feature View
-    const featureEl = document.getElementById('durood-global-count');
-    if (featureEl) {
-      featureEl.textContent = formattedCount;
-      featureEl.classList.add('updating');
-      setTimeout(() => featureEl.classList.remove('updating'), 400);
-    }
+  const fetchGlobal = async () => {
+    if (document.visibilityState !== 'visible') return;
+    try {
+      const snap = await get(ref(db, 'global/duroodCount'));
+      const count = snap.val() || 0;
+      const formattedCount = count.toLocaleString();
+      const featureEl = document.getElementById('durood-global-count');
+      if (featureEl) {
+        featureEl.textContent = formattedCount;
+      }
+      const homeEl = document.getElementById('home-durood-value');
+      if (homeEl) homeEl.textContent = formattedCount;
 
-    // 2. Home Screen Widget
-    const homeEl = document.getElementById('home-durood-value');
-    if (homeEl) homeEl.textContent = formattedCount;
+      const moreEl = document.getElementById('more-durood-count');
+      if (moreEl) moreEl.textContent = formattedCount;
+    } catch (err) { }
+  };
 
-    // 3. More Section Card
-    const moreEl = document.getElementById('more-durood-count');
-    if (moreEl) moreEl.textContent = formattedCount;
-  });
+  fetchGlobal();
+  duroodGlobalUnsubscribe = setInterval(fetchGlobal, 600000);
 }
 
 function initDuroodFeature() {
@@ -3079,41 +3120,58 @@ if (twinsMatchGlobalBtn) {
     try {
       showToast("Searching for partner... 🌍", "#6ee7b7");
 
-      // 1. Check Global Lobby
-      const lobbySnap = await get(ref(db, 'lobby'));
-      const lobbyData = lobbySnap.val();
-      let foundPartnerId = null;
+      // 1. ATOMIC MATCHMAKING using runTransaction
+      let partnerData = null;
+      let partnerUid = null;
 
-      if (lobbyData) {
-        foundPartnerId = Object.keys(lobbyData).find(id => id !== user.uid);
-      }
+      await runTransaction(ref(db, 'lobby'), (currentLobby) => {
+        if (!currentLobby) {
+          // Lobby empty, add self
+          return {
+            [user.uid]: {
+              name: (userDisplayName || user.email.split('@')[0]),
+              avatar: '🧑🏽',
+              joinedAt: Date.now()
+            }
+          };
+        }
 
-      if (foundPartnerId) {
+        const partnerId = Object.keys(currentLobby).find(id => id !== user.uid);
+        if (partnerId) {
+          // Partner available! Take them and remove from lobby
+          partnerUid = partnerId;
+          partnerData = currentLobby[partnerId];
+          delete currentLobby[partnerId];
+          return currentLobby;
+        } else {
+          // No partner, add self
+          currentLobby[user.uid] = {
+            name: (userDisplayName || user.email.split('@')[0]),
+            avatar: '🧑🏽',
+            joinedAt: Date.now()
+          };
+          return currentLobby;
+        }
+      });
+
+      if (partnerUid) {
         // MATCH FOUND
-        const waitingUid = foundPartnerId;
-        await set(ref(db, `lobby/${waitingUid}`), null);
-
         const pairId = 'pair_' + Date.now();
         const pairData = {
-          user1: waitingUid,
+          user1: partnerUid,
           user2: user.uid,
           streak: 0,
           startedAt: Date.now(),
-          [waitingUid]: lobbyData[waitingUid] || { name: 'Partner', avatar: '👤' },
+          [partnerUid]: partnerData || { name: 'Partner', avatar: '👤' },
           [user.uid]: { name: (userDisplayName || user.email.split('@')[0]), avatar: '🧑🏽' }
         };
 
         await set(ref(db, `pairs/${pairId}`), pairData);
-        await set(ref(db, `users/${waitingUid}/twins`), { pairId: pairId });
+        await set(ref(db, `users/${partnerUid}/twins`), { pairId: pairId });
         await set(ref(db, `users/${user.uid}/twins`), { pairId: pairId });
         showToast("Partner Found! 🤝", "#6ee7b7");
       } else {
-        // JOIN LOBBY
-        await set(ref(db, `lobby/${user.uid}`), {
-          name: (userDisplayName || user.email.split('@')[0]),
-          avatar: '🧑🏽',
-          joinedAt: Date.now()
-        });
+        // JOINED LOBBY (Transaction already added us)
         await set(ref(db, `users/${user.uid}/twins`), { inLobby: true });
         showToast("Request Saved! You will be paired soon.", "#6ee7b7");
       }
@@ -3743,14 +3801,15 @@ async function exportUserData() {
 const globalDonationTotalEl = document.getElementById('global-donation-total');
 const globalDonationCountEl = document.getElementById('global-donation-count');
 
-function listenToDonationStats() {
-  onValue(ref(db, 'donations/stats'), (snap) => {
+async function loadDonationStats() {
+  try {
+    const snap = await get(ref(db, 'donations/stats'));
     const data = snap.val() || { totalAmount: 0, donorCount: 0 };
     if (globalDonationTotalEl) globalDonationTotalEl.textContent = `${data.totalAmount.toLocaleString()} PKR`;
     if (globalDonationCountEl) globalDonationCountEl.textContent = data.donorCount;
-  });
+  } catch (err) { }
 }
-listenToDonationStats();
+loadDonationStats();
 
 window.triggerConfetti = () => {
   if (typeof confetti === 'function') {
