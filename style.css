@@ -145,14 +145,21 @@ textarea {
   color: #ff6b6b;
 }
 
-.container {
+.container,
+.sub-feature-view {
   width: 100%;
-  max-width: 400px;
+  max-width: 550px;
+  /* Increased to allow a more "stretched" and spacious feel */
   margin: 0 auto 80px auto;
-  padding: 24px 0 0 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 15px;
+}
+
+.sub-feature-view {
+  display: none;
+  /* Managed by JS */
 }
 
 .card {
@@ -161,6 +168,9 @@ textarea {
   box-shadow: var(--shadow);
   padding: 20px;
   margin-bottom: 0;
+  width: 100%;
+  /* Ensure card fills container */
+  box-sizing: border-box;
 }
 
 .date-section {
@@ -1396,6 +1406,7 @@ textarea {
     transform: scale(1);
   }
 }
+
 /* --- Monthly Attendance Chart --- */
 .stats-monthly-container {
   display: flex;
@@ -1413,7 +1424,8 @@ textarea {
   justify-content: space-between;
   padding-right: 12px;
   border-right: 1px solid rgba(255, 255, 255, 0.1);
-  margin-top: 25px; /* Alignment with header */
+  margin-top: 25px;
+  /* Alignment with header */
 }
 
 .stats-label-item {
@@ -1438,9 +1450,11 @@ textarea {
 .stats-grid-scroll::-webkit-scrollbar {
   height: 4px;
 }
+
 .stats-grid-scroll::-webkit-scrollbar-track {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
 }
+
 .stats-grid-scroll::-webkit-scrollbar-thumb {
   background: rgba(110, 231, 183, 0.2);
   border-radius: 10px;
@@ -1541,4 +1555,39 @@ textarea {
   height: 100%;
   border-radius: 2px;
   transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- Hadith Library Enhanced Styles --- */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.glass-card {
+  background: rgba(30, 41, 59, 0.7) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+#hadith-search-input:focus {
+  border-color: #6ee7b7 !important;
+  box-shadow: 0 0 10px rgba(110, 231, 183, 0.2);
+}
+
+@font-face {
+  font-family: 'Traditional Arabic';
+  src: local('Traditional Arabic');
+}
+
+@font-face {
+  font-family: 'Noto Nastaliq Urdu';
+  src: local('Noto Nastaliq Urdu');
 }
