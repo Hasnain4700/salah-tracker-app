@@ -1605,7 +1605,7 @@ function listenToGlobalCounts() {
     get(todayCountsRef).then(snap => {
       const data = snap.val() || {};
       updateWidget(data);
-    })
+    }).catch(err => console.warn("[GlobalStats] Permission or Network error:", err));
   }, 60000);
 }
 // Start listening on load
@@ -2381,13 +2381,17 @@ appNotifClose.onclick = () => {
 };
 
 async function checkForAppNotification() {
-  const snap = await get(ref(db, 'notifications/latest'));
-  if (!snap.exists()) return;
-  const notif = snap.val();
-  const seenKey = 'notif_seen_' + notif.timestamp;
-  if (!localStorage.getItem(seenKey)) {
-    showAppNotification(notif.title, notif.body);
-    localStorage.setItem(seenKey, '1');
+  try {
+    const snap = await get(ref(db, 'notifications/latest'));
+    if (!snap.exists()) return;
+    const notif = snap.val();
+    const seenKey = 'notif_seen_' + notif.timestamp;
+    if (!localStorage.getItem(seenKey)) {
+      showAppNotification(notif.title, notif.body);
+      localStorage.setItem(seenKey, '1');
+    }
+  } catch (err) {
+    console.warn("[Notifications] System not configured or permission denied.");
   }
 }
 
