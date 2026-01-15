@@ -15,17 +15,50 @@ if (typeof firebase !== 'undefined') {
   messaging = firebase.messaging();
 }
 
-// --- Offline & Sticky Counter State ---
+// --- Offline & Sticky Counter State (Persisted) ---
 let prayerTimes = null;
 let strugglePrayer = "";
+let userLogs = {}; // NEW: Store logs to skip already prayed salahs
 let counterInterval = null;
+
+// Helper to persist state so it survives SW suspension
+async function saveSyncedData(prayers, struggle, logs) {
+  try {
+    const cache = await caches.open('salah-internal-state');
+    const data = { prayers, struggle, logs, timestamp: Date.now() };
+    await cache.put('/sw-state', new Response(JSON.stringify(data)));
+    console.log('[FCM SW] State persisted to cache.');
+  } catch (e) {
+    console.error('[FCM SW] Failed to persist state:', e);
+  }
+}
+
+async function loadSyncedData() {
+  try {
+    const cache = await caches.open('salah-internal-state');
+    const response = await cache.match('/sw-state');
+    if (response) {
+      const data = await response.json();
+      prayerTimes = data.prayers;
+      strugglePrayer = data.struggle;
+      userLogs = data.logs || {};
+      console.log('[FCM SW] State restored from cache.');
+      return true;
+    }
+  } catch (e) {
+    console.error('[FCM SW] Failed to restore state:', e);
+  }
+  return false;
+}
 
 // Listen for updates from app.js / app2.js
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SYNC_DATA') {
     prayerTimes = event.data.prayers;
     strugglePrayer = event.data.struggle;
-    console.log('[FCM SW] Prayer times synced for offline alerts.');
+    userLogs = event.data.logs || {};
+    console.log('[FCM SW] Prayer times and logs synced.');
+    saveSyncedData(prayerTimes, strugglePrayer, userLogs);
     startCounterLoop();
   }
 });
@@ -50,18 +83,26 @@ async function updateStickyNotification() {
     .sort((a, b) => a.date - b.date);
 
   // Find current/next prayer logic
-  // "Next" is strictly future. "Current" is what we might have just passed.
-  let nextIndex = sortedPrayers.findIndex(p => p.date > now);
+  // UPGRADED: Skip prayers already marked as 'prayed'
+  const todayStr = now.toDateString();
+  const todayLogs = userLogs[todayStr] || {};
+
+  let nextIndex = sortedPrayers.findIndex(p => {
+    const isPrayed = todayLogs[p.name] === 'prayed';
+    return p.date >= now && !isPrayed;
+  });
   let next = sortedPrayers[nextIndex];
 
-  // Robustness: Check if we JUST passed a prayer (within last 15 mins)
-  // If we are at 12:05 and Dhuhr was 12:00, next is Asr. We need to check Dhuhr.
+  // CRITICAL FIX: Extended window to 20 mins for better reliability (was 15)
+  const NOTIFICATION_WINDOW_MINS = 20;
+
+  // Robustness: Check if we JUST passed a prayer (within last 20 mins)
   if (nextIndex > 0) {
     const prevPrayer = sortedPrayers[nextIndex - 1];
     const diffPrev = (now - prevPrayer.date) / 1000 / 60; // Minutes since prev prayer
 
     const prevKey = `${prevPrayer.name}_${now.toDateString()}`;
-    if (diffPrev >= 0 && diffPrev <= 15 && self.lastAdhanNotified !== prevKey) {
+    if (diffPrev >= 0 && diffPrev <= NOTIFICATION_WINDOW_MINS && self.lastAdhanNotified !== prevKey) {
       self.lastAdhanNotified = prevKey;
       console.log(`[FCM SW] Triggering Adhan Alert for ${prevPrayer.name} (Caught Late)`);
       triggerAdhanAlert(prevPrayer.name);
@@ -72,7 +113,7 @@ async function updateStickyNotification() {
     const lastPrayer = sortedPrayers[sortedPrayers.length - 1];
     const diffLast = (now - lastPrayer.date) / 1000 / 60;
     const lastKey = `${lastPrayer.name}_${now.toDateString()}`;
-    if (diffLast >= 0 && diffLast <= 15 && self.lastAdhanNotified !== lastKey) {
+    if (diffLast >= 0 && diffLast <= NOTIFICATION_WINDOW_MINS && self.lastAdhanNotified !== lastKey) {
       self.lastAdhanNotified = lastKey;
       triggerAdhanAlert(lastPrayer.name);
     }
@@ -160,7 +201,14 @@ if (messaging) {
     // Check if it's a Heartbeat Sync signal from our Cron job
     if (payload.data && payload.data.type === 'HEARTBEAT_SYNC') {
       console.log('[FCM SW] Heartbeat received. Refreshing local notification triggers...');
-      updateStickyNotification();
+
+      // CRITICAL FIX: Ensure state is loaded if SW was killed/restarted
+      event.waitUntil((async () => {
+        if (!prayerTimes) {
+          await loadSyncedData();
+        }
+        await updateStickyNotification();
+      })());
       return;
     }
 
@@ -193,6 +241,17 @@ self.addEventListener('sync', (event) => {
   }
 });
 
+// UPGRADED: Handle Periodic Background Sync (Reliable even when app is closed)
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === 'prayer-sync') {
+    event.waitUntil((async () => {
+      console.log('[FCM SW] Periodic sync triggered.');
+      if (!prayerTimes) await loadSyncedData();
+      await updateStickyNotification();
+    })());
+  }
+});
+
 // --- Caching Logic ---
 const CACHE_NAME = 'salah-tracker-v4.7';
 const ASSETS = [
@@ -200,7 +259,9 @@ const ASSETS = [
   './index.html',
   './style.css',
   './app.js',
+  './app2.js',
   './firebase.js',
+  './translations.js',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
@@ -249,26 +310,30 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
+  // UPGRADED: Stale-while-revalidate strategy for automatic updates
   e.respondWith(
-    caches.match(e.request).then((cachedResponse) => {
-      if (cachedResponse) return cachedResponse;
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.match(e.request).then(cachedResponse => {
 
-      return fetch(e.request).then((networkResponse) => {
-        // Only cache valid responses from our own origin
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+        // Always fetch from network to update cache in background
+        const fetchPromise = fetch(e.request).then(networkResponse => {
+          // Only cache valid responses from our own origin
+          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+            cache.put(e.request, networkResponse.clone());
+          }
           return networkResponse;
-        }
-
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(e.request, responseToCache);
+        }).catch(err => {
+          console.warn("[SW] Network failed for:", url);
+          // Return cached response if network fails
+          return cachedResponse || new Response('Offline. Check connection.', {
+            status: 503,
+            headers: { 'Content-Type': 'text/plain' }
+          });
         });
 
-        return networkResponse;
-      }).catch((err) => {
-        // Return original error instead of undefined to satisfy respondWith
-        console.warn("[FCM SW] Fetch failed:", url, err);
-        return fetch(e.request);
+        // CRITICAL: Return cached response immediately (if exists),
+        // update cache in background so users get updates next time
+        return cachedResponse || fetchPromise;
       });
     })
   );
