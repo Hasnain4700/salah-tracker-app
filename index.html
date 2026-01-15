@@ -722,6 +722,18 @@
         <div style="color:#6ee7b7;font-size:1.2em;">&#8594;</div>
       </div>
 
+      <div class="card" onclick="openSubFeature('twins')"
+        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
+        <div
+          style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
+          🤝</div>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_twins">Deen Twins</div>
+          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_twins_desc">Salah Accountability Partner</div>
+        </div>
+        <div style="color:#6ee7b7;">&#8594;</div>
+      </div>
+
       <!-- Quran Read (Top Priority) -->
       <div class="card" onclick="openSubFeature('quran-read')"
         style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px; border: 1px solid rgba(110, 231, 183, 0.3);">
@@ -731,6 +743,30 @@
         <div style="flex:1;text-align:left;">
           <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_quran_read">Quran Read</div>
           <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_quran_read_desc">Parhein aur samjhein</div>
+        </div>
+        <div style="color:#6ee7b7;">&#8594;</div>
+      </div>
+
+      <div class="card" onclick="openSubFeature('library')"
+        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
+        <div
+          style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
+          📖</div>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:600;font-size:1.05em;">Hadith Library</div>
+          <div style="font-size:0.85em;color:#aaa;">Bukhari, Muslim, Tirmidhi & more</div>
+        </div>
+        <div style="color:#6ee7b7;">&#8594;</div>
+      </div>
+
+      <div class="card" onclick="openSubFeature('qaza')"
+        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
+        <div
+          style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
+          📅</div>
+        <div style="flex:1;text-align:left;">
+          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_qaza">Qaza-e-Umri Tracker</div>
+          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_qaza_desc">Track your missed prayers</div>
         </div>
         <div style="color:#6ee7b7;">&#8594;</div>
       </div>
@@ -747,18 +783,6 @@
         <div style="color:#6ee7b7;">&#8594;</div>
       </div>
 
-      <div class="card" onclick="openSubFeature('twins')"
-        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
-        <div
-          style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
-          🤝</div>
-        <div style="flex:1;text-align:left;">
-          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_twins">Deen Twins</div>
-          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_twins_desc">Salah Accountability Partner</div>
-        </div>
-        <div style="color:#6ee7b7;">&#8594;</div>
-      </div>
-
       <div class="card" onclick="openSubFeature('qibla')"
         style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
         <div
@@ -771,18 +795,6 @@
         <div style="color:#6ee7b7;">&#8594;</div>
       </div>
       <!-- No content here, moving it to top -->
-
-      <div class="card" onclick="openSubFeature('qaza')"
-        style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
-        <div
-          style="background:#334155;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">
-          📅</div>
-        <div style="flex:1;text-align:left;">
-          <div style="font-weight:600;font-size:1.05em;" data-i18n="feature_qaza">Qaza-e-Umri Tracker</div>
-          <div style="font-size:0.85em;color:#aaa;" data-i18n="feature_qaza_desc">Track your missed prayers</div>
-        </div>
-        <div style="color:#6ee7b7;">&#8594;</div>
-      </div>
 
       <div class="card" onclick="openSubFeature('halaqa')"
         style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;">
@@ -831,530 +843,587 @@
         </div>
         <div style="color:#6ee7b7;">&#8594;</div>
       </div>
+
     </div>
+  </div>
 
-    <!-- Deen Twins (Sub Feature) -->
-    <div id="feature-twins" class="sub-feature-view" style="display:none;">
-      <div class="card" style="text-align:center;">
-        <div style="display:flex;align-items:center;margin-bottom:12px;">
-          <button onclick="closeSubFeature()"
-            style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding:0 8px 0 0;">&#8592;</button>
-          <h2 style="margin:0;font-size:1.3em;">Deen Twins</h2>
+  <!-- Deen Twins (Sub Feature) -->
+  <div id="feature-twins" class="sub-feature-view" style="display:none;">
+    <div class="card" style="text-align:center;">
+      <div style="display:flex;align-items:center;margin-bottom:12px;">
+        <button onclick="closeSubFeature()"
+          style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding:0 8px 0 0;">&#8592;</button>
+        <h2 style="margin:0;font-size:1.3em;">Deen Twins</h2>
+      </div>
+
+      <!-- Lobby View -->
+      <div id="twins-lobby" style="padding:20px 0;">
+        <div style="font-size:4em;margin-bottom:12px;">🤝</div>
+        <p style="font-size:1.1em;margin-bottom:8px;">Find a Prayer Partner</p>
+
+        <!-- Choice Section -->
+        <div id="twins-choice-ui">
+          <p style="color:#94a3b8;font-size:0.9em;margin-bottom:20px;">
+            Connect with a random user or invite a friend for a 7-day challenge. Motivate each other to never miss a
+            Salah!
+          </p>
+          <div style="display:grid; gap:10px;">
+            <button id="twins-match-global-btn" class="thirty-day-btn" data-i18n="twins_global_btn"
+              style="width:100%;background:#6ee7b7;color:#222;font-weight:bold;">Global Partner (Random) 🌍</button>
+            <button id="twins-invite-friend-btn" class="thirty-day-btn" data-i18n="twins_private_btn"
+              style="width:100%;background:#334155;color:#fff;font-weight:bold;">Invite a Friend (Get Code)
+              🏢</button>
+          </div>
+
+          <!-- Join with Code Section -->
+          <div style="margin-top:30px; border-top:1px solid #334155; padding-top:20px;">
+            <p style="font-size:0.95em; margin-bottom:12px;" data-i18n="twins_join_title">Already have a code?</p>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="twins-join-code-input" placeholder="123456"
+                style="flex:1; padding:10px; border-radius:10px; border:none; background:#1e293b; color:#fff; text-align:center; font-weight:bold; letter-spacing:2px;">
+              <button id="twins-join-submit-btn" class="thirty-day-btn" data-i18n="twins_join_btn"
+                style="padding:10px 20px; background:#6ee7b7; color:#222; font-weight:bold; width:auto; border-radius:10px;">Join</button>
+            </div>
+          </div>
         </div>
 
-        <!-- Lobby View -->
-        <div id="twins-lobby" style="padding:20px 0;">
-          <div style="font-size:4em;margin-bottom:12px;">🤝</div>
-          <p style="font-size:1.1em;margin-bottom:8px;">Find a Prayer Partner</p>
+        <!-- Waiting/Private Code UI -->
+        <div id="twins-waiting-ui" style="display:none; margin-top:20px;">
+          <!-- For Global -->
+          <div id="twins-global-loading" style="display:none; color:#6ee7b7; margin-bottom:20px;"
+            data-i18n="twins_finding_global">
+            Searching for a global partner... ⏳
+          </div>
 
-          <!-- Choice Section -->
-          <div id="twins-choice-ui">
-            <p style="color:#94a3b8;font-size:0.9em;margin-bottom:20px;">
-              Connect with a random user or invite a friend for a 7-day challenge. Motivate each other to never miss a
-              Salah!
+          <!-- For Private -->
+          <div id="twins-private-code-display" style="display:none;">
+            <p style="font-size:0.9em; color:#94a3b8; margin-bottom:8px;" data-i18n="twins_my_code_label">Your Invite
+              Code
             </p>
-            <div style="display:grid; gap:10px;">
-              <button id="twins-match-global-btn" class="thirty-day-btn" data-i18n="twins_global_btn"
-                style="width:100%;background:#6ee7b7;color:#222;font-weight:bold;">Global Partner (Random) 🌍</button>
-              <button id="twins-invite-friend-btn" class="thirty-day-btn" data-i18n="twins_private_btn"
-                style="width:100%;background:#334155;color:#fff;font-weight:bold;">Invite a Friend (Get Code)
-                🏢</button>
-            </div>
-
-            <!-- Join with Code Section -->
-            <div style="margin-top:30px; border-top:1px solid #334155; padding-top:20px;">
-              <p style="font-size:0.95em; margin-bottom:12px;" data-i18n="twins_join_title">Already have a code?</p>
-              <div style="display:flex; gap:8px;">
-                <input type="text" id="twins-join-code-input" placeholder="123456"
-                  style="flex:1; padding:10px; border-radius:10px; border:none; background:#1e293b; color:#fff; text-align:center; font-weight:bold; letter-spacing:2px;">
-                <button id="twins-join-submit-btn" class="thirty-day-btn" data-i18n="twins_join_btn"
-                  style="padding:10px 20px; background:#6ee7b7; color:#222; font-weight:bold; width:auto; border-radius:10px;">Join</button>
-              </div>
-            </div>
+            <div id="twins-my-code"
+              style="font-size:2.5em; font-weight:800; color:#6ee7b7; letter-spacing:5px; margin-bottom:15px; background:rgba(0,0,0,0.2); border-radius:12px; padding:10px;">
+              000000</div>
+            <p style="font-size:0.85em; color:#94a3b8; margin-bottom:20px;" data-i18n="twins_share_desc">Share this
+              code
+              with your friend. They can join using the button below.</p>
           </div>
 
-          <!-- Waiting/Private Code UI -->
-          <div id="twins-waiting-ui" style="display:none; margin-top:20px;">
-            <!-- For Global -->
-            <div id="twins-global-loading" style="display:none; color:#6ee7b7; margin-bottom:20px;"
-              data-i18n="twins_finding_global">
-              Searching for a global partner... ⏳
-            </div>
-
-            <!-- For Private -->
-            <div id="twins-private-code-display" style="display:none;">
-              <p style="font-size:0.9em; color:#94a3b8; margin-bottom:8px;" data-i18n="twins_my_code_label">Your Invite
-                Code
-              </p>
-              <div id="twins-my-code"
-                style="font-size:2.5em; font-weight:800; color:#6ee7b7; letter-spacing:5px; margin-bottom:15px; background:rgba(0,0,0,0.2); border-radius:12px; padding:10px;">
-                000000</div>
-              <p style="font-size:0.85em; color:#94a3b8; margin-bottom:20px;" data-i18n="twins_share_desc">Share this
-                code
-                with your friend. They can join using the button below.</p>
-            </div>
-
-            <button id="twins-cancel-match-btn" class="thirty-day-btn" data-i18n="twins_cancel_btn"
-              style="width:100%;background:#ff6b6b;color:#fff;font-weight:bold;">Cancel Request</button>
-          </div>
+          <button id="twins-cancel-match-btn" class="thirty-day-btn" data-i18n="twins_cancel_btn"
+            style="width:100%;background:#ff6b6b;color:#fff;font-weight:bold;">Cancel Request</button>
         </div>
+      </div>
 
-        <!-- Active Pair View -->
-        <div id="twins-active" style="display:none;">
-          <!-- Partner Profile -->
+      <!-- Active Pair View -->
+      <div id="twins-active" style="display:none;">
+        <!-- Partner Profile -->
+        <div
+          style="background:#334155;border-radius:16px;padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:14px;">
           <div
-            style="background:#334155;border-radius:16px;padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:14px;">
-            <div
-              style="width:50px;height:50px;background:#1e293b;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5em;"
-              id="partner-avatar">👤</div>
-            <div style="flex:1;text-align:left;">
-              <div id="partner-name" style="font-weight:600;font-size:1.1em;color:#fff;">Partner Name</div>
-              <div id="partner-status" style="font-size:0.9em;color:#94a3b8;">Status: Waiting...</div>
-            </div>
-            <button id="twins-nudge-btn"
-              style="background:#f59e0b;color:#222;border:none;border-radius:50%;width:40px;height:40px;font-size:1.2em;cursor:pointer;box-shadow:0 4px 12px #f59e0b40;">🔔</button>
+            style="width:50px;height:50px;background:#1e293b;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5em;"
+            id="partner-avatar">👤</div>
+          <div style="flex:1;text-align:left;">
+            <div id="partner-name" style="font-weight:600;font-size:1.1em;color:#fff;">Partner Name</div>
+            <div id="partner-status" style="font-size:0.9em;color:#94a3b8;">Status: Waiting...</div>
           </div>
-
-          <!-- Challenge Progress -->
-          <div style="margin-bottom:8px;font-weight:600;text-align:left;">7-Day Streak Challenge</div>
-          <div style="height:10px;width:100%;background:#222;border-radius:8px;margin-bottom:20px;overflow:hidden;">
-            <div id="twins-progress" style="height:100%;width:14%;background:#6ee7b7;transition:width 0.5s;"></div>
-          </div>
-
-          <div style="background:#1e293b;padding:12px;border-radius:12px;">
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-              <span>Today's Goal</span>
-              <span id="twins-today-status" style="color:#fcd34d;">In Progress</span>
-            </div>
-            <div style="font-size:0.85em;color:#94a3b8;text-align:left;">
-              Both of you must pray all 5 Salahs to complete the day streak.
-            </div>
-          </div>
-
-          <button id="twins-leave-btn"
-            style="margin-top:24px;background:none;border:none;color:#ff6b6b;text-decoration:underline;cursor:pointer;font-size:0.9em;">Leave
-            Challenge</button>
+          <button id="twins-nudge-btn"
+            style="background:#f59e0b;color:#222;border:none;border-radius:50%;width:40px;height:40px;font-size:1.2em;cursor:pointer;box-shadow:0 4px 12px #f59e0b40;">🔔</button>
         </div>
 
+        <!-- Challenge Progress -->
+        <div style="margin-bottom:8px;font-weight:600;text-align:left;">7-Day Streak Challenge</div>
+        <div style="height:10px;width:100%;background:#222;border-radius:8px;margin-bottom:20px;overflow:hidden;">
+          <div id="twins-progress" style="height:100%;width:14%;background:#6ee7b7;transition:width 0.5s;"></div>
+        </div>
+
+        <div style="background:#1e293b;padding:12px;border-radius:12px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span>Today's Goal</span>
+            <span id="twins-today-status" style="color:#fcd34d;">In Progress</span>
+          </div>
+          <div style="font-size:0.85em;color:#94a3b8;text-align:left;">
+            Both of you must pray all 5 Salahs to complete the day streak.
+          </div>
+        </div>
+
+        <button id="twins-leave-btn"
+          style="margin-top:24px;background:none;border:none;color:#ff6b6b;text-decoration:underline;cursor:pointer;font-size:0.9em;">Leave
+          Challenge</button>
+      </div>
+
+    </div>
+  </div>
+  <!-- Global Durood Counter (Sub Feature) -->
+  <div id="feature-durood" class="sub-feature-view" style="display:none;">
+    <div class="card"
+      style="text-align:center; min-height: 500px; display: flex; flex-direction: column; background: #1e293b;">
+      <div style="display:flex;align-items:center;margin-bottom:20px;">
+        <button onclick="closeSubFeature()"
+          style="background:none;border:none;color:#6ee7b7;font-size:1.5em;cursor:pointer;padding:0 12px 0 0;">&#8592;</button>
+        <span class="durood-global-badge">Global Community</span>
+      </div>
+
+      <div id="durood-global-count" class="durood-global-count">0</div>
+      <div style="font-size:0.85em;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Total
+        Salawat Read</div>
+
+      <div style="margin: 20px 0 10px;">
+        <select id="durood-type-select" class="settings-list-control" style="width: 100%; padding: 10px;">
+          <option value="short">Short Durood (Allahumma Salli...)</option>
+          <option value="ibrahim">Durood-e-Ibrahim (Complete)</option>
+          <option value="nahariya">Durood-e-Nahariya (Taziyah)</option>
+          <option value="fath">Durood-e-Fath</option>
+          <option value="shafii">Durood-e-Shafi'i</option>
+          <option value="dawaami">Durood-e-Dawaami</option>
+        </select>
+      </div>
+
+      <div style="margin: 0 0 15px;">
+        <button id="durood-ref-btn" onclick="showDuroodRef()"
+          style="display:none; background:rgba(110,231,183,0.1); color:#6ee7b7; border:1px solid rgba(110,231,183,0.3); padding:8px 16px; border-radius:30px; font-size:0.85em; font-weight:700; cursor:pointer;">
+          📖 Reference & Benefits
+        </button>
+      </div>
+
+      <div id="durood-text-container" class="durood-arabic-text">
+        اَللّٰھُمَّ صَلِّ عَلٰی مُحَمَّدٍ وَّعَلٰی اٰلِ مُحَمَّدٍ
+      </div>
+
+      <div id="durood-trans-container" class="durood-trans-text">
+        "O Allah, send blessings upon Muhammad and the family of Muhammad."
+      </div>
+
+      <div id="durood-read-btn" class="durood-read-btn">
+        READ
+      </div>
+
+      <div class="durood-stats-grid">
+        <div class="durood-stat-item">
+          <span id="durood-session-count" class="durood-stat-val">0</span>
+          <span class="durood-stat-lbl">In this session</span>
+        </div>
+        <div class="durood-stat-item">
+          <span id="durood-user-total" class="durood-stat-val">0</span>
+          <span class="durood-stat-lbl">Your Total</span>
+        </div>
+      </div>
+
+      <div style="margin-top:25px; font-size:0.8em; color:#64748b;">
+        Last Read: <span id="durood-last-read">Never</span>
       </div>
     </div>
-    <!-- Global Durood Counter (Sub Feature) -->
-    <div id="feature-durood" class="sub-feature-view" style="display:none;">
-      <div class="card"
-        style="text-align:center; min-height: 500px; display: flex; flex-direction: column; background: #1e293b;">
-        <div style="display:flex;align-items:center;margin-bottom:20px;">
-          <button onclick="closeSubFeature()"
-            style="background:none;border:none;color:#6ee7b7;font-size:1.5em;cursor:pointer;padding:0 12px 0 0;">&#8592;</button>
-          <span class="durood-global-badge">Global Community</span>
+  </div>
+
+  <!-- Hadith Library (Sub Feature) -->
+  <div id="feature-library" class="sub-feature-view" style="display:none;">
+    <div class="card"
+      style="background:#1e293b; min-height:95vh; display:flex; flex-direction:column; padding:20px 15px; border-radius: 0; width: 100%;">
+      <div style="display:flex; align-items:center; margin-bottom:15px;">
+        <button id="library-back-btn" onclick="handleLibraryBack()"
+          style="background:rgba(110,231,183,0.1); border:none; color:#6ee7b7; font-size:1.2em; cursor:pointer; width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; margin-right:15px;">&#8592;</button>
+        <div>
+          <h2 id="library-title" style="margin:0; font-size:1.3em; color:#fff; font-weight:800; letter-spacing:-0.5px;">
+            Hadith Library</h2>
+          <div id="library-subtitle" style="font-size:0.85em; color:#94a3b8; font-weight:500;">Choose a collection</div>
+        </div>
+      </div>
+
+      <!-- Search Bar (Conditional) -->
+      <div id="library-search-wrap" style="display:none; margin-bottom:20px; animation: fadeIn 0.3s ease;">
+        <div style="position:relative; display:flex; gap:10px;">
+          <div style="position:relative; flex:1;">
+            <input type="text" id="hadith-search-input" placeholder="Search Number or Keyword..."
+              style="width:100%; background:rgba(0,0,0,0.2); border:1px solid rgba(110,231,183,0.2); border-radius:12px; padding:12px 15px; padding-right:40px; color:#fff; font-size:0.95em; outline:none; box-sizing:border-box;">
+            <span id="hadith-search-clear" onclick="window.clearHadithSearch()"
+              style="position:absolute; right:12px; top:50%; transform:translateY(-50%); color:#64748b; cursor:pointer; display:none; font-size:1.2em;">&times;</span>
+          </div>
+          <button onclick="handleHadithSearch()"
+            style="background:#6ee7b7; color:#1e293b; border:none; border-radius:12px; padding:0 15px; font-weight:bold; cursor:pointer;">🔍</button>
+        </div>
+      </div>
+
+      <!-- Book Selection Grid -->
+      <div id="library-books"
+        style="display:grid; grid-template-columns:1fr 1fr; gap:12px; overflow-y:auto; flex:1; padding-bottom:20px;">
+        <!-- Fetched dynamically -->
+      </div>
+
+      <!-- Hadith List Area -->
+      <div id="library-content" style="display:none; flex:1; overflow-y:auto;">
+        <div id="library-list-container" style="display:flex; flex-direction:column; gap:15px; padding-bottom:30px;">
+          <!-- Hadiths populate here -->
+        </div>
+      </div>
+
+      <!-- Floating Action Button: Jump to Top -->
+      <button id="library-top-fab" onclick="window.scrollLibraryToTop()"
+        style="position:fixed; bottom:90px; right:20px; width:50px; height:50px; border-radius:25px; background:#6ee7b7; color:#1e293b; border:none; box-shadow:0 10px 25px rgba(0,0,0,0.3); font-size:1.5em; cursor:pointer; display:none; align-items:center; justify-content:center; z-index:1001; animation: fadeIn 0.3s ease;">↑</button>
+
+      <!-- Loading Spinner -->
+      <div id="library-loading" style="display:none; text-align:center; padding:100px 0; width: 100%;">
+        <div class="spinner"
+          style="border: 4px solid rgba(110,231,183,0.1); border-top: 4px solid #6ee7b7; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px;">
+        </div>
+        <div style="color:#6ee7b7; font-size:1.1em; font-weight: 600;">Searching the archives...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Durood Reference Modal -->
+  <div id="durood-ref-modal" class="modal"
+    style="display:none; align-items:center; justify-content:center; background:rgba(15,23,42,0.8); backdrop-filter:blur(10px); z-index:100000;">
+    <div class="modal-content"
+      style="max-width:400px; padding:25px; border:1px solid rgba(110,231,183,0.3); background: #1e293b;">
+      <h3 style="color:#6ee7b7; margin-top:0;">Reference & Benefits</h3>
+      <div id="durood-ref-content"
+        style="font-size:0.95em; color:#e2e8f0; line-height:1.6; max-height:300px; overflow-y:auto; margin-bottom:20px; text-align:left;">
+      </div>
+      <button onclick="closeDuroodRef()" class="thirty-day-btn" style="width:100%;">Close</button>
+    </div>
+  </div>
+
+  <!-- Jannat ka Darakht (Sub Feature) -->
+  <div id="feature-tree" class="sub-feature-view" style="display:none;">
+    <div class="card" style="text-align:center;">
+      <div style="display:flex;align-items:center;margin-bottom:4px;">
+        <button onclick="closeSubFeature()"
+          style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding:0 8px 0 0;">&#8592;</button>
+        <h2 style="margin:0;font-size:1.3em;">Jannat ka Darakht</h2>
+      </div>
+      <p style="margin-bottom:16px;color:#94a3b8;font-size:0.9em;">Aapke aamaal se ye darakht badhta hai.</p>
+
+      <!-- Tree Visualization -->
+      <div
+        style="position:relative;width:100%;height:300px;background:linear-gradient(to bottom, #1e293b, #0f172a);border-radius:16px;overflow:hidden;margin-bottom:12px;box-shadow:inset 0 0 20px #0008;">
+        <!-- Sun/Moon -->
+        <div id="tree-sky-orb"
+          style="position:absolute;top:20px;right:20px;width:40px;height:40px;background:#fbbf24;border-radius:50%;box-shadow:0 0 15px #fbbf24;">
         </div>
 
-        <div id="durood-global-count" class="durood-global-count">0</div>
-        <div style="font-size:0.85em;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Total
-          Salawat Read</div>
+        <!-- Tree SVG -->
+        <svg id="tree-svg" width="100%" height="100%" viewBox="0 0 200 300" preserveAspectRatio="xMidYMax">
+          <!-- Ground -->
+          <path d="M0,280 Q100,260 200,280 L200,300 L0,300 Z" fill="#3f6212" />
+          <!-- Trunk -->
+          <path id="tree-trunk" d="M95,280 Q90,200 95,150 Q100,200 105,280" fill="#78350f" stroke="#78350f"
+            stroke-width="2" />
+          <!-- Branches (Hidden/Shown based on health) -->
+          <g id="tree-branches" stroke="#78350f" stroke-width="2" fill="none" style="display:none;">
+            <path d="M95,180 Q60,140 50,100" />
+            <path d="M105,180 Q140,140 150,100" />
+            <path d="M95,150 Q70,110 80,80" />
+            <path d="M105,150 Q130,110 120,80" />
+          </g>
+          <!-- Leaves Group -->
+          <g id="tree-leaves"></g>
+        </svg>
 
-        <div style="margin: 20px 0 10px;">
-          <select id="durood-type-select" class="settings-list-control" style="width: 100%; padding: 10px;">
-            <option value="short">Short Durood (Allahumma Salli...)</option>
-            <option value="ibrahim">Durood-e-Ibrahim (Complete)</option>
-            <option value="nahariya">Durood-e-Nahariya (Taziyah)</option>
-            <option value="fath">Durood-e-Fath</option>
-            <option value="shafii">Durood-e-Shafi'i</option>
-            <option value="dawaami">Durood-e-Dawaami</option>
-          </select>
+        <!-- Health Text Overlay -->
+        <div id="tree-health-text"
+          style="position:absolute;bottom:10px;left:0;width:100%;text-align:center;color:#fff;text-shadow:0 1px 4px #000;font-weight:600;font-size:0.9em;">
+          Health: 50%
         </div>
+      </div>
 
-        <div style="margin: 0 0 15px;">
-          <button id="durood-ref-btn" onclick="showDuroodRef()"
-            style="display:none; background:rgba(110,231,183,0.1); color:#6ee7b7; border:1px solid rgba(110,231,183,0.3); padding:8px 16px; border-radius:30px; font-size:0.85em; font-weight:700; cursor:pointer;">
-            📖 Reference & Benefits
+      <div id="tree-status-msg" style="font-size:1.05em;color:#6ee7b7;margin-bottom:8px;"></div>
+      <div style="font-size:0.85em;color:#94a3b8;line-height:1.4;">
+        Rule: Namaz (+), Good Deeds (+)<br>Missed Namaz (---) damages the tree.
+      </div>
+    </div>
+  </div>
+
+  <!-- Qaza-e-Umri Tracker (Sub Feature) -->
+  <div id="feature-qaza" class="sub-feature-view" style="display:none;">
+    <div class="card" style="text-align:center;">
+      <div style="display:flex;align-items:center;margin-bottom:16px;">
+        <button onclick="closeSubFeature()"
+          style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding:0 8px 0 0;">&#8592;</button>
+        <h2 style="margin:0;font-size:1.3em;">Qaza Tracker</h2>
+      </div>
+
+      <!-- Setup View -->
+      <div id="qaza-setup-view">
+        <p style="margin-bottom:12px;color:#a7f3d0;font-size:0.95em;">Calculate your missed prayers estimate.</p>
+        <div style="margin-bottom:12px;text-align:left;">
+          <label style="display:block;margin-bottom:4px;font-size:0.9em;">Total Years Missed (approx):</label>
+          <input type="number" id="qaza-years-input" placeholder="e.g. 5"
+            style="width:100%;padding:10px;border-radius:10px;border:none;background:#334155;color:#fff;font-size:1em;">
+        </div>
+        <button id="qaza-calc-btn" class="thirty-day-btn" style="width:100%;background:#6ee7b7;color:#222;">Calculate
+          & Start Tracking</button>
+      </div>
+
+      <!-- Tracker View -->
+      <div id="qaza-tracker-view" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+          <!-- Prayer Counters -->
+          <div class="qaza-card" style="background:#334155;padding:10px;border-radius:12px;">
+            <div style="font-weight:600;margin-bottom:4px;">Fajr</div>
+            <div class="qaza-count" id="qaza-count-fajr" style="font-size:1.2em;color:#6ee7b7;">0</div>
+            <button class="qaza-minus-btn" data-prayer="Fajr"
+              style="margin-top:4px;padding:4px 8px;border-radius:6px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.85em;">Prayed
+              1</button>
+          </div>
+          <div class="qaza-card" style="background:#334155;padding:10px;border-radius:12px;">
+            <div style="font-weight:600;margin-bottom:4px;">Dhuhr</div>
+            <div class="qaza-count" id="qaza-count-dhuhr" style="font-size:1.2em;color:#6ee7b7;">0</div>
+            <button class="qaza-minus-btn" data-prayer="Dhuhr"
+              style="margin-top:4px;padding:4px 8px;border-radius:6px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.85em;">Prayed
+              1</button>
+          </div>
+          <div class="qaza-card" style="background:#334155;padding:10px;border-radius:12px;">
+            <div style="font-weight:600;margin-bottom:4px;">Asr</div>
+            <div class="qaza-count" id="qaza-count-asr" style="font-size:1.2em;color:#6ee7b7;">0</div>
+            <button class="qaza-minus-btn" data-prayer="Asr"
+              style="margin-top:4px;padding:4px 8px;border-radius:6px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.85em;">Prayed
+              1</button>
+          </div>
+          <div class="qaza-card" style="background:#334155;padding:10px;border-radius:12px;">
+            <div style="font-weight:600;margin-bottom:4px;">Maghrib</div>
+            <div class="qaza-count" id="qaza-count-maghrib" style="font-size:1.2em;color:#6ee7b7;">0</div>
+            <button class="qaza-minus-btn" data-prayer="Maghrib"
+              style="margin-top:4px;padding:4px 8px;border-radius:6px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.85em;">Prayed
+              1</button>
+          </div>
+          <div class="qaza-card" style="background:#334155;padding:10px;border-radius:12px;">
+            <div style="font-weight:600;margin-bottom:4px;">Isha</div>
+            <div class="qaza-count" id="qaza-count-isha" style="font-size:1.2em;color:#6ee7b7;">0</div>
+            <button class="qaza-minus-btn" data-prayer="Isha"
+              style="margin-top:4px;padding:4px 8px;border-radius:6px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.85em;">Prayed
+              1</button>
+          </div>
+          <div class="qaza-card" style="background:#334155;padding:10px;border-radius:12px;">
+            <div style="font-weight:600;margin-bottom:4px;">Witr</div>
+            <div class="qaza-count" id="qaza-count-witr" style="font-size:1.2em;color:#6ee7b7;">0</div>
+            <button class="qaza-minus-btn" data-prayer="Witr"
+              style="margin-top:4px;padding:4px 8px;border-radius:6px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.85em;">Prayed
+              1</button>
+          </div>
+        </div>
+        <button id="qaza-reset-btn"
+          style="margin-top:16px;background:none;border:none;color:#ff6b6b;text-decoration:underline;cursor:pointer;font-size:0.9em;">Reset
+          Counters</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Islamic Series (Sub Feature) -->
+  <div id="feature-series" class="sub-feature-view" style="display:none;">
+    <div class="card" style="text-align:center; min-height: 400px; display: flex; flex-direction: column;">
+      <div style="display:flex;align-items:center;margin-bottom:16px;">
+        <button onclick="backToSeriesFlow()"
+          style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding: 0 12px 0 0;">&#8592;</button>
+        <h2 id="series-header-title" style="margin:0;font-size:1.3em;">Islamic Series</h2>
+      </div>
+
+      <!-- Series List View -->
+      <div id="series-list-view" style="flex: 1; overflow-y: auto;">
+        <div id="series-loading" style="text-align:center; padding:20px; display:none;">Loading...</div>
+        <div id="series-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <!-- Series cards will be injected here -->
+        </div>
+      </div>
+
+      <!-- Episode List View -->
+      <div id="episode-list-view" style="display:none; flex: 1; overflow-y: auto;">
+        <h3 id="current-series-title" style="margin:0 0 15px 0; font-size:1.1em; color:#6ee7b7;"></h3>
+        <div id="episodes-container" style="display:flex; flex-direction:column; gap:10px;">
+          <!-- Episode cards will be injected here -->
+        </div>
+      </div>
+
+      <!-- Article View -->
+      <div id="article-view" style="display:none; flex: 1; overflow-y: auto; text-align: left;">
+        <h3 id="article-title" style="color: #6ee7b7; margin-bottom: 12px; font-size: 1.2em;"></h3>
+        <div id="article-content"
+          style="line-height: 1.6; color: #e2e8f0; font-size: 1.05em; white-space: pre-wrap; padding-bottom: 20px;">
+          <!-- Article text will be injected here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Halaqa Feature View -->
+  <div id="feature-halaqa" class="sub-feature-view" style="display:none; animation: slideUp 0.3s ease-out;">
+    <div class="card" style="text-align:center;">
+      <div style="display:flex;align-items:center;margin-bottom:12px;">
+        <button onclick="closeSubFeature()"
+          style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding:0 8px 0 0;">&#8592;</button>
+        <h2 style="margin:0;font-size:1.3em;">Halaqa Circles 👥</h2>
+      </div>
+
+      <!-- Lobby: Join or Create -->
+      <div id="halaqa-lobby" style="text-align:center;">
+        <p style="color:#94a3b8;font-size:0.95em;margin-bottom:20px;">
+          Form a circle with friends/family. Compete in good deeds and keep each other steadfast!
+        </p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <button id="halaqa-create-btn" class="thirty-day-btn"
+            style="background:#6ee7b7;color:#0f172a;font-weight:600;">
+            Create Circle
+          </button>
+          <button id="halaqa-join-btn" class="thirty-day-btn" style="background:#334155;color:#fff;">
+            Join Circle
           </button>
         </div>
 
-        <div id="durood-text-container" class="durood-arabic-text">
-          اَللّٰھُمَّ صَلِّ عَلٰی مُحَمَّدٍ وَّعَلٰی اٰلِ مُحَمَّدٍ
-        </div>
-
-        <div id="durood-trans-container" class="durood-trans-text">
-          "O Allah, send blessings upon Muhammad and the family of Muhammad."
-        </div>
-
-        <div id="durood-read-btn" class="durood-read-btn">
-          READ
-        </div>
-
-        <div class="durood-stats-grid">
-          <div class="durood-stat-item">
-            <span id="durood-session-count" class="durood-stat-val">0</span>
-            <span class="durood-stat-lbl">In this session</span>
-          </div>
-          <div class="durood-stat-item">
-            <span id="durood-user-total" class="durood-stat-val">0</span>
-            <span class="durood-stat-lbl">Your Total</span>
-          </div>
-        </div>
-
-        <div style="margin-top:25px; font-size:0.8em; color:#64748b;">
-          Last Read: <span id="durood-last-read">Never</span>
+        <!-- Join Input (Hidden initially) -->
+        <div id="halaqa-join-input-container" style="display:none;margin-top:16px;">
+          <input type="text" id="halaqa-code-input" placeholder="Enter 6-digit Code"
+            style="width:100%;padding:12px;border-radius:12px;border:none;background:#0f172a;color:#fff;text-align:center;letter-spacing:2px;font-size:1.1em;margin-bottom:8px;">
+          <button id="halaqa-submit-join" class="thirty-day-btn" style="width:100%;">Enter Circle</button>
         </div>
       </div>
-    </div>
 
-    <!-- Durood Reference Modal -->
-    <div id="durood-ref-modal" class="modal"
-      style="display:none; align-items:center; justify-content:center; background:rgba(15,23,42,0.8); backdrop-filter:blur(10px); z-index:100000;">
-      <div class="modal-content"
-        style="max-width:400px; padding:25px; border:1px solid rgba(110,231,183,0.3); background: #1e293b;">
-        <h3 style="color:#6ee7b7; margin-top:0;">Reference & Benefits</h3>
-        <div id="durood-ref-content"
-          style="font-size:0.95em; color:#e2e8f0; line-height:1.6; max-height:300px; overflow-y:auto; margin-bottom:20px; text-align:left;">
-        </div>
-        <button onclick="closeDuroodRef()" class="thirty-day-btn" style="width:100%;">Close</button>
-      </div>
-    </div>
+      <!-- Active Circle View -->
+      <div id="halaqa-active" style="display:none;">
 
-    <!-- Jannat ka Darakht (Sub Feature) -->
-    <div id="feature-tree" class="sub-feature-view" style="display:none;">
-      <div class="card" style="text-align:center;">
-        <div style="display:flex;align-items:center;margin-bottom:4px;">
-          <button onclick="closeSubFeature()"
-            style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding:0 8px 0 0;">&#8592;</button>
-          <h2 style="margin:0;font-size:1.3em;">Jannat ka Darakht</h2>
-        </div>
-        <p style="margin-bottom:16px;color:#94a3b8;font-size:0.9em;">Aapke aamaal se ye darakht badhta hai.</p>
-
-        <!-- Tree Visualization -->
-        <div
-          style="position:relative;width:100%;height:300px;background:linear-gradient(to bottom, #1e293b, #0f172a);border-radius:16px;overflow:hidden;margin-bottom:12px;box-shadow:inset 0 0 20px #0008;">
-          <!-- Sun/Moon -->
-          <div id="tree-sky-orb"
-            style="position:absolute;top:20px;right:20px;width:40px;height:40px;background:#fbbf24;border-radius:50%;box-shadow:0 0 15px #fbbf24;">
-          </div>
-
-          <!-- Tree SVG -->
-          <svg id="tree-svg" width="100%" height="100%" viewBox="0 0 200 300" preserveAspectRatio="xMidYMax">
-            <!-- Ground -->
-            <path d="M0,280 Q100,260 200,280 L200,300 L0,300 Z" fill="#3f6212" />
-            <!-- Trunk -->
-            <path id="tree-trunk" d="M95,280 Q90,200 95,150 Q100,200 105,280" fill="#78350f" stroke="#78350f"
-              stroke-width="2" />
-            <!-- Branches (Hidden/Shown based on health) -->
-            <g id="tree-branches" stroke="#78350f" stroke-width="2" fill="none" style="display:none;">
-              <path d="M95,180 Q60,140 50,100" />
-              <path d="M105,180 Q140,140 150,100" />
-              <path d="M95,150 Q70,110 80,80" />
-              <path d="M105,150 Q130,110 120,80" />
-            </g>
-            <!-- Leaves Group -->
-            <g id="tree-leaves"></g>
-          </svg>
-
-          <!-- Health Text Overlay -->
-          <div id="tree-health-text"
-            style="position:absolute;bottom:10px;left:0;width:100%;text-align:center;color:#fff;text-shadow:0 1px 4px #000;font-weight:600;font-size:0.9em;">
-            Health: 50%
-          </div>
-        </div>
-
-        <div id="tree-status-msg" style="font-size:1.05em;color:#6ee7b7;margin-bottom:8px;"></div>
-        <div style="font-size:0.85em;color:#94a3b8;line-height:1.4;">
-          Rule: Namaz (+), Good Deeds (+)<br>Missed Namaz (---) damages the tree.
-        </div>
-      </div>
-    </div>
-
-    <!-- Qaza-e-Umri Tracker (Sub Feature) -->
-    <div id="feature-qaza" class="sub-feature-view" style="display:none;">
-      <div class="card" style="text-align:center;">
-        <div style="display:flex;align-items:center;margin-bottom:16px;">
-          <button onclick="closeSubFeature()"
-            style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding:0 8px 0 0;">&#8592;</button>
-          <h2 style="margin:0;font-size:1.3em;">Qaza Tracker</h2>
-        </div>
-
-        <!-- Setup View -->
-        <div id="qaza-setup-view">
-          <p style="margin-bottom:12px;color:#a7f3d0;font-size:0.95em;">Calculate your missed prayers estimate.</p>
-          <div style="margin-bottom:12px;text-align:left;">
-            <label style="display:block;margin-bottom:4px;font-size:0.9em;">Total Years Missed (approx):</label>
-            <input type="number" id="qaza-years-input" placeholder="e.g. 5"
-              style="width:100%;padding:10px;border-radius:10px;border:none;background:#334155;color:#fff;font-size:1em;">
-          </div>
-          <button id="qaza-calc-btn" class="thirty-day-btn" style="width:100%;background:#6ee7b7;color:#222;">Calculate
-            & Start Tracking</button>
-        </div>
-
-        <!-- Tracker View -->
-        <div id="qaza-tracker-view" style="display:none;">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
-            <!-- Prayer Counters -->
-            <div class="qaza-card" style="background:#334155;padding:10px;border-radius:12px;">
-              <div style="font-weight:600;margin-bottom:4px;">Fajr</div>
-              <div class="qaza-count" id="qaza-count-fajr" style="font-size:1.2em;color:#6ee7b7;">0</div>
-              <button class="qaza-minus-btn" data-prayer="Fajr"
-                style="margin-top:4px;padding:4px 8px;border-radius:6px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.85em;">Prayed
-                1</button>
-            </div>
-            <div class="qaza-card" style="background:#334155;padding:10px;border-radius:12px;">
-              <div style="font-weight:600;margin-bottom:4px;">Dhuhr</div>
-              <div class="qaza-count" id="qaza-count-dhuhr" style="font-size:1.2em;color:#6ee7b7;">0</div>
-              <button class="qaza-minus-btn" data-prayer="Dhuhr"
-                style="margin-top:4px;padding:4px 8px;border-radius:6px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.85em;">Prayed
-                1</button>
-            </div>
-            <div class="qaza-card" style="background:#334155;padding:10px;border-radius:12px;">
-              <div style="font-weight:600;margin-bottom:4px;">Asr</div>
-              <div class="qaza-count" id="qaza-count-asr" style="font-size:1.2em;color:#6ee7b7;">0</div>
-              <button class="qaza-minus-btn" data-prayer="Asr"
-                style="margin-top:4px;padding:4px 8px;border-radius:6px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.85em;">Prayed
-                1</button>
-            </div>
-            <div class="qaza-card" style="background:#334155;padding:10px;border-radius:12px;">
-              <div style="font-weight:600;margin-bottom:4px;">Maghrib</div>
-              <div class="qaza-count" id="qaza-count-maghrib" style="font-size:1.2em;color:#6ee7b7;">0</div>
-              <button class="qaza-minus-btn" data-prayer="Maghrib"
-                style="margin-top:4px;padding:4px 8px;border-radius:6px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.85em;">Prayed
-                1</button>
-            </div>
-            <div class="qaza-card" style="background:#334155;padding:10px;border-radius:12px;">
-              <div style="font-weight:600;margin-bottom:4px;">Isha</div>
-              <div class="qaza-count" id="qaza-count-isha" style="font-size:1.2em;color:#6ee7b7;">0</div>
-              <button class="qaza-minus-btn" data-prayer="Isha"
-                style="margin-top:4px;padding:4px 8px;border-radius:6px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.85em;">Prayed
-                1</button>
-            </div>
-            <div class="qaza-card" style="background:#334155;padding:10px;border-radius:12px;">
-              <div style="font-weight:600;margin-bottom:4px;">Witr</div>
-              <div class="qaza-count" id="qaza-count-witr" style="font-size:1.2em;color:#6ee7b7;">0</div>
-              <button class="qaza-minus-btn" data-prayer="Witr"
-                style="margin-top:4px;padding:4px 8px;border-radius:6px;border:none;background:#6ee7b7;color:#222;cursor:pointer;font-size:0.85em;">Prayed
-                1</button>
-            </div>
-          </div>
-          <button id="qaza-reset-btn"
-            style="margin-top:16px;background:none;border:none;color:#ff6b6b;text-decoration:underline;cursor:pointer;font-size:0.9em;">Reset
-            Counters</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Islamic Series (Sub Feature) -->
-    <div id="feature-series" class="sub-feature-view" style="display:none;">
-      <div class="card" style="text-align:center; min-height: 400px; display: flex; flex-direction: column;">
-        <div style="display:flex;align-items:center;margin-bottom:16px;">
-          <button onclick="backToSeriesFlow()"
-            style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding: 0 12px 0 0;">&#8592;</button>
-          <h2 id="series-header-title" style="margin:0;font-size:1.3em;">Islamic Series</h2>
-        </div>
-
-        <!-- Series List View -->
-        <div id="series-list-view" style="flex: 1; overflow-y: auto;">
-          <div id="series-loading" style="text-align:center; padding:20px; display:none;">Loading...</div>
-          <div id="series-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-            <!-- Series cards will be injected here -->
-          </div>
-        </div>
-
-        <!-- Episode List View -->
-        <div id="episode-list-view" style="display:none; flex: 1; overflow-y: auto;">
-          <h3 id="current-series-title" style="margin:0 0 15px 0; font-size:1.1em; color:#6ee7b7;"></h3>
-          <div id="episodes-container" style="display:flex; flex-direction:column; gap:10px;">
-            <!-- Episode cards will be injected here -->
-          </div>
-        </div>
-
-        <!-- Article View -->
-        <div id="article-view" style="display:none; flex: 1; overflow-y: auto; text-align: left;">
-          <h3 id="article-title" style="color: #6ee7b7; margin-bottom: 12px; font-size: 1.2em;"></h3>
-          <div id="article-content"
-            style="line-height: 1.6; color: #e2e8f0; font-size: 1.05em; white-space: pre-wrap; padding-bottom: 20px;">
-            <!-- Article text will be injected here -->
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Halaqa Feature View -->
-    <div id="feature-halaqa" class="sub-feature-view" style="display:none; animation: slideUp 0.3s ease-out;">
-      <div class="card" style="text-align:center;">
-        <div style="display:flex;align-items:center;margin-bottom:12px;">
-          <button onclick="closeSubFeature()"
-            style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding:0 8px 0 0;">&#8592;</button>
-          <h2 style="margin:0;font-size:1.3em;">Halaqa Circles 👥</h2>
-        </div>
-
-        <!-- Lobby: Join or Create -->
-        <div id="halaqa-lobby" style="text-align:center;">
-          <p style="color:#94a3b8;font-size:0.95em;margin-bottom:20px;">
-            Form a circle with friends/family. Compete in good deeds and keep each other steadfast!
-          </p>
-
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            <button id="halaqa-create-btn" class="thirty-day-btn"
-              style="background:#6ee7b7;color:#0f172a;font-weight:600;">
-              Create Circle
-            </button>
-            <button id="halaqa-join-btn" class="thirty-day-btn" style="background:#334155;color:#fff;">
-              Join Circle
-            </button>
-          </div>
-
-          <!-- Join Input (Hidden initially) -->
-          <div id="halaqa-join-input-container" style="display:none;margin-top:16px;">
-            <input type="text" id="halaqa-code-input" placeholder="Enter 6-digit Code"
-              style="width:100%;padding:12px;border-radius:12px;border:none;background:#0f172a;color:#fff;text-align:center;letter-spacing:2px;font-size:1.1em;margin-bottom:8px;">
-            <button id="halaqa-submit-join" class="thirty-day-btn" style="width:100%;">Enter Circle</button>
-          </div>
-        </div>
-
-        <!-- Active Circle View -->
-        <div id="halaqa-active" style="display:none;">
-
-          <!-- Header Card -->
-          <div class="card"
-            style="margin-bottom:16px;background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid #334155;">
-            <div style="display:flex;justify-content:space-between;align-items:start;">
-              <div>
-                <div id="halaqa-name" style="font-size:1.3em;font-weight:700;color:#fff;margin-bottom:4px;">--</div>
-                <div style="font-size:0.85em;color:#94a3b8;display:flex;align-items:center;gap:6px;">
-                  Code: <span id="halaqa-code-display"
-                    style="font-family:monospace;background:#334155;padding:2px 6px;border-radius:4px;color:#cbd5e1;cursor:pointer;">------</span>
-                  <span style="font-size:0.8em;opacity:0.7;">(Tap to copy)</span>
-                </div>
+        <!-- Header Card -->
+        <div class="card"
+          style="margin-bottom:16px;background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid #334155;">
+          <div style="display:flex;justify-content:space-between;align-items:start;">
+            <div>
+              <div id="halaqa-name" style="font-size:1.3em;font-weight:700;color:#fff;margin-bottom:4px;">--</div>
+              <div style="font-size:0.85em;color:#94a3b8;display:flex;align-items:center;gap:6px;">
+                Code: <span id="halaqa-code-display"
+                  style="font-family:monospace;background:#334155;padding:2px 6px;border-radius:4px;color:#cbd5e1;cursor:pointer;">------</span>
+                <span style="font-size:0.8em;opacity:0.7;">(Tap to copy)</span>
               </div>
-              <div id="halaqa-member-count"
-                style="background:#334155;padding:4px 10px;border-radius:20px;font-size:0.85em;">0 Members</div>
             </div>
-            <button id="halaqa-leave-btn"
-              style="margin-top:12px;font-size:0.85em;color:#ff6b6b;background:none;border:none;cursor:pointer;text-decoration:underline;">Leave
-              Circle</button>
+            <div id="halaqa-member-count"
+              style="background:#334155;padding:4px 10px;border-radius:20px;font-size:0.85em;">0 Members</div>
           </div>
+          <button id="halaqa-leave-btn"
+            style="margin-top:12px;font-size:0.85em;color:#ff6b6b;background:none;border:none;cursor:pointer;text-decoration:underline;">Leave
+            Circle</button>
+        </div>
 
-          <h3 style="margin:0 0 10px 4px;font-size:1.1em;color:#e2e8f0;">Leaderboard (This Week)</h3>
-          <div id="halaqa-leaderboard" style="display:flex;flex-direction:column;gap:10px;">
-            <!-- Leaderboard Items Injected Here -->
+        <h3 style="margin:0 0 10px 4px;font-size:1.1em;color:#e2e8f0;">Leaderboard (This Week)</h3>
+        <div id="halaqa-leaderboard" style="display:flex;flex-direction:column;gap:10px;">
+          <!-- Leaderboard Items Injected Here -->
+        </div>
+
+        <!-- Chat Section -->
+        <h3 style="margin:20px 0 10px 4px;font-size:1.1em;color:#e2e8f0;">Group Chat 💬</h3>
+        <div id="halaqa-chat-container" class="card"
+          style="padding:0;background:#1e293b;height:300px;display:flex;flex-direction:column;border:1px solid #334155;">
+          <div id="halaqa-chat-messages"
+            style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;">
+            <div style="text-align:center;color:#64748b;font-size:0.9em;margin-top:20px;">No messages yet. Say Salam!
+              👋</div>
           </div>
-
-          <!-- Chat Section -->
-          <h3 style="margin:20px 0 10px 4px;font-size:1.1em;color:#e2e8f0;">Group Chat 💬</h3>
-          <div id="halaqa-chat-container" class="card"
-            style="padding:0;background:#1e293b;height:300px;display:flex;flex-direction:column;border:1px solid #334155;">
-            <div id="halaqa-chat-messages"
-              style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;">
-              <div style="text-align:center;color:#64748b;font-size:0.9em;margin-top:20px;">No messages yet. Say Salam!
-                👋</div>
-            </div>
-            <div
-              style="padding:10px;background:#0f172a;display:flex;gap:8px;border-top:1px solid #334155;border-radius:0 0 12px 12px;">
-              <input type="text" id="halaqa-chat-input" placeholder="Type a message..."
-                style="flex:1;background:#334155;color:#fff;border:none;padding:10px;border-radius:20px;outline:none;">
-              <button id="halaqa-chat-send-btn"
-                style="background:#6ee7b7;color:#0f172a;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;font-weight:bold;">➤</button>
-            </div>
+          <div
+            style="padding:10px;background:#0f172a;display:flex;gap:8px;border-top:1px solid #334155;border-radius:0 0 12px 12px;">
+            <input type="text" id="halaqa-chat-input" placeholder="Type a message..."
+              style="flex:1;background:#334155;color:#fff;border:none;padding:10px;border-radius:20px;outline:none;">
+            <button id="halaqa-chat-send-btn"
+              style="background:#6ee7b7;color:#0f172a;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;font-weight:bold;">➤</button>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Quran Read (Sub Feature) -->
-    <div id="feature-quran-read" class="sub-feature-view" style="display:none;">
-      <div class="card"
-        style="text-align:center; min-height: 400px; display: flex; flex-direction: column; padding: 15px;">
-        <div style="display:flex;align-items:center;margin-bottom:16px;">
-          <button id="quran-read-back-btn"
-            style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding: 0 12px 0 0;">&#8592;</button>
-          <h2 style="margin:0;font-size:1.3em;">Quran Read</h2>
-          <div id="quran-controls" style="margin-left:auto; display:none; align-items:center; gap:10px;">
-            <span style="font-size:0.7em; color:#94a3b8;">Aa</span>
-            <input type="range" id="quran-font-size" min="1.2" max="3.0" step="0.1" value="1.8"
-              style="width:60px; accent-color:#6ee7b7; cursor:pointer;">
-            <span style="font-size:1.1em; color:#6ee7b7;">Aa</span>
+  <!-- Quran Read (Sub Feature) -->
+  <div id="feature-quran-read" class="sub-feature-view" style="display:none;">
+    <div class="card"
+      style="text-align:center; min-height: 95vh; display: flex; flex-direction: column; padding: 20px 15px; border-radius: 0; width: 100%;">
+      <div style="display:flex;align-items:center;margin-bottom:16px;">
+        <button id="quran-read-back-btn"
+          style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding: 0 12px 0 0;">&#8592;</button>
+        <h2 style="margin:0;font-size:1.3em;">Quran Read</h2>
+        <div id="quran-controls" style="margin-left:auto; display:none; align-items:center; gap:10px;">
+          <span style="font-size:0.7em; color:#94a3b8;">Aa</span>
+          <input type="range" id="quran-font-size" min="1.2" max="3.0" step="0.1" value="1.8"
+            style="width:60px; accent-color:#6ee7b7; cursor:pointer;">
+          <span style="font-size:1.1em; color:#6ee7b7;">Aa</span>
+        </div>
+      </div>
+
+      <!-- Last Read Banner -->
+      <div id="quran-last-read"
+        style="display:none; margin-bottom:15px; padding:12px; background:rgba(110, 231, 183, 0.1); border-radius:12px; border:1px solid rgba(110, 231, 183, 0.2); cursor:pointer;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:1.2em;">📖</span>
+          <div style="text-align:left;">
+            <div style="font-size:0.75em; color:#6ee7b7;">Last Read</div>
+            <div id="last-read-title" style="font-weight:700; font-size:0.9em; color:#fff;">Surah Al-Baqarah</div>
           </div>
+          <span style="margin-left:auto; color:#6ee7b7;">➜</span>
+        </div>
+      </div>
+
+      <!-- Surah List -->
+      <div id="quran-surah-list" style="flex: 1; overflow-y: auto; text-align: left; padding: 5px;">
+        <div style="text-align:center; padding: 20px; color: #94a3b8;">Loading Surahs... 📖</div>
+      </div>
+
+      <!-- Verses View -->
+      <div id="quran-verses-view" style="display:none; flex: 1; overflow-y: auto; text-align: right; padding: 5px;">
+        <!-- Verses injected here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Zakat Calculator (Sub Feature) -->
+  <div id="feature-zakat" class="sub-feature-view" style="display:none;">
+    <div class="card" style="text-align:center; padding: 20px;">
+      <div style="display:flex;align-items:center;margin-bottom:16px;">
+        <button onclick="closeSubFeature()"
+          style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding: 0 12px 0 0;">&#8592;</button>
+        <h2 style="margin:0;font-size:1.3em;">Zakat Calculator</h2>
+      </div>
+
+      <div style="text-align: left; display: flex; flex-direction: column; gap: 12px;">
+        <div>
+          <label style="font-size:0.85em; color:#94a3b8;">Cash (In Hand / Bank)</label>
+          <input type="number" id="zakat-cash" class="onboarding-time" placeholder="0 PKR" style="margin-top:4px;">
+        </div>
+        <div>
+          <label style="font-size:0.85em; color:#94a3b8;">Gold Value (Total Value in PKR)</label>
+          <input type="number" id="zakat-gold" class="onboarding-time" placeholder="0 PKR" style="margin-top:4px;">
+        </div>
+        <div>
+          <label style="font-size:0.85em; color:#94a3b8;">Silver Value (Total Value in PKR)</label>
+          <input type="number" id="zakat-silver" class="onboarding-time" placeholder="0 PKR" style="margin-top:4px;">
+        </div>
+        <div>
+          <label style="font-size:0.85em; color:#94a3b8;">Business Assets / Investments</label>
+          <input type="number" id="zakat-assets" class="onboarding-time" placeholder="0 PKR" style="margin-top:4px;">
+        </div>
+        <div>
+          <label style="font-size:0.85em; color:#94a3b8;">Debts / Liabilities (Subtract)</label>
+          <input type="number" id="zakat-debts" class="onboarding-time" placeholder="0 PKR" style="margin-top:4px;">
         </div>
 
-        <!-- Last Read Banner -->
-        <div id="quran-last-read"
-          style="display:none; margin-bottom:15px; padding:12px; background:rgba(110, 231, 183, 0.1); border-radius:12px; border:1px solid rgba(110, 231, 183, 0.2); cursor:pointer;">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span style="font-size:1.2em;">📖</span>
-            <div style="text-align:left;">
-              <div style="font-size:0.75em; color:#6ee7b7;">Last Read</div>
-              <div id="last-read-title" style="font-weight:700; font-size:0.9em; color:#fff;">Surah Al-Baqarah</div>
-            </div>
-            <span style="margin-left:auto; color:#6ee7b7;">➜</span>
-          </div>
-        </div>
+        <button id="calculate-zakat-btn" class="thirty-day-btn" style="width:100%; margin-top:10px;">Calculate
+          Zakat</button>
 
-        <!-- Surah List -->
-        <div id="quran-surah-list" style="flex: 1; overflow-y: auto; text-align: left; padding: 10px;">
-          <div style="text-align:center; padding: 20px; color: #94a3b8;">Loading Surahs... 📖</div>
-        </div>
-
-        <!-- Verses View -->
-        <div id="quran-verses-view" style="display:none; flex: 1; overflow-y: auto; text-align: right; padding: 10px;">
-          <!-- Verses injected here -->
+        <div id="zakat-result"
+          style="display:none; margin-top:20px; padding:15px; background:#0f172a; border-radius:12px; text-align:center; border:1px solid #6ee7b7;">
+          <div style="color:#94a3b8; font-size:0.9em;">Total Zakat Due:</div>
+          <div id="zakat-amount" style="font-size:1.8em; font-weight:700; color:#6ee7b7; margin:5px 0;">0 PKR</div>
+          <div style="font-size:0.75em; color:#64748b;">(2.5% of net wealth if above Nisab)</div>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Zakat Calculator (Sub Feature) -->
-    <div id="feature-zakat" class="sub-feature-view" style="display:none;">
-      <div class="card" style="text-align:center; padding: 20px;">
-        <div style="display:flex;align-items:center;margin-bottom:16px;">
-          <button onclick="closeSubFeature()"
-            style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding: 0 12px 0 0;">&#8592;</button>
-          <h2 style="margin:0;font-size:1.3em;">Zakat Calculator</h2>
-        </div>
+  <!-- Masjid Finder (Sub Feature) -->
+  <div id="feature-masjid" class="sub-feature-view" style="display:none;">
+    <div class="card"
+      style="text-align:center; padding: 20px; min-height: 400px; display: flex; flex-direction: column;">
+      <div style="display:flex;align-items:center;margin-bottom:16px;">
+        <button onclick="closeSubFeature()"
+          style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding: 0 12px 0 0;">&#8592;</button>
+        <h2 style="margin:0;font-size:1.3em;">Masjid Finder</h2>
+      </div>
 
-        <div style="text-align: left; display: flex; flex-direction: column; gap: 12px;">
-          <div>
-            <label style="font-size:0.85em; color:#94a3b8;">Cash (In Hand / Bank)</label>
-            <input type="number" id="zakat-cash" class="onboarding-time" placeholder="0 PKR" style="margin-top:4px;">
-          </div>
-          <div>
-            <label style="font-size:0.85em; color:#94a3b8;">Gold Value (Total Value in PKR)</label>
-            <input type="number" id="zakat-gold" class="onboarding-time" placeholder="0 PKR" style="margin-top:4px;">
-          </div>
-          <div>
-            <label style="font-size:0.85em; color:#94a3b8;">Silver Value (Total Value in PKR)</label>
-            <input type="number" id="zakat-silver" class="onboarding-time" placeholder="0 PKR" style="margin-top:4px;">
-          </div>
-          <div>
-            <label style="font-size:0.85em; color:#94a3b8;">Business Assets / Investments</label>
-            <input type="number" id="zakat-assets" class="onboarding-time" placeholder="0 PKR" style="margin-top:4px;">
-          </div>
-          <div>
-            <label style="font-size:0.85em; color:#94a3b8;">Debts / Liabilities (Subtract)</label>
-            <input type="number" id="zakat-debts" class="onboarding-time" placeholder="0 PKR" style="margin-top:4px;">
-          </div>
-
-          <button id="calculate-zakat-btn" class="thirty-day-btn" style="width:100%; margin-top:10px;">Calculate
-            Zakat</button>
-
-          <div id="zakat-result"
-            style="display:none; margin-top:20px; padding:15px; background:#0f172a; border-radius:12px; text-align:center; border:1px solid #6ee7b7;">
-            <div style="color:#94a3b8; font-size:0.9em;">Total Zakat Due:</div>
-            <div id="zakat-amount" style="font-size:1.8em; font-weight:700; color:#6ee7b7; margin:5px 0;">0 PKR</div>
-            <div style="font-size:0.75em; color:#64748b;">(2.5% of net wealth if above Nisab)</div>
-          </div>
-        </div>
+      <div id="masjid-list" style="flex: 1; overflow-y: auto; text-align: left; padding: 5px;">
+        <div style="text-align:center; margin-top:20px; color:#94a3b8;">Searching nearby Masajid... 🕌</div>
       </div>
     </div>
-
-    <!-- Masjid Finder (Sub Feature) -->
-    <div id="feature-masjid" class="sub-feature-view" style="display:none;">
-      <div class="card"
-        style="text-align:center; padding: 20px; min-height: 400px; display: flex; flex-direction: column;">
-        <div style="display:flex;align-items:center;margin-bottom:16px;">
-          <button onclick="closeSubFeature()"
-            style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding: 0 12px 0 0;">&#8592;</button>
-          <h2 style="margin:0;font-size:1.3em;">Masjid Finder</h2>
-        </div>
-
-        <div id="masjid-list" style="flex: 1; overflow-y: auto; text-align: left; padding: 5px;">
-          <div style="text-align:center; margin-top:20px; color:#94a3b8;">Searching nearby Masajid... 🕌</div>
-        </div>
-      </div>
-    </div>
+  </div>
 
   </div>
 
@@ -1585,8 +1654,8 @@
     </div>
 
   </div>
-  <script type="module" src="app.js?v=6.6"></script>
-  <script type="module" src="app2.js?v=1.3"></script>
+  <script type="module" src="app.js?v=6.8"></script>
+  <script type="module" src="app2.js?v=1.5"></script>
 </body>
 
 </html>
