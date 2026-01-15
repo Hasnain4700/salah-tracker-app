@@ -1,5 +1,6 @@
 // app2.js - Advanced Features for Salah Tracker
 // This file handles modular features like Qibla Finder to keep app.js clean.
+import { auth } from './firebase.js';
 
 (function () {
     const KAABA_LAT = 21.422487;
@@ -166,7 +167,7 @@
 
 // --- Background Manager (Offline & Counter Sync) ---
 (function () {
-    async function syncToServiceWorker() {
+    window.syncToServiceWorker = async function () {
         if (!('serviceWorker' in navigator)) return;
 
         try {
@@ -181,13 +182,22 @@
             const timingsRaw = localStorage.getItem(`prayers_${dateKey}`);
             const struggle = localStorage.getItem('userStrugglePrayer') || "";
 
+            // NEW: Get logs if user is logged in
+            let logs = {};
+            const user = auth.currentUser;
+            if (user) {
+                const logsRaw = localStorage.getItem(`cache_logs_${user.uid}`);
+                if (logsRaw) logs = JSON.parse(logsRaw);
+            }
+
             if (timingsRaw && registration.active) {
                 registration.active.postMessage({
                     type: 'SYNC_DATA',
                     prayers: JSON.parse(timingsRaw),
-                    struggle: struggle
+                    struggle: struggle,
+                    logs: logs
                 });
-                console.log(`[Background] Synced prayer times for ${dateKey}`);
+                console.log(`[Background] Synced prayer times and logs for ${dateKey}`);
             } else if (!registration.active) {
                 console.warn("[Background] SW ready but not active. Retry in 2s.");
                 setTimeout(syncToServiceWorker, 2000);
@@ -262,36 +272,12 @@
 
         if (!hadithContent || !hadithModal) return;
 
-        try {
-            // Using a reliable free Hadith API (hadithapi.com)
-            const response = await fetch('https://hadithapi.com/api/hadiths?apiKey=$2y$10$fWfI/kH06z.N.6F9M/Vv7uq3rUe/Yj9Ua5Gv7R8H/n6m/Yj9Ua5Gv7R8H/&limit=1&random=1');
-            if (response.status === 401 || response.status === 403) {
-                showFallback();
-                return;
-            }
-            if (!response.ok) throw new Error("API Status: " + response.status);
-            const data = await response.json();
-            const hadith = data.hadiths?.data?.[0];
-
-            if (hadith) {
-                hadithContent.textContent = hadith.hadithUrdu || hadith.hadithEnglish;
-                if (hadithRef) hadithRef.textContent = `— ${hadith.bookName}, ${hadith.hadithNumber}`;
-                hadithModal.style.display = 'flex';
-                localStorage.setItem('last_hadith_date', today);
-            } else {
-                showFallback();
-            }
-        } catch (err) {
-            showFallback();
-        }
-
-        function showFallback() {
-            const randomH = fallbacks[Math.floor(Math.random() * fallbacks.length)];
-            hadithContent.textContent = randomH.text;
-            if (hadithRef) hadithRef.textContent = `— ${randomH.ref}`;
-            hadithModal.style.display = 'flex';
-            localStorage.setItem('last_hadith_date', today);
-        }
+        // FIXED: API key was invalid and always failed. Using fallback hadiths directly.
+        const randomH = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+        hadithContent.textContent = randomH.text;
+        if (hadithRef) hadithRef.textContent = `— ${randomH.ref}`;
+        hadithModal.style.display = 'flex';
+        localStorage.setItem('last_hadith_date', today);
     }
 
     const closeBtn = document.getElementById('close-hadith-btn');
@@ -441,13 +427,21 @@
                     quranAudio.src = audioUrl;
                 }
                 quranAudio.currentKey = key;
-                quranAudio.play();
 
-                // Reset other buttons
-                document.querySelectorAll('.quran-verse-text button').forEach(b => b.textContent = '▶');
-                btn.textContent = '⏸';
-
-                quranAudio.onended = () => { btn.textContent = '▶'; };
+                // FIXED: Handle auto-play policy with proper error handling
+                quranAudio.play().then(() => {
+                    // Reset other buttons
+                    document.querySelectorAll('.quran-verse-text button').forEach(b => b.textContent = '▶');
+                    btn.textContent = '⏸';
+                    quranAudio.onended = () => { btn.textContent = '▶'; };
+                }).catch(err => {
+                    console.warn("Auto-play blocked:", err);
+                    btn.textContent = '▶';
+                    // Show toast notification if available
+                    if (typeof showToast !== 'undefined') {
+                        showToast("Tap the play button to start audio", "info");
+                    }
+                });
             }
         } catch (e) {
             console.error("Audio play error", e);
