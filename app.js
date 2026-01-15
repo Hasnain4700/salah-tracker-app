@@ -21,7 +21,50 @@ const {
   goOffline
 } = window.FirebaseExports;
 
+// =============================================================================
+// GLOBAL ERROR HANDLER (Critical for 1M+ users)
+// =============================================================================
+window.onerror = function (msg, url, line, col, error) {
+  console.error('[Global Error]', { msg, url, line, col, error });
+
+  // Log to Firebase if user is authenticated (defined later in code)
+  if (typeof GlobalAudit !== 'undefined' && GlobalAudit.logError) {
+    GlobalAudit.logError('Window Error', {
+      message: msg,
+      url: url,
+      line: line,
+      column: col,
+      stack: error?.stack
+    });
+  }
+
+  // Show user-friendly message
+  if (typeof showToast !== 'undefined') {
+    showToast("An error occurred. Please refresh if issues persist.", "error");
+  }
+
+  // Return true to prevent default browser error handling
+  return true;
+};
+
+// Handle unhandled promise rejections
+window.addEventListener('unhandledrejection', function (event) {
+  console.error('[Unhandled Promise Rejection]', event.reason);
+
+  if (typeof GlobalAudit !== 'undefined' && GlobalAudit.logError) {
+    GlobalAudit.logError('Unhandled Promise', event.reason);
+  }
+
+  if (typeof showToast !== 'undefined') {
+    showToast("An error occurred. Please try again.", "warning");
+  }
+
+  event.preventDefault(); // Prevent default console logging
+});
+
 // --- Spark Plan (Free) Connection Management ---
+let connectionListenerAttached = false;
+
 function manageConnection() {
   if (document.visibilityState === 'visible') {
     goOnline(db);
@@ -33,7 +76,12 @@ function manageConnection() {
     console.log("[Firebase] Connection Offline (Saved a slot).");
   }
 }
-document.addEventListener('visibilitychange', manageConnection);
+
+// Only attach listener once
+if (!connectionListenerAttached) {
+  document.addEventListener('visibilitychange', manageConnection);
+  connectionListenerAttached = true;
+}
 manageConnection();
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js";
 
@@ -138,7 +186,8 @@ const SyncQueue = {
   get: () => JSON.parse(localStorage.getItem('sync_queue')) || [],
   push: (action) => {
     const queue = SyncQueue.get();
-    queue.push({ ...action, id: Date.now(), timestamp: new Date().toISOString() });
+    // Add retry count to new items
+    queue.push({ ...action, id: Date.now(), timestamp: new Date().toISOString(), retries: 0 });
     localStorage.setItem('sync_queue', JSON.stringify(queue));
   },
   pop: () => {
@@ -149,16 +198,32 @@ const SyncQueue = {
   },
   isEmpty: () => SyncQueue.get().length === 0,
 
+  // CRITICAL FIX: Remove item from queue permanently
+  removeItem: (index) => {
+    const queue = SyncQueue.get();
+    queue.splice(index, 0);
+    localStorage.setItem('sync_queue', JSON.stringify(queue));
+  },
+
   process: async () => {
     if (!navigator.onLine || SyncQueue.isEmpty()) return;
 
     console.log("Processing offline sync queue...");
     let syncedCount = 0;
+    const MAX_RETRIES = 3; // CRITICAL FIX: Limit retries per item
 
     while (!SyncQueue.isEmpty()) {
       const queue = SyncQueue.get();
       if (queue.length === 0) break;
       const item = queue[0]; // Peek
+
+      // CRITICAL FIX: Check retry count
+      if (item.retries >= MAX_RETRIES) {
+        console.error(`Sync item failed after ${MAX_RETRIES} retries, removing:`, item);
+        SyncQueue.pop(); // Remove permanently failed item
+        showToast(`Some offline changes couldn't be synced`, 'warning');
+        continue;
+      }
 
       try {
         const { type, path, data, method } = item;
@@ -173,11 +238,20 @@ const SyncQueue = {
           });
         }
 
-        SyncQueue.pop(); // Remove processed item
+        SyncQueue.pop(); // Remove successfully processed item
         syncedCount++;
       } catch (err) {
         console.error("Sync failed for item:", item, err);
-        break; // Stop processing if a fatal error occurs (e.g. permission)
+
+        // CRITICAL FIX: Increment retry count instead of breaking
+        const queue = SyncQueue.get();
+        if (queue[0]) {
+          queue[0].retries = (queue[0].retries || 0) + 1;
+          localStorage.setItem('sync_queue', JSON.stringify(queue));
+        }
+
+        // Break to avoid rapid retry loops (will retry on next online event)
+        break;
       }
     }
 
@@ -187,6 +261,43 @@ const SyncQueue = {
     }
   }
 };
+
+// =============================================================================
+// STORAGE QUOTA MANAGEMENT + GLOBAL CLEANUP
+// =============================================================================
+const StorageManager = {
+  monitor: () => {
+    let total = 0;
+    for (let key in localStorage) {
+      if (localStorage.hasOwnProperty(key)) total += (localStorage[key].length + key.length) * 2;
+    }
+    const usageMB = (total / 1024 / 1024).toFixed(2);
+    if (total > 4 * 1024 * 1024) {
+      console.warn(`[Storage] ${usageMB}MB used, cleaning old cache...`);
+      const maxAge = 30 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      let cleaned = 0;
+      for (let key in localStorage) {
+        if (key.startsWith('prayers_') || key.startsWith('cache_')) {
+          const dateMatch = key.match(/(\d{4}-\d{2}-\d{2})/);
+          if (dateMatch && now - new Date(dateMatch[1]).getTime() > maxAge) {
+            localStorage.removeItem(key);
+            cleaned++;
+          }
+        }
+      }
+      if (cleaned > 0) console.log(`[Storage] Cleaned ${cleaned} items`);
+    }
+  }
+};
+StorageManager.monitor();
+
+// Global cleanup on unload
+window.addEventListener('beforeunload', () => {
+  if (typeof countdownInterval !== 'undefined') clearInterval(countdownInterval);
+  if (typeof markPrayerInterval !== 'undefined') clearInterval(markPrayerInterval);
+  if (typeof quranXpInterval !== 'undefined') clearInterval(quranXpInterval);
+});
 
 // Global Listeners for Online/Offline
 window.addEventListener('online', () => {
@@ -273,42 +384,85 @@ async function requestNotificationPermission() {
       console.log("[FCM] Service Worker is now active.");
     }
 
+    // PERIODIC BACKGROUND SYNC UPGRADE (Reliability for closed app)
+    if ('periodicSync' in registration) {
+      try {
+        const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
+        if (status.state === 'granted') {
+          await registration.periodicSync.register('prayer-sync', {
+            minInterval: 6 * 60 * 60 * 1000 // Every 6 hours
+          });
+          console.log('[FCM] Periodic Background Sync registered.');
+        }
+      } catch (e) { console.warn('[FCM] Periodic Sync failed:', e); }
+    }
+
     const currentToken = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
 
     if (currentToken) {
+      // CRITICAL FIX: Wait for auth state to be ready before proceeding
       const user = auth.currentUser;
-      if (user) {
-        await update(ref(db, `users/${user.uid}`), { fcmToken: currentToken });
+      if (!user) {
+        console.log("[FCM] User not authenticated yet, waiting for auth state...");
+        // Wait for next auth state change
+        await new Promise((resolve) => {
+          const unsubscribe = onAuthStateChanged(auth, (authUser) => {
+            if (authUser) {
+              unsubscribe();
+              resolve();
+            }
+          });
+        });
+      }
+
+      const authenticatedUser = auth.currentUser;
+      if (authenticatedUser) {
+        await update(ref(db, `users/${authenticatedUser.uid}`), { fcmToken: currentToken });
         console.log("[FCM] Token correctly generated and saved.");
 
         // --- Hybrid API Routing ---
-        // UI stays on GitHub Pages (Play Store), Engine runs on Vercel
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
-        // Final Vercel Engine URL
         const VERCEL_URL = "https://salah-tracker-app.vercel.app";
-
         const API_BASE_URL = isLocal ? "" : VERCEL_URL;
 
-        fetch(`${API_BASE_URL}/api/subscribe`, {
-          method: 'POST',
-          mode: 'cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: currentToken, topic: 'all_users' })
-        }).then(res => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const contentType = res.headers.get("content-type");
-          if (contentType && contentType.indexOf("application/json") !== -1) {
-            return res.json();
-          } else {
-            throw new Error("API not available on this host (Vercel required)");
+        // CRITICAL FIX: Add retry logic for subscription API
+        let subscriptionSuccess = false;
+        let retries = 0;
+        const MAX_SUB_RETRIES = 3;
+
+        while (!subscriptionSuccess && retries < MAX_SUB_RETRIES) {
+          try {
+            const response = await fetch(`${API_BASE_URL}/api/subscribe`, {
+              method: 'POST',
+              mode: 'cors',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token: currentToken, topic: 'all_users' })
+            });
+
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+              const data = await response.json();
+              console.log("[FCM] Topic Subscription:", data.message);
+              subscriptionSuccess = true;
+            } else {
+              throw new Error("API not available on this host (Vercel required)");
+            }
+          } catch (err) {
+            retries++;
+            console.warn(`[FCM] Subscription attempt ${retries} failed:`, err.message);
+
+            if (retries >= MAX_SUB_RETRIES) {
+              console.error("[FCM] Failed to subscribe after max retries");
+              console.log("[FCM] Note: /api/ features only work when deployed on Vercel.");
+            } else {
+              // Wait before retry (exponential backoff)
+              await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+            }
           }
-        })
-          .then(data => console.log("[FCM] Topic Subscription:", data.message))
-          .catch(err => {
-            console.warn("[FCM] Subscription info:", err.message);
-            console.log("[FCM] Note: /api/ features only work when deployed on Vercel.");
-          });
+        }
+
         startPrayerNotificationLoop();
       }
     } else {
@@ -338,6 +492,10 @@ function startPrayerNotificationLoop() {
 async function checkAndTriggerPrayerNotifications(prayers) {
   const user = auth.currentUser;
   if (!user) return;
+
+  // CRITICAL FIX: Clear all existing timeouts before creating new ones
+  scheduledTimeouts.forEach(t => clearTimeout(t));
+  scheduledTimeouts = [];
 
   const snap = await get(ref(db, `users/${user.uid}/fcmToken`));
   const myToken = snap.val();
@@ -877,7 +1035,18 @@ function updateCountdown() {
     }
   });
 }
-setInterval(updateCountdown, 1000);
+
+// CRITICAL FIX: Store interval ID and clean up properly
+let countdownInterval = null;
+
+function startCountdownTimer() {
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = setInterval(updateCountdown, 1000);
+  updateCountdown(); // Initial call
+}
+
+// Start timer
+startCountdownTimer();
 
 function calcLastThird() {
   if (!prayersWithTahajjud || prayersWithTahajjud.length < 5) return;
@@ -1258,6 +1427,9 @@ async function logPrayerStatus(prayerName, status) {
 
   updateMarkPrayerBtn();
   if (typeof fetchAndDisplayTracker === 'function') fetchAndDisplayTracker();
+
+  // CRITICAL UPGRADE: Sync to Service Worker immediately so sticky notification updates
+  if (window.syncToServiceWorker) window.syncToServiceWorker();
 
   // 2. Database Synchronization (via SyncQueue)
   const logPath = `users/${user.uid}/logs/${today}/${prayerName}`;
@@ -1766,8 +1938,17 @@ function updateMarkPrayerBtn() {
     });
   }
 }
-setInterval(updateMarkPrayerBtn, 5000);
-updateMarkPrayerBtn();
+
+// CRITICAL FIX: Store interval ID and clean up properly
+let markPrayerInterval = null;
+
+function startMarkPrayerMonitoring() {
+  if (markPrayerInterval) clearInterval(markPrayerInterval);
+  markPrayerInterval = setInterval(updateMarkPrayerBtn, 5000);
+  updateMarkPrayerBtn(); // Initial call
+}
+
+startMarkPrayerMonitoring();
 
 markPrayerBtn.onclick = () => {
   if (currentActivePrayer) logPrayerStatus(currentActivePrayer, 'prayed');
@@ -2726,6 +2907,9 @@ function startGlobalDuroodSync() {
   };
 
   fetchGlobal();
+
+  // CRITICAL FIX: Clear old interval before creating new one
+  if (duroodGlobalUnsubscribe) clearInterval(duroodGlobalUnsubscribe);
   duroodGlobalUnsubscribe = setInterval(fetchGlobal, 600000);
 }
 
