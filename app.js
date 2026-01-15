@@ -3401,14 +3401,29 @@ if (twinsInviteFriendBtn) {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
 
     try {
-      await set(ref(db, `privateLobby/${code}`), {
+      const lobbyRef = ref(db, `privateLobby/${code}`);
+      await set(lobbyRef, {
         uid: user.uid,
         name: (userDisplayName || user.email.split('@')[0]),
         avatar: '🧑🏽',
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        pairId: null // Placeholder for joiner
       });
+
       await set(ref(db, `users/${user.uid}/twins`), { inPrivateLobby: true, code: code });
       showToast("Code Generated! Share with a friend.", "#6ee7b7");
+
+      // UPGRADE: Listen for someone joining this code
+      onValue(lobbyRef, async (snap) => {
+        const data = snap.val();
+        if (data && data.pairId) {
+          // Someone joined! Update own profile to trigger switching to Active Pair View
+          await set(ref(db, `users/${user.uid}/twins`), { pairId: data.pairId });
+          // Cleanup lobby entry
+          set(lobbyRef, null);
+        }
+      }, { onlyOnce: false });
+
     } catch (e) {
       showToast("Failed to generate code", "#ff6b6b");
     }
@@ -3422,10 +3437,12 @@ if (twinsJoinSubmitBtn) {
     if (code.length !== 6) return showToast("Enter a 6-digit code", "#ff6b6b");
 
     try {
-      const snap = await get(ref(db, `privateLobby/${code}`));
+      const lobbyRef = ref(db, `privateLobby/${code}`);
+      const snap = await get(lobbyRef);
       if (!snap.exists()) return showToast("Invalid or expired code", "#ff6b6b");
 
       const hostData = snap.val();
+      if (hostData.pairId) return showToast("This code is already being used", "#ff6b6b");
       if (hostData.uid === user.uid) return showToast("You cannot join your own code", "#ff6b6b");
 
       // Create Pair
@@ -3439,15 +3456,19 @@ if (twinsJoinSubmitBtn) {
         [user.uid]: { name: (userDisplayName || user.email.split('@')[0]), avatar: '🧑🏽' }
       };
 
+      // 1. Create the pair node (accessible by both)
       await set(ref(db, `pairs/${pairId}`), pairData);
-      await set(ref(db, `privateLobby/${code}`), null); // Clean up
 
-      await set(ref(db, `users/${hostData.uid}/twins`), { pairId: pairId });
+      // 2. Notify Host by updating the lobby entry (Host is listening)
+      await update(lobbyRef, { pairId: pairId });
+
+      // 3. Update own profile (Self write - allowed by standard rules)
       await set(ref(db, `users/${user.uid}/twins`), { pairId: pairId });
 
       showToast("Connected with your friend! 🤝", "#6ee7b7");
     } catch (e) {
-      showToast("Join failed", "#ff6b6b");
+      console.error("[Twins Join Error]", e);
+      showToast("Join failed. Check your internet.", "#ff6b6b");
     }
   };
 }
