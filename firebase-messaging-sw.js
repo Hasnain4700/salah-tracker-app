@@ -49,7 +49,34 @@ async function updateStickyNotification() {
     })
     .sort((a, b) => a.date - b.date);
 
-  let next = sortedPrayers.find(p => p.date > now);
+  // Find current/next prayer logic
+  // "Next" is strictly future. "Current" is what we might have just passed.
+  let nextIndex = sortedPrayers.findIndex(p => p.date > now);
+  let next = sortedPrayers[nextIndex];
+
+  // Robustness: Check if we JUST passed a prayer (within last 15 mins)
+  // If we are at 12:05 and Dhuhr was 12:00, next is Asr. We need to check Dhuhr.
+  if (nextIndex > 0) {
+    const prevPrayer = sortedPrayers[nextIndex - 1];
+    const diffPrev = (now - prevPrayer.date) / 1000 / 60; // Minutes since prev prayer
+
+    const prevKey = `${prevPrayer.name}_${now.toDateString()}`;
+    if (diffPrev >= 0 && diffPrev <= 15 && self.lastAdhanNotified !== prevKey) {
+      self.lastAdhanNotified = prevKey;
+      console.log(`[FCM SW] Triggering Adhan Alert for ${prevPrayer.name} (Caught Late)`);
+      triggerAdhanAlert(prevPrayer.name);
+    }
+  } else if (nextIndex === -1 && sortedPrayers.length > 0) {
+    // Logic for Isha/Midnight edge cases if needed, but the main loop above handles most.
+    // If nextIndex is -1, it means ALL prayers for today passed.
+    const lastPrayer = sortedPrayers[sortedPrayers.length - 1];
+    const diffLast = (now - lastPrayer.date) / 1000 / 60;
+    const lastKey = `${lastPrayer.name}_${now.toDateString()}`;
+    if (diffLast >= 0 && diffLast <= 15 && self.lastAdhanNotified !== lastKey) {
+      self.lastAdhanNotified = lastKey;
+      triggerAdhanAlert(lastPrayer.name);
+    }
+  }
 
   // Handle Maghrib/Isha past midnight or next day Fajr
   if (!next) {
@@ -81,21 +108,7 @@ async function updateStickyNotification() {
   // Format Countdown Label
   const countdownLabel = hrs > 0 ? `-${hrs}h ${mins}m` : `-${mins}m`;
 
-  // --- Robust Adhan Trigger ---
-  // Since updateStickyNotification runs every 5 mins, we trigger if we are within the minute
-  // OR if we just passed it (within 5 mins) and haven't notified for this prayer today.
-  const nowStr = now.getHours() + ":" + now.getMinutes();
-  const prayerKey = `${next.name}_${now.toDateString()}`;
-
-  // Use a global-ish state (self) to track last notified prayer
-  if (!self.lastAdhanNotified) self.lastAdhanNotified = "";
-
-  if (totalMins <= 0 && totalMins > -10 && self.lastAdhanNotified !== prayerKey) {
-    self.lastAdhanNotified = prayerKey;
-    console.log(`[FCM SW] Triggering Adhan Alert for ${next.name}`);
-    triggerAdhanAlert(next.name);
-  }
-
+  // Sticky Notification Update
   const isStruggle = next.name === strugglePrayer;
   const title = isStruggle ? `⚠️ Next: ${next.name} (Struggle)` : `🕌 Next: ${next.name}`;
 
