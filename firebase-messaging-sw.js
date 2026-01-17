@@ -202,13 +202,17 @@ if (messaging) {
     if (payload.data && payload.data.type === 'HEARTBEAT_SYNC') {
       console.log('[FCM SW] Heartbeat received. Refreshing local notification triggers...');
 
-      // CRITICAL FIX: Ensure state is loaded if SW was killed/restarted
-      event.waitUntil((async () => {
+      // State restoration (ensure we have prayer times)
+      const performSync = async () => {
         if (!prayerTimes) {
           await loadSyncedData();
         }
         await updateStickyNotification();
-      })());
+      };
+
+      // Note: messaging.onBackgroundMessage doesn't provide an event object, 
+      // but the SW lifetime is managed by the browser during this callback.
+      performSync();
       return;
     }
 
