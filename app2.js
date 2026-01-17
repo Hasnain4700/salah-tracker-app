@@ -607,12 +607,12 @@ import { auth } from './firebase.js';
     const topFab = document.getElementById('library-top-fab');
 
     const BOOKS = [
-        { id: 'bukhari', name: 'Sahih Bukhari', icon: '📜', color: 'linear-gradient(135deg, #34d399, #059669)', editions: { ara: 'ara-bukhari', urd: 'urd-bukhari', eng: 'eng-bukhari' } },
-        { id: 'muslim', name: 'Sahih Muslim', icon: '📚', color: 'linear-gradient(135deg, #60a5fa, #2563eb)', editions: { ara: 'ara-muslim', urd: 'urd-muslim', eng: 'eng-muslim' } },
-        { id: 'tirmidhi', name: 'Jamia Tirmidhi', icon: '📖', color: 'linear-gradient(135deg, #fbbf24, #d97706)', editions: { ara: 'ara-tirmidhi', urd: 'urd-tirmidhi', eng: 'eng-tirmidhi' } },
-        { id: 'abudawud', name: 'Sunan Abu Dawud', icon: '✒️', color: 'linear-gradient(135deg, #a78bfa, #7c3aed)', editions: { ara: 'ara-abudawud', urd: 'urd-abudawud', eng: 'eng-abudawud' } },
-        { id: 'nasai', name: 'Sunan Nasai', icon: '📝', color: 'linear-gradient(135deg, #f472b6, #db2777)', editions: { ara: 'ara-nasai', urd: 'urd-nasai', eng: 'eng-nasai' } },
-        { id: 'ibnmajah', name: 'Sunan Ibn Majah', icon: '🕌', color: 'linear-gradient(135deg, #4ade80, #16a34a)', editions: { ara: 'ara-ibnmajah', urd: 'urd-ibnmajah', eng: 'eng-ibnmajah' } }
+        { id: 'bukhari', name: 'Sahih Bukhari', cover: 'assets/sahih al bukhari.png', color: 'linear-gradient(135deg, #34d399, #059669)', editions: { ara: 'ara-bukhari', urd: 'urd-bukhari', eng: 'eng-bukhari' } },
+        { id: 'muslim', name: 'Sahih Muslim', cover: 'assets/sahih muslim.png', color: 'linear-gradient(135deg, #60a5fa, #2563eb)', editions: { ara: 'ara-muslim', urd: 'urd-muslim', eng: 'eng-muslim' } },
+        { id: 'tirmidhi', name: 'Jamia Tirmidhi', cover: 'assets/jamia tirmidhi.png', color: 'linear-gradient(135deg, #fbbf24, #d97706)', editions: { ara: 'ara-tirmidhi', urd: 'urd-tirmidhi', eng: 'eng-tirmidhi' } },
+        { id: 'abudawud', name: 'Sunan Abu Dawud', cover: 'assets/sunan abu dawud.png', color: 'linear-gradient(135deg, #a78bfa, #7c3aed)', editions: { ara: 'ara-abudawud', urd: 'urd-abudawud', eng: 'eng-abudawud' } },
+        { id: 'nasai', name: 'Sunan Nasai', cover: 'assets/sunan abu nasai.png', color: 'linear-gradient(135deg, #f472b6, #db2777)', editions: { ara: 'ara-nasai', urd: 'urd-nasai', eng: 'eng-nasai' } },
+        { id: 'ibnmajah', name: 'Sunan Ibn Majah', cover: 'assets/Sunan ibn majah.png', color: 'linear-gradient(135deg, #4ade80, #16a34a)', editions: { ara: 'ara-ibnmajah', urd: 'urd-ibnmajah', eng: 'eng-ibnmajah' } }
     ];
 
     let currentHadiths = [];
@@ -625,10 +625,14 @@ import { auth } from './firebase.js';
         booksGrid.innerHTML = BOOKS.map(book => `
             <div class="card" onclick="window.loadHadithBook('${book.id}')" 
                  style="padding:25px 15px; text-align:center; cursor:pointer; background:${book.color}; border:none; border-radius:18px; box-shadow:0 8px 20px rgba(0,0,0,0.2); transition:transform 0.2s; position:relative; overflow:hidden;">
-                <div style="font-size:3em; margin-bottom:10px;">${book.icon}</div>
-                <div style="font-weight:800; color:#fff; font-size:1.1em; letter-spacing:-0.5px;">${book.name}</div>
-                <div style="font-size:0.7em; color:rgba(255,255,255,0.8); margin-top:5px; text-transform:uppercase; font-weight:700;">Full Collection</div>
-                <div style="position:absolute; top:-10%; right:-10%; font-size:5em; opacity:0.1;">${book.icon}</div>
+                <div style="margin-bottom:15px; position:relative; z-index:2;">
+                    <img src="${book.cover}" alt="${book.name}" style="width:70px; height:70px; object-fit:contain; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.3));">
+                </div>
+                <div style="font-weight:800; color:#fff; font-size:1.1em; letter-spacing:-0.5px; position:relative; z-index:2;">${book.name}</div>
+                <div style="font-size:0.7em; color:rgba(255,255,255,0.8); margin-top:5px; text-transform:uppercase; font-weight:700; position:relative; z-index:2;">Full Collection</div>
+                <div style="position:absolute; top:-10%; right:-10%; width:120px; opacity:0.1; transform:rotate(15deg); filter:brightness(0) invert(1);">
+                     <img src="${book.cover}" style="width:100%;">
+                </div>
             </div>
         `).join('');
     }
