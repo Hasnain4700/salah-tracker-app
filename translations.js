@@ -40,8 +40,8 @@ export const translations = {
         "ob_start_btn": "Next ➜",
 
         // Features (More Section)
-        "feature_tree": "Jannat ka Darakht",
-        "feature_tree_desc": "Your Deeds Tree",
+        "feature_tree": "Deeds Tree",
+        "feature_tree_desc": "Grow your paradise garden",
         "feature_twins": "Deen Twins",
         "feature_twins_desc": "Salah Accountability Partner",
         "feature_qaza": "Qaza-e-Umri Tracker",
@@ -52,7 +52,7 @@ export const translations = {
         "feature_series_desc": "Read and learn from series",
         "feature_bg": "Background Mode",
         "feature_bg_desc": "Fix Adhan & Counter issues",
-        "feature_quran_read": "Quran Read",
+        "feature_quran_read": "Quran Reading",
         "feature_quran_read_desc": "Read and understand Quran",
         "feature_zakat": "Zakat Calculator",
         "feature_zakat_desc": "Calculate your Zakat",
@@ -60,40 +60,52 @@ export const translations = {
         "feature_masjid_desc": "Find nearby Masajid",
         "hadith_title": "Daily Hadith",
 
-        // Deen Twins Enhancement
-        "twins_global_btn": "Global Partner (Random) 🌍",
-        "twins_private_btn": "Invite a Friend (Get Code) 🏢",
-        "twins_join_title": "Already have a code?",
-        "twins_join_btn": "Join Partner",
-        "twins_my_code_label": "Your Invite Code",
-        "twins_share_desc": "Share this code with your friend. They can join using the button below.",
-        "twins_cancel_btn": "Cancel Request",
-        "twins_finding_global": "Searching for a global partner... ⏳",
+        // Deeds Tree (Jannat ka Darakht)
+        "tree_health": "Health",
+        "tree_status_1": "Tree is drying up! (Pray more!) 🍂",
+        "tree_status_2": "Tree is weak. Needs care. 🌱",
+        "tree_status_3": "MashaAllah! Tree is lush and green. 🌳",
+        "tree_status_4": "SubhanAllah! It's become a garden of Paradise! 🌺",
 
-        // Stats
-        "streak_title": "Salah Streak",
-        "streak_desc": "Consistency is key! 🔑",
-        "days": "Days",
-        "xp_progress": "XP PROGRESS",
-        "prayer_history_monthly": "Prayer History (Monthly)",
-        "prayed": "Prayed",
-        "not_prayed": "Not Prayed",
+        // Good Deeds
+        "deed_1_title": "Smiling", "deed_1_desc": "Smile at someone, it's charity.",
+        "deed_2_title": "Helping Family", "deed_2_desc": "Help a family member with a chore.",
+        "deed_3_title": "Surah Ikhlas x3", "deed_3_desc": "Recite it 3 times for reward of whole Quran.",
+        "deed_4_title": "Dua for Friend", "deed_4_desc": "Make a sincere dua for a friend.",
+        "deed_5_title": "Give Charity", "deed_5_desc": "Give a small amount to a poor person or mosque.",
+        "deed_6_title": "Forgiving Someone", "deed_6_desc": "Forgive someone for the sake of Allah.",
+        "deed_7_title": "Quran Page", "deed_7_desc": "Read at least one page of the Quran.",
+        "deed_8_title": "100x Astaghfirullah", "deed_8_desc": "Recite it 100 times for forgiveness.",
+        "deed_9_title": "Contact Relatives", "deed_9_desc": "Call or message a relative.",
+        "deed_10_title": "Share Islamic Msg", "deed_10_desc": "Send a Hadith or Quranic verse to someone.",
 
-        // Durood Expansion
-        "durood_ibrahim_ar": "اَللّٰھُمَّ صَلِّ عَلٰی مُحَمَّدٍ وَّعَلٰی اٰلِ مُحَمَّدٍ کَمَا صَلَّیْتَ عَلٰٓی اِبْرَاھِیْمَ وَعَلٰٓی اٰلِ اِبْرَاھِیْمَ اِنَّکَ حَمِیْدٌ مَّجِیْدٌ اَللّٰھُمَّ بَارِکْ عَلٰی مُحَمَّدٍ وَّعَلٰی اٰلِ مُحَمَّدٍ کَمَا بَارَکْتَ عَلٰٓی اِبْرَاھِیْمَ وَعَلٰٓی اٰلِ اِبْرَاھِیْمَ اِنَّکَ حَمِیْدٌ مَّجِیْدٌ",
-        "ref_ibrahim": "The famous companion Ka'ab bin Ujrah narrates that when asked how blessings should be sent to the Prophet (SAW), he replied in this manner. It is the most authentic and widely recited Durood.",
+        // Alerts & Status
+        "marked_prayed": "You marked this as Prayed",
+        "marked_missed": "You marked this as Missed",
+        "settings_saved": "Settings Saved!",
+        "rewards_mubarak": "Congratulations! You earned 10 rewards.",
+        "gps_help": "To reset GPS:\n1. Tap the 🔒 or ℹ️ icon in address bar.\n2. Reset or Allow Location permission.\n3. Refresh page.",
+        "zakat_nisab_not_met": "Nisab Not Met",
+        "zakat_due": "Total Zakat Due",
 
-        "durood_nahariya_ar": "اَللَّهُمَّ صَلِّ صَلَوٰةً كَامِلَةً وَسَلِّمْ سَلَامًا تَامًّا عَلَىٰ سَيِّدِنَا مُحَمَّدِ الَّذِي تَنْحَلُّ بِهِ الْعُقَدُ وَتَنْفَرِجُ بِهِ الْكُرَبُ وَتُقْضَىٰ بِهِ الْحَوَائِجُ وَتُنَالُ بِهِ الرَّغَائِبُ وَحُسْنُ الْخَوَاتِمِ وَيُسْتَسْقَى الْغَمَامُ بِوَجْهِهِ الْكَرِيمِ وَعَلَىٰ آلِهِ وَصَحْبِهِ فِي كُلِّ لَمْحَةٍ وَنَفَسٍ بِعَدَدِ كُلِّ مَعْلُومٍ لَكَ يَا اَللَّهُ يَا اَللَّهُ يَا اَللَّهُ",
-        "ref_nahariya": "Durood-e-Nahariya is a great power. If it is recited daily, it will give such strength and power to the reciter that no one on earth will be able to subdue him. It is a grand success in all the affairs of the world. It help's the reciter from unknown quarters and overcomes every barrier safely and soundly.",
-
-        "durood_fatih_ar": "اَللَّهُمَّ صَلِّ وَسَلِّمْ وَبَارِكْ عَلَىٰ سَيِّدِنَا مُحَمَّدِ الْفَاتِحِ لِمَا أُغْلِقَ وَالْخَاتِمِ لِمَا سَبَقَ نَاصِرِ الْحَقِّ بِالْحَقِّ وَالْهَادِي إِلَىٰ صِرَاطِكَ الْمُسْتَقِيمِ صَلَّى اللَّهُ عَلَيْهِ وَعَلَىٰ آلِهِ وَأَصْحَابِهِ حَقَّ قَدْرِهِ وَمِقْدَارِهِ الْعَظِيمِ",
-        "ref_fatih": "This Durood Shareef is in the Holy Quran but was kept secret. Reciting it daily relieves from the fire of Hell and brings 100% success and happiness. It solves complex problems by the Grace of Allah. When a man recites it, Angels of Allah surround him and mercy covers him.",
-
-        "durood_shafii_ar": "اَللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ كُلَّمَا ذَكَرَهُ الذَّاكِرُونَ وَكُلَّمَا غَفَلَ عَنْ ذِكْرِهِ الْغَافِلُونَ",
-        "ref_shafii": "Hadrat Imam Shafi'i used to recite it constantly and received glad tidings of Jannah. It brings tremendous prosperity, health, happiness and success in this world and the hereafter. It is of very great significance.",
-
-        "durood_dawaami_ar": "اَللَّهُمَّ صَلِّ عَلَىٰ سَيِّدِنَا مُحَمَّدٍ وَعَلَىٰ آلِ سَيِّدِنَا مُحَمَّدٍ عَدَدَ مَا فِي عِلْمِ اللَّهِ صَلَوٰةً دَائِمَةً بِدَوَامِ مُلْكِ اللَّهِ",
-        "ref_dawaami": "Reciting it only once amounts to rewards of all Duroods. One gets peace of mind and success in this world and the next. It brings relief and true happiness. Pious people and Saints recommend this for those in need.",
+        // app2.js Features
+        "qibla_loc_required": "Location required for Qibla",
+        "qibla_dist_from_makkah": "km from Makkah",
+        "bg_alive_title": "Keep App Alive 🔋",
+        "bg_alive_desc": "To ensure Adhan and counter work in the background, please disable battery optimization for this app.",
+        "bg_battery_steps": "1. Long-press <b>App Icon</b><br>2. Tap <b>App Info (i)</b><br>3. Go to <b>Battery</b><br>4. Set to <b>'Unrestricted'</b>",
+        "bg_ios_alert": "Ensure 'Low Power Mode' is OFF and Notifications are ON for best results.",
+        "quran_load_fail": "Failed to load Surahs. Check connection.",
+        "quran_loading_verses": "Loading Verses... 📖",
+        "quran_verses_fail": "Failed to load verses.",
+        "masjid_searching": "Searching nearby Masajid... 🕌",
+        "masjid_not_found": "No masajid found within 5km.",
+        "masjid_error": "Error searching Masajid.",
+        "masjid_location_error": "Location access denied or not found.<br>Please enable GPS and refresh.",
+        "partner_prayed": "Status: Has Prayed",
+        "partner_status": "Status",
+        "mark_as_prayed": "Mark {0} as Prayed",
+        "mark_as_missed": "Mark {0} as Missed",
 
         // Auth
         "auth_google_login": "Login with Google",
@@ -161,40 +173,52 @@ export const translations = {
         "feature_masjid_desc": "Qareeb tareen masajid dhoondein",
         "hadith_title": "Daily Hadith",
 
-        // Deen Twins Enhancement
-        "twins_global_btn": "Global Partner (Random) 🌍",
-        "twins_private_btn": "Friend ko bulayein (Get Code) 🏢",
-        "twins_join_title": "Kya aapke paas code hai?",
-        "twins_join_btn": "Partner Join Karein",
-        "twins_my_code_label": "Aapka Invite Code",
-        "twins_share_desc": "Ye code apne dost ko bhejein taake wo join kar sakein.",
-        "twins_cancel_btn": "Request Khatam karein",
-        "twins_finding_global": "Global partner dhoonda ja raha hai... ⏳",
+        // Deeds Tree (Jannat ka Darakht)
+        "tree_health": "Sehat",
+        "tree_status_1": "Darakht sookh raha hai! (Pray more!) 🍂",
+        "tree_status_2": "Darakht kamzor hai. Needs care. 🌱",
+        "tree_status_3": "MashaAllah! Darakht hara bhara hai. 🌳",
+        "tree_status_4": "SubhanAllah! Jannat ka bagh ban gaya! 🌺",
 
-        // Stats
-        "streak_title": "Salah Streak",
-        "streak_desc": "Pabandi hi kamyabi hai! 🔑",
-        "days": "Din",
-        "xp_progress": "XP PROGRESS",
-        "prayer_history_monthly": "Mahana Attendance Chart",
-        "prayed": "Parh li",
-        "not_prayed": "Nahi Parhi",
+        // Good Deeds
+        "deed_1_title": "Muskurana", "deed_1_desc": "Kisi ko dekh kar muskurain, yeh bhi sadqa hai.",
+        "deed_2_title": "Ghar walon ki madad", "deed_2_desc": "Ghar ke kisi fard ki kisi kaam mein madad karein.",
+        "deed_3_title": "Surah Ikhlas 3 martaba", "deed_3_desc": "Surah Ikhlas teen dafa parhein, poore Quran ka sawab milega.",
+        "deed_4_title": "Dost ke liye dua", "deed_4_desc": "Apne kisi dost ke liye dil se dua karein.",
+        "deed_5_title": "Sadqa dena", "deed_5_desc": "Kisi gareeb ko ya masjid mein chhota sa sadqa dein.",
+        "deed_6_title": "Kisi ko maaf karna", "deed_6_desc": "Kisi ko Allah ki khatir maaf kar dein.",
+        "deed_7_title": "Quran ka aik safha", "deed_7_desc": "Quran ka kam az kam aik safha parhein.",
+        "deed_8_title": "100 martaba Astaghfirullah", "deed_8_desc": "100 dafa “Astaghfirullah” parhein.",
+        "deed_9_title": "Rishtedaron se rabta", "deed_9_desc": "Kisi rishtedar ko call ya message karein.",
+        "deed_10_title": "Islami paigham share karna", "deed_10_desc": "Kisi ko hadith ya Quran ki ayat bhejein.",
 
-        // Durood Expansion
-        "durood_ibrahim_ar": "اَللّٰھُمَّ صَلِّ عَلٰی مُحَمَّدٍ وَّعَلٰی اٰلِ مُحَمَّدٍ کَمَا صَلَّیْتَ عَلٰٓی اِبْرَاھِیْمَ وَعَلٰٓی اٰلِ اِبْرَاھِیْمَ اِنَّکَ حَمِیْدٌ مَّجِیْدٌ اَللّٰھُمَّ بَارِکْ عَلٰی مُحَمَّدٍ وَّعَلٰی اٰلِ مُحَمَّدٍ کَمَا بَارَکْتَ عَلٰٓی اِبْرَاھِیْمَ وَعَلٰٓی اٰلِ اِبْرَاھِیْمَ اِنَّکَ حَمِیْدٌ مَّجِیْدٌ",
-        "ref_ibrahim": "Hazrat Ka'ab bin Ujrah farmate hain ke jab Huzoor (SAW) se pucha gaya ke un par darood kaise bheja jaye, to aap ne ye darood sikhaya. Ye sab se mustanad darood hai.",
+        // Alerts & Status
+        "marked_prayed": "Aap ne namaz mark kar li",
+        "marked_missed": "Aap ne namaz miss mark ki",
+        "settings_saved": "Settings Mehfooz ho gayin!",
+        "rewards_mubarak": "Mubarak ho! Aapko 10 rewards mile.",
+        "gps_help": "GPS reset karne ke liye:\n1. Address bar mein 🔒 ya ℹ️ icon par tap karein.\n2. Location permission ko reset ya allow karein.\n3. Page ko refresh karein.",
+        "zakat_nisab_not_met": "Nisab poora nahi hai",
+        "zakat_due": "Total Zakat",
 
-        "durood_nahariya_ar": "اَللَّهُمَّ صَلِّ صَلَوٰةً كَامِلَةً وَسَلِّمْ سَلَامًا تَامًّا عَلَىٰ سَيِّدِنَا مُحَمَّدِ الَّذِي تَنْحَلُّ بِهِ الْعُقَدُ وَتَنْفَرِجُ بِهِ الْكُرَبُ وَتُقْضَىٰ بِهِ الْحَوَائِجُ وَتُنَالُ بِهِ الرَّغَائِبُ وَحُسْنُ الْخَوَاتِمِ وَيُسْتَسْقَى الْغَمَامُ بِوَجْهِهِ الْكَرِيمِ وَعَلَىٰ آلِهِ وَصَحْبِهِ فِي كُلِّ لَمْحَةٍ وَنَفَسٍ بِعَدَدِ كُلِّ مَعْلُومٍ لَكَ يَا اَللَّهُ يَا اَللَّهُ يَا اَللَّهُ",
-        "ref_nahariya": "Durood-e-Nahariya ek Azeem taqat hai. Rozana parhne se insan ko itni quwwat milti hai ke koi usay maghloob nahi kar sakta. Ye dunya ke har muamlay mein kamyabi lata hai aur mushkilat ko door karta hai.",
-
-        "durood_fatih_ar": "اَللَّهُمَّ صَلِّ وَسَلِّمْ وَبَارِكْ عَلَىٰ سَيِّدِنَا مُحَمَّدِ الْفَاتِحِ لِمَا أُغْلِقَ وَالْخَاتِمِ لِمَا سَبَقَ نَاصِرِ الْحَقِّ بِالْحَقِّ وَالْهَادِي إِلَىٰ صِرَاطِكَ الْمُسْتَقِيمِ صَلَّى اللَّهُ عَلَيْهِ وَعَلَىٰ آلِهِ وَأَصْحَابِهِ حَقَّ قَدْرِهِ وَمِقْدَارِهِ الْعَظِيمِ",
-        "ref_fatih": "Durood-e-Fath Quran mein tha par poshida rakha gaya. Rozana parhne se dozakh ki aag se nijaat milti hai aur 100% kamyabi aur khushi hasil hoti hai. Ye mushkil tareen masail bhi hal karta hai.",
-
-        "durood_shafii_ar": "اَللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ كُلَّمَا ذَكَرَهُ الذَّاكِرُونَ وَكُلَّمَا غَفَلَ عَنْ ذِكْرِهِ الْغَافِلُونَ",
-        "ref_shafii": "Hazrat Imam Shafi'i ye darood kasrat se parhte thay aur unhein Jannat ki basharat mili. Ye dunya aur akhirat mein azeem kamyabi, sehat aur khushi ka zariye hai.",
-
-        "durood_dawaami_ar": "اَللَّهُمَّ صَلِّ عَلَىٰ سَيِّدِنَا مُحَمَّدٍ وَعَلَىٰ آلِ سَيِّدِنَا مُحَمَّدٍ عَدَدَ مَا فِي عِلْمِ اللَّهِ صَلَوٰةً دَائِمَةً بِدَوَامِ مُلْكِ اللَّهِ",
-        "ref_dawaami": "Sirf ek baar parhne se tamaam Darood Pak ka sawab milta hai. Is se dil ko sukoon aur dunya-o-akhirat mein kamyabi milti hai. Ye pareshaniyon se nijat aur sachi khushi lata hai.",
+        // app2.js Features
+        "qibla_loc_required": "Qibla ke liye location zaroori hai",
+        "qibla_dist_from_makkah": "km Makkah se door",
+        "bg_alive_title": "App ko chalta rakhein 🔋",
+        "bg_alive_desc": "Adhan aur counter ko sahi chalane ke liye, battery optimization ko disable karein.",
+        "bg_battery_steps": "1. <b>App Icon</b> ko daba kar rakhein<br>2. <b>App Info (i)</b> par tap karein<br>3. <b>Battery</b> mein jayein<br>4. <b>'Unrestricted'</b> par set karein",
+        "bg_ios_alert": "Behtar results ke liye 'Low Power Mode' OFF rakhein.",
+        "quran_load_fail": "Surahs load nahi ho sakein. Internet check karein.",
+        "quran_loading_verses": "Ayat load ho rahi hain... 📖",
+        "quran_verses_fail": "Ayat load karne mein nakami.",
+        "masjid_searching": "Qareebi Masajid dhoondi ja rahi hain... 🕌",
+        "masjid_not_found": "5km ke andar koi masjid nahi mili.",
+        "masjid_error": "Masjid dhoondne mein ghalti hui.",
+        "masjid_location_error": "Location access nahi mila.<br>GPS on karein aur refresh karein.",
+        "partner_prayed": "Status: Namaz parh li",
+        "partner_status": "Status",
+        "mark_as_prayed": "{0} Parh Li",
+        "mark_as_missed": "{0} Miss ho gayi",
 
         // Auth
         "auth_google_login": "Google ke sath Login",
