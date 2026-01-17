@@ -86,8 +86,15 @@ manageConnection();
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js";
 
 // --- Multi-language Support Logic ---
+function t(key) {
+  const strings = translations[userLanguage] || translations['ur'];
+  return strings[key] || key;
+}
+window.t = t; // Expose globally
+
 function translateApp(lang = 'ur', save = false) {
   if (save) localStorage.setItem('userLanguage', lang);
+  userLanguage = lang;
   const strings = translations[lang];
   if (!strings) return;
 
@@ -95,7 +102,6 @@ function translateApp(lang = 'ur', save = false) {
     const key = el.getAttribute('data-i18n');
     const val = strings[key];
     if (val) {
-      // Use innerHTML if string contains tags or is a known text block
       if (val.includes('<') || key.includes('_text') || key.includes('_html')) {
         el.innerHTML = val;
       } else {
@@ -104,8 +110,10 @@ function translateApp(lang = 'ur', save = false) {
     }
   });
 
-  // Specifically handle prayer names in the tracker table and lists if they exist
-  // (We'll handle dynamic strings in their respective render functions)
+  // Re-render components that have dynamic text
+  if (typeof renderTree === 'function' && document.getElementById('feature-tree').style.display !== 'none') {
+    renderTree();
+  }
 }
 
 // Global variable to keep track
@@ -775,10 +783,7 @@ function updateLocationUI() {
 }
 
 function showGpsHelp() {
-  const msg = userLanguage === 'en'
-    ? "To reset GPS:\n1. Tap the 🔒 or ℹ️ icon in the address bar.\n2. Reset Location permission.\n3. Refresh the page."
-    : "GPS reset karne ke liye:\n1. Address bar mein 🔒 ya ℹ️ icon par tap karein.\n2. Location permission ko reset ya allow karein.\n3. Page ko refresh karein.";
-  alert(msg);
+  alert(t('gps_help'));
 }
 
 /**
@@ -1856,7 +1861,7 @@ function logPrayer(prayerName) {
       set(ref(db, `users/${user.uid}/rewards`), points).then(() => {
         rewardsPointsEl.textContent = points;
         // Show congratulatory message
-        alert('Mubarak ho! Aapko 10 rewards mile.');
+        alert(t('rewards_mubarak'));
         fetchAndDisplayTracker();
       });
     });
@@ -1930,10 +1935,10 @@ function updateMarkPrayerBtn() {
       markPrayerBtn.style.display = 'none';
       markMissedBtn.style.display = 'none';
       if (status === 'prayed') {
-        prayerStatusLabel.textContent = `You marked this as Prayed ✅`;
+        prayerStatusLabel.innerHTML = `${t('marked_prayed')} <img src="assets/tick.png" style="width:20px; vertical-align:middle;">`;
         prayerStatusLabel.style.color = '#6ee7b7';
       } else if (status === 'missed') {
-        prayerStatusLabel.textContent = `You marked this as Missed ❌`;
+        prayerStatusLabel.innerHTML = `${t('marked_missed')} ❌`;
         prayerStatusLabel.style.color = '#ff6b6b';
       } else {
         prayerStatusLabel.textContent = '';
@@ -1941,8 +1946,8 @@ function updateMarkPrayerBtn() {
     } else {
       markPrayerBtn.style.display = '';
       markMissedBtn.style.display = '';
-      markPrayerBtn.textContent = `Mark ${currentActivePrayer} as Prayed`;
-      markMissedBtn.textContent = `Mark ${currentActivePrayer} as Missed`;
+      markPrayerBtn.textContent = t('mark_as_prayed').replace('{0}', t(currentActivePrayer));
+      markMissedBtn.textContent = t('mark_as_missed').replace('{0}', t(currentActivePrayer));
       markPrayerBtn.disabled = false;
       markMissedBtn.disabled = false;
       prayerStatusLabel.textContent = '';
@@ -2155,101 +2160,21 @@ const goodDeedReflection = document.getElementById('good-deed-reflection');
 const goodDeedSaveReflection = document.getElementById('good-deed-save-reflection');
 
 const GOOD_DEED_CARDS = [
-  { title: 'Muskurana', desc: 'Kisi ko dekh kar muskurain, yeh bhi sadqa hai.' },
-  { title: 'Ghar walon ki madad', desc: 'Ghar ke kisi fard ki kisi kaam mein madad karein.' },
-  { title: 'Surah Ikhlas 3 martaba', desc: 'Surah Ikhlas teen dafa parhein, poore Quran ka sawab milega.' },
-  { title: 'Dost ke liye dua', desc: 'Apne kisi dost ke liye dil se dua karein.' },
-  { title: 'Sadqa dena', desc: 'Kisi gareeb ko ya masjid mein chhota sa sadqa dein.' },
-  { title: 'Kisi ko maaf karna', desc: 'Kisi ko Allah ki khatir maaf kar dein.' },
-  { title: 'Quran ka aik safha', desc: 'Quran ka kam az kam aik safha parhein.' },
-  { title: '100 martaba Astaghfirullah', desc: '100 dafa “Astaghfirullah” parhein.' },
-  { title: 'Rishtedaron se rabta', desc: 'Kisi rishtedar ko call ya message karein.' },
-  { title: 'Islami paigham share karna', desc: 'Kisi ko hadith ya Quran ki ayat bhejein.' },
-  { title: 'Pani pilana', desc: 'Kisi ko thanda pani pilain.' },
-  { title: 'Choti si madad', desc: 'Kisi ki choti si madad karein, jaise darwaza kholna.' },
-  { title: 'Subah Bismillah parhna', desc: 'Subah uth kar “Bismillah” parhein.' },
-  { title: 'Kisi ki tareef karna', desc: 'Kisi ki achi baat ki tareef karein.' },
-  { title: 'Apne liye dua', desc: 'Apne liye bhi Allah se dua karein.' },
-  { title: 'Kisi ko salam karna', desc: 'Aaj kam az kam 5 logon ko salam karein.' },
-  { title: 'Masjid ki safai', desc: 'Masjid ya ghar ki safai mein hissa lein.' },
-  { title: 'Buzurg ki madad', desc: 'Kisi buzurg ki madad karein.' },
-  { title: 'Choti bachon se pyaar', desc: 'Chote bachon se pyaar se pesh aayen.' },
-  { title: 'Kisi ki himmat barhana', desc: 'Kisi ko positive baat keh kar himmat barhain.' },
-  { title: 'Apne parents ki khidmat', desc: 'Aaj parents ki koi khidmat karein.' },
-  { title: 'Kisi ki ghalti ko nazarandaz', desc: 'Kisi ki choti ghalti ko maaf kar dein.' },
-  { title: 'Subah ki dua', desc: 'Subah uth kar Allah ka shukar ada karein.' },
-  { title: 'Kisi ko duaon mein yaad rakhna', desc: 'Aaj kisi ko apni duaon mein yaad rakhein.' },
-  { title: 'Kisi ko khush karna', desc: 'Kisi ko hansane ki koshish karein.' },
-  { title: 'Apne liye maghfirat ki dua', desc: 'Allah se apni maghfirat ki dua karein.' },
-  { title: 'Kisi ki madad bina bataye', desc: 'Chupke se kisi ki madad karein.' },
-  { title: 'Apne ghar walon ko shukriya', desc: 'Ghar walon ka shukriya ada karein.' },
-  { title: 'Kisi ko gift dena', desc: 'Kisi ko chota sa gift dein.' },
-  { title: 'Apne liye ilm hasil karna', desc: 'Aaj kuch naya seekhein.' },
-  { title: 'Kisi ki burai se bachna', desc: 'Aaj kisi ki burai na karein.' },
-  { title: 'Kisi ki madad ki niyyat', desc: 'Dil se sab ki madad ki niyyat karein.' },
-  { title: 'Apne liye sabr ki dua', desc: 'Allah se sabr ki dua karein.' },
-  { title: 'Kisi ko Quran sunana', desc: 'Kisi ko Quran ki tilawat sunayein.' },
-  { title: 'Kisi ki galti ko chhupa lena', desc: 'Kisi ki ghalti ko sab ke samne na laayen.' },
-  { title: 'Apne liye barkat ki dua', desc: 'Allah se rizq mein barkat ki dua karein.' },
-  { title: 'Kisi ko positive msg bhejna', desc: 'Kisi ko positive msg ya quote bhejein.' },
-  { title: 'Apne liye sehat ki dua', desc: 'Allah se sehat ki dua karein.' },
-  { title: 'Kisi ki tareef sab ke samne', desc: 'Kisi ki achi baat sab ke samne bayan karein.' },
-  { title: 'Apne liye hidayat ki dua', desc: 'Allah se hidayat ki dua karein.' },
-  { title: 'Kisi ko muskurahat dena', desc: 'Kisi ko hansane ki koshish karein.' },
-  { title: 'Apne liye duaon ki darkhwast', desc: 'Doston se apne liye dua ki darkhwast karein.' },
-  { title: 'Kisi ki madad karne ki dua', desc: 'Allah se madad karne ki taufeeq ki dua karein.' },
-  { title: 'Apne liye dosti ki dua', desc: 'Allah se ache doston ki dua karein.' },
-  { title: 'Kisi ko Quran ka paigham', desc: 'Kisi ko Quran ki ayat ka paigham dein.' },
-  { title: 'Apne liye imaan ki dua', desc: 'Allah se imaan ki mazbooti ki dua karein.' },
-  { title: 'Kisi ko chai pilana', desc: 'Kisi ko chai ya cold drink pilain.' },
-  { title: 'Apne liye barkat ki dua', desc: 'Allah se har kaam mein barkat ki dua karein.' },
-  { title: 'Kisi ko duaon mein yaad rakhna', desc: 'Kisi ko apni duaon mein yaad rakhein.' },
-  { title: 'Apne liye maghfirat ki dua', desc: 'Allah se apni maghfirat ki dua karein.' },
-  { title: 'Kisi ki madad bina bataye', desc: 'Chupke se kisi ki madad karein.' },
-  { title: 'Apne ghar walon ko shukriya', desc: 'Ghar walon ka shukriya ada karein.' },
-  { title: 'Kisi ko gift dena', desc: 'Kisi ko chota sa gift dein.' },
-  { title: 'Apne liye ilm hasil karna', desc: 'Aaj kuch naya seekhein.' },
-  { title: 'Kisi ki burai se bachna', desc: 'Aaj kisi ki burai na karein.' },
-  { title: 'Kisi ki madad ki niyyat', desc: 'Dil se sab ki madad ki niyyat karein.' },
-  { title: 'Apne liye sabr ki dua', desc: 'Allah se sabr ki dua karein.' },
-  { title: 'Kisi ko Quran sunana', desc: 'Kisi ko Quran ki tilawat sunayein.' },
-  { title: 'Kisi ki galti ko chhupa lena', desc: 'Kisi ki ghalti ko sab ke samne na laayen.' },
-  { title: 'Apne liye barkat ki dua', desc: 'Allah se rizq mein barkat ki dua karein.' },
-  { title: 'Kisi ko positive msg bhejna', desc: 'Kisi ko positive msg ya quote bhejein.' },
-  { title: 'Apne liye sehat ki dua', desc: 'Allah se sehat ki dua karein.' },
-  { title: 'Kisi ki tareef sab ke samne', desc: 'Kisi ki achi baat sab ke samne bayan karein.' },
-  { title: 'Apne liye hidayat ki dua', desc: 'Allah se hidayat ki dua karein.' },
-  { title: 'Kisi ko muskurahat dena', desc: 'Kisi ko hansane ki koshish karein.' },
-  { title: 'Apne liye duaon ki darkhwast', desc: 'Doston se apne liye dua ki darkhwast karein.' },
-  { title: 'Kisi ki madad karne ki dua', desc: 'Allah se madad karne ki taufeeq ki dua karein.' },
-  { title: 'Apne liye dosti ki dua', desc: 'Allah se ache doston ki dua karein.' },
-  { title: 'Kisi ko Quran ka paigham', desc: 'Kisi ko Quran ki ayat ka paigham dein.' },
-  { title: 'Apne liye imaan ki dua', desc: 'Allah se imaan ki mazbooti ki dua karein.' },
-  { title: 'Kisi ko chai pilana', desc: 'Kisi ko chai ya cold drink pilain.' },
-  // ... (add up to 100 unique cards in this style)
+  { key: 'deed_1' },
+  { key: 'deed_2' },
+  { key: 'deed_3' },
+  { key: 'deed_4' },
+  { key: 'deed_5' },
+  { key: 'deed_6' },
+  { key: 'deed_7' },
+  { key: 'deed_8' },
+  { key: 'deed_9' },
+  { key: 'deed_10' }
 ];
-
-function getUnlockedGoodDeedCount(rewards) {
-  return Math.floor(rewards / 100);
-}
-
-function shuffleArray(arr) {
-  // Fisher-Yates shuffle
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-// Show a random unlocked card (or last completed)
-let currentGoodDeedIndex = 0;
-let userGoodDeeds = [];
 
 goodDeedBtn.onclick = async () => {
   const user = auth.currentUser;
   if (!user) return;
-  // Fetch rewards, completed cards, and cycle
   const rewardsSnap = await get(ref(db, `users/${user.uid}/rewards`));
   const rewards = rewardsSnap.exists() ? rewardsSnap.val() : 0;
   const unlockedCount = getUnlockedGoodDeedCount(rewards);
@@ -2258,20 +2183,17 @@ goodDeedBtn.onclick = async () => {
   let deedsSnap = await get(ref(db, `users/${user.uid}/goodDeeds`));
   userGoodDeeds = deedsSnap.exists() ? deedsSnap.val() : [];
 
-  // If all cards completed, start new cycle
   if (userGoodDeeds.length === GOOD_DEED_CARDS.length && userGoodDeeds.every(d => d.completed)) {
     cycle++;
     await set(ref(db, `users/${user.uid}/goodDeedCycle`), cycle);
-    // Shuffle and reset
     const shuffled = shuffleArray([...Array(GOOD_DEED_CARDS.length).keys()]);
     userGoodDeeds = shuffled.map(idx => ({ index: idx, completed: false, reflection: '' }));
     await set(ref(db, `users/${user.uid}/goodDeeds`), userGoodDeeds);
   }
 
-  // If no cards unlocked yet
   if (unlockedCount === 0) {
-    goodDeedCardTitle.textContent = 'No Good Deed Cards Yet';
-    goodDeedCardDesc.textContent = 'Earn 100 rewards to unlock your first Good Deed Card!';
+    goodDeedCardTitle.textContent = userLanguage === 'en' ? 'No Good Deeds Yet' : 'Abhi koi naiki nahi';
+    goodDeedCardDesc.textContent = userLanguage === 'en' ? 'Earn 100 rewards to unlock your first card!' : 'Pehli naiki unlock karne ke liye 100 rewards hasil karein!';
     goodDeedCompleteBtn.style.display = 'none';
     goodDeedReflection.value = '';
     goodDeedReflection.style.display = 'none';
@@ -2280,12 +2202,10 @@ goodDeedBtn.onclick = async () => {
     return;
   }
 
-  // Show the first incomplete card, or last completed
   let idx = userGoodDeeds.findIndex(d => !d.completed);
   if (idx === -1) idx = userGoodDeeds.length - 1;
-  // Unlock new card if needed
+
   if (userGoodDeeds.length < unlockedCount) {
-    // Find not-yet-unlocked indices in this cycle
     const available = [...Array(GOOD_DEED_CARDS.length).keys()].filter(i => !userGoodDeeds.some(d => d.index === i));
     const randomIdx = available[Math.floor(Math.random() * available.length)];
     userGoodDeeds.push({ index: randomIdx, completed: false, reflection: '' });
@@ -2293,8 +2213,9 @@ goodDeedBtn.onclick = async () => {
     idx = userGoodDeeds.length - 1;
   }
   currentGoodDeedIndex = userGoodDeeds[idx].index;
-  goodDeedCardTitle.textContent = GOOD_DEED_CARDS[currentGoodDeedIndex].title;
-  goodDeedCardDesc.textContent = GOOD_DEED_CARDS[currentGoodDeedIndex].desc;
+  const cardKey = GOOD_DEED_CARDS[currentGoodDeedIndex].key;
+  goodDeedCardTitle.textContent = t(`${cardKey}_title`);
+  goodDeedCardDesc.textContent = t(`${cardKey}_desc`);
   goodDeedCompleteBtn.style.display = userGoodDeeds[idx].completed ? 'none' : '';
   goodDeedReflection.value = userGoodDeeds[idx].reflection || '';
   goodDeedReflection.style.display = '';
@@ -2624,20 +2545,20 @@ async function calculateTreeHealth() {
 
 async function renderTree() {
   const health = await calculateTreeHealth();
-  treeHealthText.textContent = `Health: ${health}%`;
+  treeHealthText.textContent = `${t('tree_health')}: ${health}%`;
 
   // Status Message
   if (health < 20) {
-    treeStatusMsg.textContent = "Darakht sookh raha hai! (Pray more!) 🍂";
+    treeStatusMsg.textContent = t('tree_status_1');
     treeStatusMsg.style.color = "#fbbf24";
   } else if (health < 50) {
-    treeStatusMsg.textContent = "Darakht kamzor hai. Needs care. 🌱";
+    treeStatusMsg.textContent = t('tree_status_2');
     treeStatusMsg.style.color = "#fcd34d";
   } else if (health < 80) {
-    treeStatusMsg.textContent = "MashaAllah! Darakht hara bhara hai. 🌳";
+    treeStatusMsg.textContent = t('tree_status_3');
     treeStatusMsg.style.color = "#6ee7b7";
   } else {
-    treeStatusMsg.textContent = "SubhanAllah! Jannat ka bagh ban gaya! 🌺";
+    treeStatusMsg.textContent = t('tree_status_4');
     treeStatusMsg.style.color = "#34d399";
   }
 
@@ -3646,7 +3567,7 @@ function updateHomeWidget(name, avatar, statusText, statusColor) {
   w.style.display = 'block';
   n.textContent = name;
   a.textContent = avatar;
-  s.textContent = statusText;
+  s.innerHTML = statusText;
   s.style.color = statusColor;
 }
 
@@ -3752,21 +3673,21 @@ function subscribeToPair(pairId, myUid) {
 
     if (pStatus === 'prayed' || pStatus === true) { // Handle legacy true or new 'prayed'
       if (partnerStatusEl) {
-        partnerStatusEl.textContent = `Status: Has Prayed ${currentPrayer} ✅`;
+        partnerStatusEl.innerHTML = `${t('partner_prayed')} ${currentPrayer} <img src="assets/tick.png" style="width:20px; vertical-align:middle;">`;
         partnerStatusEl.style.color = "#6ee7b7";
       }
-      widgetText = `${partnerData.name} prayed ${currentPrayer} ✅`;
+      widgetText = `${partnerData.name} prayed ${currentPrayer} <img src="assets/tick.png" style="width:18px; vertical-align:middle;">`;
       widgetColor = "#6ee7b7";
     } else if (pStatus === 'missed') {
       if (partnerStatusEl) {
-        partnerStatusEl.textContent = `Status: Missed ${currentPrayer} ❌`;
+        partnerStatusEl.innerHTML = `Status: Missed ${currentPrayer} ❌`;
         partnerStatusEl.style.color = "#ff6b6b"; // Red
       }
       widgetText = `${partnerData.name} missed ${currentPrayer} ❌`;
       widgetColor = "#ff6b6b";
     } else {
       if (partnerStatusEl) {
-        partnerStatusEl.textContent = `Status: Hasn't prayed ${currentPrayer} yet ⏳`;
+        partnerStatusEl.innerHTML = `Status: Hasn't prayed ${currentPrayer} yet ⏳`;
         partnerStatusEl.style.color = "#fcd34d";
       }
       widgetText = `Waiting for ${partnerData.name} (${currentPrayer}) ⏳`;
