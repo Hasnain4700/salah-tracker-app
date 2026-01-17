@@ -146,14 +146,22 @@ import { auth } from './firebase.js';
         }
     }
 
-    // Expose init to window for feature activation
+    // Expose init and cleanup to window for feature activation
     window.activateQibla = initQibla;
-
+    window.deactivateQibla = () => {
+        window.removeEventListener('deviceorientation', handleOrientation, true);
+        window.removeEventListener('deviceorientationabsolute', handleOrientation, true);
+        console.log("[Qibla] Sensor deactivated.");
+    };
     // Listen for feature opening (via navigation logic in app.js)
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
-            if (mutation.target.id === 'feature-qibla' && mutation.target.style.display !== 'none') {
-                window.activateQibla();
+            if (mutation.target.id === 'feature-qibla') {
+                if (mutation.target.style.display !== 'none') {
+                    window.activateQibla();
+                } else {
+                    if (typeof window.deactivateQibla === 'function') window.deactivateQibla();
+                }
             }
         });
     });
