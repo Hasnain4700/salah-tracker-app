@@ -201,7 +201,7 @@ const SyncQueue = {
   // CRITICAL FIX: Remove item from queue permanently
   removeItem: (index) => {
     const queue = SyncQueue.get();
-    queue.splice(index, 0);
+    queue.splice(index, 1);
     localStorage.setItem('sync_queue', JSON.stringify(queue));
   },
 
@@ -1654,8 +1654,15 @@ function fetchAndDisplayTracker() {
         const freshXP = data.xp || 0;
         const freshStats = data.stats || {};
 
+        // UPGRADE: Merge logic to prevent locally-marked prayers from being lost
+        const mergedLogs = { ...cachedLogs, ...freshLogs };
+        // Deep merge for nested dates
+        Object.keys(freshLogs).forEach(date => {
+          mergedLogs[date] = { ...(cachedLogs[date] || {}), ...freshLogs[date] };
+        });
+
         // Update Persistent Cache
-        PersistentCache.set(`logs_${user.uid}`, freshLogs);
+        PersistentCache.set(`logs_${user.uid}`, mergedLogs);
         PersistentCache.set(`rewards_${user.uid}`, freshRewards);
         PersistentCache.set(`xp_${user.uid}`, freshXP);
         PersistentCache.set(`stats_${user.uid}`, freshStats);
@@ -1663,8 +1670,8 @@ function fetchAndDisplayTracker() {
         // Update Globals
         rewards = freshRewards;
 
-        // Re-render with fresh data
-        renderTrackerUI(freshLogs, freshStats);
+        // Re-render with merged data
+        renderTrackerUI(mergedLogs, freshStats);
         rewardsPointsEl.textContent = freshRewards;
         updateXPUI(freshXP);
       }
@@ -1716,11 +1723,33 @@ function renderTrackerUI(logs, stats = null) {
     ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].forEach(p => {
       const dot = document.createElement('div');
       dot.className = 'status-dot';
-      if (dayPrayers[p] === 'prayed') {
+
+      let status = dayPrayers[p];
+
+      // UPGRADE: Auto-accountability for unmarked prayers
+      if (!status) {
+        if (dObj < now) {
+          // It's a past day, so any empty log is 'missed'
+          if (isToday) {
+            // If it's today, only mark as missed if the prayer time has already passed
+            const pTime = prayersWithTahajjud.find(pt => pt.name === p)?.time;
+            if (pTime) {
+              const [ph, pm] = pTime.split(':').map(Number);
+              const pDate = new Date(now);
+              pDate.setHours(ph, pm, 0, 0);
+              if (now > pDate) status = 'missed';
+            }
+          } else {
+            status = 'missed';
+          }
+        }
+      }
+
+      if (status === 'prayed') {
         dot.classList.add('prayed');
         totalPrayed++;
         totalTracked++;
-      } else if (dayPrayers[p] === 'missed') {
+      } else if (status === 'missed') {
         dot.classList.add('missed');
         totalMissed++;
         totalTracked++;
