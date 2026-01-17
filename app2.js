@@ -31,7 +31,7 @@ import { auth } from './firebase.js';
             navigator.geolocation.getCurrentPosition(pos => {
                 updateUserLocation(pos.coords.latitude, pos.coords.longitude);
             }, err => {
-                qiblaBearingText.textContent = "Location required for Qibla";
+                qiblaBearingText.textContent = t('qibla_loc_required');
             });
         }
 
@@ -45,7 +45,7 @@ import { auth } from './firebase.js';
         const distance = calculateDistance(lat, lng, KAABA_LAT, KAABA_LNG);
 
         qiblaBearingText.textContent = `Qibla: ${Math.round(qiblaBearing)}°`;
-        qiblaDistText.textContent = `${Math.round(distance).toLocaleString()} km from Makkah`;
+        qiblaDistText.textContent = `${Math.round(distance).toLocaleString()} ${t('qibla_dist_from_makkah')}`;
 
         // Position the Kaaba icon on the disk based on calculated bearing
         const kaabaIcon = document.getElementById('kaaba-pointer');
@@ -239,19 +239,16 @@ import { auth } from './firebase.js';
             const modal = document.createElement('div');
             modal.style = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1f2937;color:white;padding:25px;border-radius:20px;z-index:10000;width:85%;max-width:350px;box-shadow:0 10px 25px rgba(0,0,0,0.5);text-align:center;border:1px solid #374151;";
             modal.innerHTML = `
-                <h3 style="margin-top:0;color:#6ee7b7;">Keep App Alive 🔋</h3>
-                <p style="font-size:14px;line-height:1.5;color:#9ca3af;">To ensure Adhan and counter work in the background, please disable battery optimization for this app.</p>
+                <h3 style="margin-top:0;color:#6ee7b7;">${t('bg_alive_title')}</h3>
+                <p style="font-size:14px;line-height:1.5;color:#9ca3af;">${t('bg_alive_desc')}</p>
                 <div style="background:#111827;padding:10px;border-radius:10px;text-align:left;font-size:13px;margin:15px 0;">
-                    1. Long-press <b>App Icon</b><br>
-                    2. Tap <b>App Info (i)</b><br>
-                    3. Go to <b>Battery</b><br>
-                    4. Set to <b>'Unrestricted'</b>
+                    ${t('bg_battery_steps')}
                 </div>
                 <button onclick="this.parentElement.remove()" style="background:#374151;color:white;border:none;padding:10px 20px;border-radius:10px;">Got it</button>
             `;
             document.body.appendChild(modal);
         } else {
-            alert("Ensure 'Low Power Mode' is OFF and Notifications are ON for best results.");
+            alert(t('bg_ios_alert'));
         }
     };
 })();
@@ -345,7 +342,7 @@ import { auth } from './firebase.js';
             const data = await res.json();
             renderSurahList(data.chapters);
         } catch (err) {
-            surahListEl.innerHTML = `<div style="color:#ff6b6b; text-align:center;">Failed to load Surahs. Check connection.</div>`;
+            surahListEl.innerHTML = `<div style="color:#ff6b6b; text-align:center;">${t('quran_load_fail')}</div>`;
         }
     }
 
@@ -376,7 +373,7 @@ import { auth } from './firebase.js';
         surahListEl.style.display = 'none';
         versesViewEl.style.display = 'block';
         if (controlsEl) controlsEl.style.display = 'flex';
-        versesViewEl.innerHTML = `<div style="text-align:center; padding:20px; color:#94a3b8;">Loading Verses... 📖</div>`;
+        versesViewEl.innerHTML = `<div style="text-align:center; padding:20px; color:#94a3b8;">${t('quran_loading_verses')}</div>`;
 
         try {
             // Updated API: per_page=300 for full Surah, fields=text_uthmani to fix undefined text
@@ -384,7 +381,7 @@ import { auth } from './firebase.js';
             const data = await res.json();
             renderVerses(data.verses, name);
         } catch (err) {
-            versesViewEl.innerHTML = `<div style="color:#ff6b6b; text-align:center;">Failed to load verses.</div>`;
+            versesViewEl.innerHTML = `<div style="color:#ff6b6b; text-align:center;">${t('quran_verses_fail')}</div>`;
         }
     };
 
@@ -517,7 +514,7 @@ import { auth } from './firebase.js';
                     amountEl.textContent = `${Math.round(zakat).toLocaleString()} PKR`;
                     resultDiv.style.display = 'block';
                 } else {
-                    amountEl.textContent = "Nisab Not Met";
+                    amountEl.textContent = t('zakat_nisab_not_met');
                     amountEl.style.color = "#94a3b8";
                     resultDiv.style.display = 'block';
                 }
@@ -541,13 +538,12 @@ import { auth } from './firebase.js';
             listEl.innerHTML = `
                 <div style="text-align:center; padding:20px; color:#ff6b6b;">
                     <div style="font-size:2em; margin-bottom:10px;">⚠️</div>
-                    Location access denied or not found.<br>
-                    Please enable GPS and refresh the app.
+                    ${t('masjid_location_error')}
                 </div>`;
             return;
         }
 
-        listEl.innerHTML = `<div style="text-align:center; padding:20px; color:#94a3b8;">Searching nearby Masajid... 🕌</div>`;
+        listEl.innerHTML = `<div style="text-align:center; padding:20px; color:#94a3b8;">${t('masjid_searching')}</div>`;
 
         try {
             // Overpass API Query: Mosque within 5km
@@ -559,10 +555,10 @@ import { auth } from './firebase.js';
             if (data.elements && data.elements.length > 0) {
                 renderMasajid(data.elements);
             } else {
-                listEl.innerHTML = `<div style="text-align:center; padding:20px; color:#94a3b8;">No masajid found within 5km. Try increasing range in future updates.</div>`;
+                listEl.innerHTML = `<div style="text-align:center; padding:20px; color:#94a3b8;">${t('masjid_not_found')}</div>`;
             }
         } catch (err) {
-            listEl.innerHTML = `<div style="text-align:center; padding:20px; color:#ff6b6b;">Error searching Masajid. Please try again later.</div>`;
+            listEl.innerHTML = `<div style="text-align:center; padding:20px; color:#ff6b6b;">${t('masjid_error')}</div>`;
         }
     }
 
