@@ -300,7 +300,10 @@
       <div style="position:absolute;top:-10px;right:-10px;font-size:5em;opacity:0.1;transform:rotate(10deg);">✨</div>
       <div style="display:flex;justify-content:space-between;align-items:center;position:relative;z-index:2;">
         <div style="display:flex;align-items:center;gap:12px;">
-          <div style="font-size:1.6em;filter: drop-shadow(0 0 8px rgba(110, 231, 183, 0.6));">✨</div>
+          <div
+            style="font-size:1.6em; filter: drop-shadow(0 0 8px rgba(110, 231, 183, 0.6)); display:flex; align-items:center;">
+            <img src="assets/mosque.png" style="width:32px; height:32px; object-fit:contain;">
+          </div>
           <div style="text-align:left;">
             <div style="font-weight:700;font-size:1.1em;color:#fff;">Global Salawat</div>
             <div style="font-size:0.8em;color:rgba(255,255,255,0.8);">Read & Contribute 🤲</div>
@@ -402,7 +405,11 @@
   <!-- Donate Section -->
   <div class="container" id="donate-section" style="display:none">
     <div class="card donate-card" style="text-align:center;">
-      <h2 style="font-size:2em;margin-bottom:0.2em;">🤲 Sadqa-e-Jariya</h2>
+      <h2
+        style="font-size:1.8em; margin-bottom:0.5em; display:flex; align-items:center; justify-content:center; gap:10px;">
+        <img src="assets/donation.png" style="width:40px; height:40px; object-fit:contain;">
+        Sadqa-e-Jariya
+      </h2>
       <div id="donate-heart-icon" style="font-size:2.2em;margin-bottom:0.2em;color:#ff6b81;cursor:pointer;">❤️</div>
 
       <!-- Trust Message -->
@@ -467,7 +474,7 @@
       <!-- Verification Form Trigger -->
       <button id="btn-show-claim-form"
         style="width:100%; border:none; border-radius:12px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:#fff; padding:16px; font-weight:700; font-size:1.1em; cursor:pointer; box-shadow:0 6px 20px rgba(16, 185, 129, 0.4); margin-bottom:15px; position:relative; overflow:hidden;">
-        I Have Donated ✅
+        I Have Donated <img src="assets/tick.png" style="width:20px; vertical-align:middle; margin-left:5px;">
       </button>
 
       <!-- Verification Form (Hidden Initially) -->
@@ -478,7 +485,8 @@
       </div>
 
       <button id="donate-submit-btn" class="thirty-day-btn"
-        style="margin-bottom:14px;width:100%;background:#6ee7b7;color:#222; font-weight:700;">Submit Claim ✅</button>
+        style="margin-bottom:14px;width:100%;background:#6ee7b7;color:#222; font-weight:700;">Submit Claim <img
+          src="assets/tick.png" style="width:18px; vertical-align:middle; margin-left:3px;"></button>
 
       <div id="user-donation-status" style="margin:10px 0; font-size:0.95em;"></div>
     </div>
@@ -498,7 +506,7 @@
   <!-- Quran Audio Section (replaces Qibla) -->
   <div class="container" id="quran-section" style="display:none">
     <div class="card" style="text-align:center;">
-      <h2>📖 Quran Audio</h2>
+      <h2 style="font-size:1.6em; margin-bottom:0.8em;">📖 Quran Pak Reading Section</h2>
       <div id="quran-audio-list" style="margin-bottom:18px;"></div>
       <audio id="quran-audio-player" controls style="width:100%;outline:none;">
         <source id="quran-audio-source" src="" type="audio/mp3">
@@ -560,7 +568,8 @@
     <div class="stat-card-premium history-card-wrap">
       <div class="history-card-header">
         <div class="history-title-side">
-          <span class="history-ico">📅</span>
+          <span class="history-ico"><img src="assets/stats.png"
+              style="width:24px; vertical-align:middle; margin-right:8px;"></span>
           <span class="history-txt" data-i18n="prayer_history_monthly">Prayer History (Monthly)</span>
         </div>
       </div>
@@ -1022,7 +1031,7 @@
           style="background:rgba(110,231,183,0.1); border:none; color:#6ee7b7; font-size:1.2em; cursor:pointer; width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; margin-right:15px;">&#8592;</button>
         <div>
           <h2 id="library-title" style="margin:0; font-size:1.3em; color:#fff; font-weight:800; letter-spacing:-0.5px;">
-            Hadith Library</h2>
+            Hadith Reading Section</h2>
           <div id="library-subtitle" style="font-size:0.85em; color:#94a3b8; font-weight:500;">Choose a collection</div>
         </div>
       </div>
@@ -1331,7 +1340,7 @@
       <div style="display:flex;align-items:center;margin-bottom:16px;">
         <button id="quran-read-back-btn"
           style="background:none;border:none;color:#6ee7b7;font-size:1.2em;cursor:pointer;padding: 0 12px 0 0;">&#8592;</button>
-        <h2 style="margin:0;font-size:1.3em;">Quran Read</h2>
+        <h2 style="margin:0;font-size:1.3em;">Quran Pak Reading Section</h2>
         <div id="quran-controls" style="margin-left:auto; display:none; align-items:center; gap:10px;">
           <span style="font-size:0.7em; color:#94a3b8;">Aa</span>
           <input type="range" id="quran-font-size" min="1.2" max="3.0" step="0.1" value="1.8"
@@ -1429,10 +1438,10 @@
 
   <!-- Bottom Navigation -->
   <nav class="bottom-nav">
-    <button class="nav-btn"><span class="nav-icon">🏠</span></button>
-    <button class="nav-btn"><span class="nav-icon">🤲</span></button>
+    <button class="nav-btn"><span class="nav-icon"><img src="assets/mosque.png" alt="Prayer"></span></button>
+    <button class="nav-btn"><span class="nav-icon"><img src="assets/donation.png" alt="Donation"></span></button>
     <button class="nav-btn"><span class="nav-icon">📖</span></button>
-    <button class="nav-btn"><span class="nav-icon">📊</span></button>
+    <button class="nav-btn"><span class="nav-icon"><img src="assets/stats.png" alt="Stats"></span></button>
     <button class="nav-btn"><span class="nav-icon">☰</span></button>
   </nav>
 
