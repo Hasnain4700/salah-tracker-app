@@ -156,10 +156,11 @@ async function updateStickyNotification() {
 
   try {
     if (self.registration && self.registration.active) {
+      const baseUrl = self.registration.scope;
       await self.registration.showNotification(title, {
         body: bodyText,
-        icon: "./notif-premium-icon.png", // Use premium icon for native feel
-        badge: "./icon-192.png",
+        icon: baseUrl + "notif-premium-icon.png", // Use premium icon for native feel
+        badge: baseUrl + "icon-192.png",
         tag: 'prayer-counter',
         renotify: false,
         silent: true,
@@ -167,7 +168,8 @@ async function updateStickyNotification() {
         actions: [
           { action: 'open_app', title: 'Open App' },
           { action: 'mark_prayed_notif', title: 'Mark as Prayed' }
-        ]
+        ],
+        data: { url: baseUrl }
       });
     }
   } catch (e) {
@@ -183,16 +185,20 @@ function triggerAdhanAlert(prayerName) {
     body = "Don't delay! Win against your struggle. 💪";
   }
   if (self.registration && self.registration.active) {
+    // FIX: Construction of absolute URL for sound and links to avoid 404s
+    const baseUrl = self.registration.scope;
+
     self.registration.showNotification(title, {
       body: body,
-      icon: "./icon-192.png",
-      badge: "./icon-192.png",
+      icon: baseUrl + "notif-premium-icon.png",
+      badge: baseUrl + "icon-192.png",
       vibrate: [500, 110, 500, 110, 450, 110, 200, 110, 170, 40, 450, 110, 200, 110, 170, 40, 500],
       tag: 'prayer-alert',
-      sound: './tones/azan_tone.mp3', // Note: Browser support for custom sounds in webpush is limited
-      data: { url: self.location.origin + '/' },
+      sound: baseUrl + 'tones/azan_tone.mp3',
+      data: { url: baseUrl },
       requireInteraction: true,
-      silent: false
+      silent: false,
+      renotify: true
     });
   }
 }
@@ -234,16 +240,16 @@ self.addEventListener('notificationclick', (event) => {
   const notification = event.notification;
   notification.close();
 
-  const urlToOpen = self.location.origin + '/';
+  const baseUrl = self.registration.scope;
+  const urlToOpen = (notification.data && notification.data.url) ? notification.data.url : baseUrl;
 
   if (action === 'mark_prayed_notif') {
     // Logic to handle "Mark as Prayed" from notification
-    // We open the app with a specific parameter to trigger the marking logic
     event.waitUntil(
       self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
         for (var i = 0; i < windowClients.length; i++) {
           var client = windowClients[i];
-          if (client.url.includes(self.location.origin) && 'focus' in client) {
+          if (client.url.startsWith(baseUrl) && 'focus' in client) {
             client.postMessage({ type: 'MARK_CURRENT_PRAYER', prayer: notification.title });
             return client.focus();
           }
@@ -259,7 +265,7 @@ self.addEventListener('notificationclick', (event) => {
       self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
         for (var i = 0; i < windowClients.length; i++) {
           var client = windowClients[i];
-          if (client.url.includes(self.location.origin) && 'focus' in client) return client.focus();
+          if (client.url.startsWith(baseUrl) && 'focus' in client) return client.focus();
         }
         if (self.clients.openWindow) return self.clients.openWindow(urlToOpen);
       })
@@ -285,7 +291,7 @@ self.addEventListener('periodicsync', (event) => {
 });
 
 // --- Caching Logic ---
-const CACHE_NAME = 'salah-tracker-v4.8';
+const CACHE_NAME = 'salah-tracker-v4.9';
 const ASSETS = [
   './',
   './index.html',
