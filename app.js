@@ -556,19 +556,7 @@ async function checkAndTriggerPrayerNotifications(prayers) {
     if (diff > 0) {
       console.log(`Scheduling notification for ${p.name} in ${Math.round(diff / 1000 / 60)} mins`);
 
-      // Timer 1: Main Adhan Alert for the user themselves
-      const timer = setTimeout(() => {
-        let title = "Adhan Alert! 🕌";
-        let body = `It is time for ${p.name}. May Allah accept your prayers.`;
-
-        if (p.name === userStrugglePrayer) {
-          title = `⚠️ High Priority: ${p.name}`;
-          body = `This is your struggle prayer! Don't let Shaytan win. Stand up now for Allah. 💪`;
-        }
-
-        sendFCMNotificationv1(myToken, title, body, 'azan_tone');
-      }, diff);
-      scheduledTimeouts.push(timer);
+      // Timer 1: Main Adhan Alert - REMOVED (Handled by SW and Server FCM to avoid duplicates)
 
       // Timer 2: Check Partner Status (20 mins later)
       const partnerCheckTimer = setTimeout(() => {
@@ -1269,7 +1257,20 @@ onAuthStateChanged(auth, user => {
       userCalcMethod = data.calcMethod || 2;
       userDisplayName = data.displayName || user.email.split('@')[0];
       userStrugglePrayer = data.strugglePrayer || "";
+
+      // Load Internal Adhan Settings
+      window.internalAdhanEnabled = data.internalAdhanEnabled || false;
+      window.selectedAdhanTone = data.selectedAdhanTone || 'azan_tone.mp3';
+
+      const internalAdhanToggle = document.getElementById('settings-internal-adhan-toggle');
+      const adhanToneSelect = document.getElementById('settings-adhan-tone');
+      if (internalAdhanToggle) internalAdhanToggle.checked = window.internalAdhanEnabled;
+      if (adhanToneSelect) adhanToneSelect.value = window.selectedAdhanTone;
+
       localStorage.setItem('userStrugglePrayer', userStrugglePrayer);
+
+      // Initialize Internal Adhan Manager
+      InternalAdhanManager.init();
 
       // Now that offsets are loaded, we can fetch/refresh prayer times
       fetchPrayerTimes(currentDate);
@@ -4575,5 +4576,151 @@ document.addEventListener('click', (e) => {
   window.backToEpisodeList = () => {
     if (articleView) articleView.style.display = 'none';
     if (episodeListView) episodeListView.style.display = 'block';
+  };
+
+  // =============================================================================
+  // 10. INTERNAL ADHAN AUDIO MANAGER
+  // =============================================================================
+  window.InternalAdhanManager = {
+    audioPlayer: new Audio(),
+    checkInterval: null,
+    isKeepAliveActive: false,
+    lastTriggeredKey: "", // Deduplication key for Internal Adhan
+
+    init() {
+      console.log("[AdhanManager] Initializing...");
+      this.attachListeners();
+      this.startMinuteChecker();
+      this.setupKeepAlive();
+    },
+
+    attachListeners() {
+      const toggle = document.getElementById('settings-internal-adhan-toggle');
+      const select = document.getElementById('settings-adhan-tone');
+      const testBtn = document.getElementById('test-adhan-audio-btn');
+      const fileInput = document.getElementById('adhan-custom-file');
+
+      if (toggle) {
+        toggle.onchange = (e) => {
+          window.internalAdhanEnabled = e.target.checked;
+          this.saveSettings();
+        };
+      }
+
+      if (select) {
+        select.onchange = (e) => {
+          if (e.target.value === 'custom') {
+            fileInput.click();
+          } else {
+            window.selectedAdhanTone = e.target.value;
+            this.saveSettings();
+          }
+        };
+      }
+
+      if (fileInput) {
+        fileInput.onchange = (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            this.handleCustomUpload(file);
+          }
+        };
+      }
+
+      if (testBtn) {
+        testBtn.onclick = () => this.playAdhan(true);
+      }
+    },
+
+    saveSettings() {
+      const user = auth.currentUser;
+      if (!user) return;
+      update(ref(db, `users/${user.uid}`), {
+        internalAdhanEnabled: window.internalAdhanEnabled,
+        selectedAdhanTone: window.selectedAdhanTone
+      }).then(() => {
+        showToast("Adhan settings saved! 🔊", "success");
+      });
+    },
+
+    async handleCustomUpload(file) {
+      if (file.size > 5 * 1024 * 1024) {
+        showToast("File too large! Max 5MB.", "error");
+        return;
+      }
+      showToast("Saving custom Adhan...", "info");
+
+      // Convert to Base64 for local storage (simpler than IDB for now)
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        window.selectedAdhanTone = e.target.result; // Data URL
+        this.saveSettings();
+        showToast("Custom Adhan set! ✅", "success");
+      };
+      reader.readAsDataURL(file);
+    },
+
+    startMinuteChecker() {
+      if (this.checkInterval) clearInterval(this.checkInterval);
+      this.checkInterval = setInterval(() => {
+        if (!window.internalAdhanEnabled) return;
+
+        const now = new Date();
+        const currentTime = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+
+        // Check if any prayer matches
+        if (typeof prayersWithTahajjud !== 'undefined') {
+          const match = prayersWithTahajjud.find(p => p.time === currentTime);
+          const todayStr = new Date().toDateString();
+          const triggerKey = match ? `${match.name}_${todayStr}` : "";
+
+          if (match && match.name !== 'Sunrise' && this.lastTriggeredKey !== triggerKey) {
+            this.lastTriggeredKey = triggerKey;
+            console.log(`[AdhanManager] Time for ${match.name}! Playing...`);
+            this.playAdhan();
+          }
+        }
+      }, 60000); // Check every minute
+    },
+
+    playAdhan(isTest = false) {
+      if (!isTest && !window.internalAdhanEnabled) return;
+
+      const tone = window.selectedAdhanTone || 'azan_tone.mp3';
+      const source = tone.startsWith('data:') ? tone : `tones/${tone}`;
+
+      this.audioPlayer.src = source;
+      this.audioPlayer.volume = 1.0;
+
+      this.audioPlayer.play().then(() => {
+        console.log("[AdhanManager] Audio started.");
+        if (!isTest) showToast("Time for Prayer! 🕌", "success");
+
+        // Update Media Session for lock screen visibility
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: isTest ? 'Adhan Test' : 'Time for Salah',
+            artist: 'Salah Tracker',
+            album: 'Prayer Alert',
+            artwork: [{ src: 'notif-premium-icon.png', sizes: '512x512', type: 'image/png' }]
+          });
+        }
+      }).catch(e => {
+        console.warn("[AdhanManager] Autoplay blocked or error:", e);
+        if (isTest) showToast("Playback blocked. Click again.", "warning");
+      });
+    },
+
+    setupKeepAlive() {
+      // Browsers often pause JS in the background. 
+      // A trick to minimize this is to play a very short silent audio periodically 
+      // or use the Media Session API to keep the context active.
+      document.addEventListener('click', () => {
+        if (!this.isKeepAliveActive) {
+          console.log("[AdhanManager] Keep-alive context initialized via user click.");
+          this.isKeepAliveActive = true;
+        }
+      }, { once: true });
+    }
   };
 }
