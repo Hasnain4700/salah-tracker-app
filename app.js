@@ -1276,10 +1276,12 @@ onAuthStateChanged(auth, user => {
       fetchPrayerTimes(currentDate);
       // Check if new user needs onboarding
       checkOnboardingStatus(user.uid, data);
+
+      // CRITICAL FIX: Update UI after settings (offsets) are loaded
+      updateMarkPrayerBtn();
     });
 
     fetchAndDisplayTracker();
-    updateMarkPrayerBtn();
     checkForAppNotification();
 
     // Check for app updates
@@ -1603,23 +1605,26 @@ function listenToGlobalCounts() {
     // Assuming it exists or we use the 'nextPrayer' logic to derive current.
 
     let currentPrayerName = 'Fajr'; // Default
-    if (typeof getCurrentPrayerContext === 'function') {
+    if (typeof currentActivePrayer !== 'undefined' && currentActivePrayer) {
+      currentPrayerName = currentActivePrayer;
+    } else if (typeof getCurrentPrayerContext === 'function') {
       currentPrayerName = getCurrentPrayerContext();
     } else {
-      // Fallback or duplicate logic if function is missing/moved
-      // Simple logic: find last started prayer
-      // (This duplicate is safe to ensure robustness)
+      // Robust Fallback (Matches Dashboard Logic)
       const now = new Date();
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
       if (prayersWithTahajjud && prayersWithTahajjud.length > 0) {
-        for (let i = prayersWithTahajjud.length - 1; i >= 0; i--) {
-          const p = prayersWithTahajjud[i];
-          const [h, m] = p.time.split(':').map(Number);
-          if (currentMinutes >= h * 60 + m) {
-            currentPrayerName = p.name;
+        let activeIndex = -1;
+        for (let i = 0; i < prayersWithTahajjud.length; i++) {
+          const [h, m] = prayersWithTahajjud[i].time.split(':').map(Number);
+          const pDate = new Date(now);
+          pDate.setHours(h, m, 0, 0);
+          if (pDate > now) {
+            activeIndex = (i - 1 + prayersWithTahajjud.length) % prayersWithTahajjud.length;
             break;
           }
         }
+        if (activeIndex === -1) activeIndex = prayersWithTahajjud.length - 1;
+        currentPrayerName = prayersWithTahajjud[activeIndex].name;
       }
     }
 
