@@ -372,9 +372,9 @@ async function requestNotificationPermission() {
     const messaging = getMessaging(app);
     const vapidKey = 'BBeVQ0f8nC--oymwOnsGfla9p5AB5h37TEPpf1EMY0QTz4pbdPjlmqn-8Rkjw8sAE71ksSnkqcvRpA7M0_64FBE';
 
-    const swUrl = './firebase-messaging-sw.js?v=4.7';
-    const registration = await navigator.serviceWorker.register('firebase-messaging-sw.js?v=4.7');
-    console.log("[FCM] Service Worker registered (v4.7)");
+    const swUrl = './firebase-messaging-sw.js?v=4.8';
+    const registration = await navigator.serviceWorker.register('firebase-messaging-sw.js?v=4.8');
+    console.log("[FCM] Service Worker registered (v4.8)");
 
     // Wait for the service worker to be active
     if (!registration.active) {
@@ -483,6 +483,39 @@ async function requestNotificationPermission() {
     }
   }
 }
+
+// --- Receive Message from Service Worker (Premium Notif Actions) ---
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'MARK_CURRENT_PRAYER') {
+      console.log('[App] Received Mark as Prayed from Notification');
+      // Wait for app state to be ready
+      setTimeout(() => {
+        if (typeof currentActivePrayer !== 'undefined' && currentActivePrayer) {
+          logPrayerStatus(currentActivePrayer, 'prayed');
+        }
+      }, 500);
+    }
+  });
+}
+
+// Check for deep link from notification action
+window.addEventListener('load', () => {
+  if (window.location.hash === '#mark_current') {
+    // Wait a bit for auth to settle
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // Wait for prayers to be calculated
+        setTimeout(() => {
+          if (typeof currentActivePrayer !== 'undefined' && currentActivePrayer) {
+            logPrayerStatus(currentActivePrayer, 'prayed');
+            window.location.hash = ''; // Clear hash
+          }
+        }, 1000);
+      }
+    });
+  }
+});
 
 // --- Scheduled Prayer Notifications Logic ---
 // We keep this modular so it can be moved to Cloud Functions later.
@@ -2014,8 +2047,8 @@ const QURAN_PARAS = [
   { file: "Quran para's urdu/para_4.mp3", label: 'Para 4 - Urdu translation' },
   { file: "Quran para's urdu/para_5.mp3", label: 'Para 5 - Urdu translation' },
   { file: "Quran para's urdu/para_6.mp3", label: 'Para 6 - Urdu translation' },
-  { file: "Quran para's urdu/para_7.mp3", label: 'Para 7 - Urdu translation' },
-  { file: "Quran para's urdu/para_8.mp3", label: 'Para 8 - Urdu translation' },
+  { file: "Quran para's urdu/para_7.mp3", label: 'Para 1 - Urdu translation' },
+  { file: "Quran para's urdu/para_8.mp3", label: 'Para 1 - Urdu translation' },
   { file: "Quran para's urdu/para_9.mp3", label: 'Para 9 - Urdu translation' },
   { file: "Quran para's urdu/para_10.mp3", label: 'Para 10 - Urdu translation' },
   { file: "Quran para's urdu/para_11.mp3", label: 'Para 11 - Urdu translation' },
