@@ -149,21 +149,25 @@ async function updateStickyNotification() {
   // Format Countdown Label
   const countdownLabel = hrs > 0 ? `-${hrs}h ${mins}m` : `-${mins}m`;
 
-  // Sticky Notification Update
+  // Sticky Notification Update (PREMIUM UPGRADE)
   const isStruggle = next.name === strugglePrayer;
-  const title = isStruggle ? `⚠️ Next: ${next.name} (Struggle)` : `🕌 Next: ${next.name}`;
+  const title = isStruggle ? `⚠️ ${next.name} (Priority)` : `${next.name} Salah`;
+  const bodyText = `${timeLabel} • ${countdownLabel}`;
 
   try {
     if (self.registration && self.registration.active) {
       await self.registration.showNotification(title, {
-        body: `${timeLabel} • ${countdownLabel}`,
-        icon: "./icon-192.png",
+        body: bodyText,
+        icon: "./notif-premium-icon.png", // Use premium icon for native feel
         badge: "./icon-192.png",
         tag: 'prayer-counter',
         renotify: false,
         silent: true,
-        ongoing: true, // Key for sticky
-        placeholder: "Salah Tracker"
+        ongoing: true,
+        actions: [
+          { action: 'open_app', title: 'Open App' },
+          { action: 'mark_prayed_notif', title: 'Mark as Prayed' }
+        ]
       });
     }
   } catch (e) {
@@ -226,17 +230,41 @@ if (messaging) {
 }
 
 self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
+  const action = event.action;
+  const notification = event.notification;
+  notification.close();
+
   const urlToOpen = self.location.origin + '/';
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      for (var i = 0; i < windowClients.length; i++) {
-        var client = windowClients[i];
-        if (client.url === urlToOpen && 'focus' in client) return client.focus();
-      }
-      if (self.clients.openWindow) return self.clients.openWindow(urlToOpen);
-    })
-  );
+
+  if (action === 'mark_prayed_notif') {
+    // Logic to handle "Mark as Prayed" from notification
+    // We open the app with a specific parameter to trigger the marking logic
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+        for (var i = 0; i < windowClients.length; i++) {
+          var client = windowClients[i];
+          if (client.url.includes(self.location.origin) && 'focus' in client) {
+            client.postMessage({ type: 'MARK_CURRENT_PRAYER', prayer: notification.title });
+            return client.focus();
+          }
+        }
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(urlToOpen + '#mark_current');
+        }
+      })
+    );
+  } else {
+    // Default click or "Open App" action
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+        for (var i = 0; i < windowClients.length; i++) {
+          var client = windowClients[i];
+          if (client.url.includes(self.location.origin) && 'focus' in client) return client.focus();
+        }
+        if (self.clients.openWindow) return self.clients.openWindow(urlToOpen);
+      })
+    );
+  }
 });
 
 self.addEventListener('sync', (event) => {
@@ -257,7 +285,7 @@ self.addEventListener('periodicsync', (event) => {
 });
 
 // --- Caching Logic ---
-const CACHE_NAME = 'salah-tracker-v4.7';
+const CACHE_NAME = 'salah-tracker-v4.8';
 const ASSETS = [
   './',
   './index.html',
@@ -269,6 +297,7 @@ const ASSETS = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
+  './notif-premium-icon.png',
   './twa-manifest.json',
   './tones/azan_tone.mp3',
   './tones/reminder_tone.mp3'
