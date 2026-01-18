@@ -291,7 +291,7 @@ self.addEventListener('periodicsync', (event) => {
 });
 
 // --- Caching Logic ---
-const CACHE_NAME = 'salah-tracker-v4.9';
+const CACHE_NAME = 'salah-tracker-v5.0';
 const ASSETS = [
   './',
   './index.html',
