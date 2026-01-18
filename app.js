@@ -372,9 +372,9 @@ async function requestNotificationPermission() {
     const messaging = getMessaging(app);
     const vapidKey = 'BBeVQ0f8nC--oymwOnsGfla9p5AB5h37TEPpf1EMY0QTz4pbdPjlmqn-8Rkjw8sAE71ksSnkqcvRpA7M0_64FBE';
 
-    const swUrl = './firebase-messaging-sw.js?v=4.9';
-    const registration = await navigator.serviceWorker.register('firebase-messaging-sw.js?v=4.9');
-    console.log("[FCM] Service Worker registered (v4.9)");
+    const swUrl = './firebase-messaging-sw.js?v=5.0';
+    const registration = await navigator.serviceWorker.register('firebase-messaging-sw.js?v=5.0');
+    console.log("[FCM] Service Worker registered (v5.0)");
 
     // Wait for the service worker to be active
     if (!registration.active) {
@@ -4471,6 +4471,82 @@ document.addEventListener('click', (e) => {
     if (articleView) articleView.style.display = 'none';
     if (seriesHeaderTitle) seriesHeaderTitle.textContent = "Islamic Series";
   };
+
+  // =============================================================================
+  // ADHAN SETUP GUIDE LOGIC
+  // =============================================================================
+  const adhanSetupModal = document.getElementById('adhan-setup-modal');
+  const adhanSetupBtn = document.getElementById('adhan-setup-btn');
+  const adhanSetupClose = document.getElementById('adhan-setup-close');
+  const downloadAzanBtn = document.getElementById('download-azan-btn');
+  const testNotifBtn = document.getElementById('test-notif-btn');
+  const adhanSetupDoneBtn = document.getElementById('adhan-setup-done-btn');
+
+  if (adhanSetupBtn) {
+    adhanSetupBtn.onclick = () => {
+      if (adhanSetupModal) adhanSetupModal.style.display = 'flex';
+    };
+  }
+
+  if (adhanSetupClose) {
+    adhanSetupClose.onclick = () => {
+      if (adhanSetupModal) adhanSetupModal.style.display = 'none';
+    };
+  }
+
+  if (adhanSetupDoneBtn) {
+    adhanSetupDoneBtn.onclick = () => {
+      if (adhanSetupModal) adhanSetupModal.style.display = 'none';
+      showToast("MashaAllah! Adhan setup complete. ✅", "success");
+    };
+  }
+
+  if (downloadAzanBtn) {
+    downloadAzanBtn.onclick = async () => {
+      try {
+        showToast("Downloading Azan tone...", "info");
+        const response = await fetch('tones/azan_tone.mp3');
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'azan_tone.mp3';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        showToast("Downloaded! Now set it in Android Settings.", "success");
+      } catch (e) {
+        console.error("Download failed:", e);
+        showToast("Download failed. Please try again.", "error");
+      }
+    };
+  }
+
+  if (testNotifBtn) {
+    testNotifBtn.onclick = async () => {
+      if (!('serviceWorker' in navigator)) {
+        showToast("Service Worker not supported.", "error");
+        return;
+      }
+      const registration = await navigator.serviceWorker.ready;
+      if (registration.active) {
+        const baseUrl = registration.scope;
+        registration.showNotification("🔔 Test Prayer Alert", {
+          body: "This is a test to check your Azan sound settings.",
+          icon: baseUrl + "notif-premium-icon.png",
+          badge: baseUrl + "icon-192.png",
+          tag: 'prayer-alert',
+          renotify: true,
+          requireInteraction: true,
+          vibrate: [200, 100, 200]
+        });
+        showToast("Test notification sent!", "info");
+      } else {
+        showToast("Service Worker not active yet.", "warning");
+      }
+    };
+  }
 
   window.backToSeriesFlow = () => {
     if (articleView && articleView.style.display === 'block') {
