@@ -183,6 +183,35 @@
           </div>
         </div>
 
+        <!-- Adhan Audio Group -->
+        <div class="settings-section-title" style="margin: 20px 24px 8px;">Adhan Audio Settings</div>
+        <div class="settings-group-card">
+          <div class="settings-item-row" style="cursor: default;">
+            <div class="settings-item-icon">🔊</div>
+            <div class="settings-item-label">In-App Adhan</div>
+            <label class="switch" style="margin-left:auto;">
+              <input type="checkbox" id="settings-internal-adhan-toggle">
+              <span class="slider round"></span>
+            </label>
+          </div>
+          <div class="settings-item-row" style="cursor: default;">
+            <div class="settings-item-icon">🎵</div>
+            <div class="settings-item-label">Adhan Tone</div>
+            <select id="settings-adhan-tone" class="settings-list-control">
+              <option value="azan_tone.mp3">Makkah (Default)</option>
+              <option value="azan_madinah.mp3">Madinah</option>
+              <option value="azan_fajr.mp3">Fajr Special</option>
+              <option value="custom">Upload Custom...</option>
+            </select>
+          </div>
+          <input type="file" id="adhan-custom-file" style="display:none;" accept="audio/*">
+          <div class="settings-item-row" id="test-adhan-audio-btn" style="cursor: pointer;">
+            <div class="settings-item-icon">🔔</div>
+            <div class="settings-item-label">Test Adhan Sound</div>
+            <div class="settings-item-chevron">&#8250;</div>
+          </div>
+        </div>
+
         <div class="settings-group-card">
           <div class="settings-item-row" id="adhan-setup-btn"
             style="border-bottom: 1px dashed rgba(110, 231, 183, 0.3);">
