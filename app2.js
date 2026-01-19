@@ -438,7 +438,16 @@ import { auth } from './firebase.js';
                     // Reset other buttons
                     document.querySelectorAll('.quran-verse-text button').forEach(b => b.textContent = '▶');
                     btn.textContent = '⏸';
-                    quranAudio.onended = () => { btn.textContent = '▶'; };
+                    quranAudio.onended = () => {
+                        btn.textContent = '▶';
+                        // NEW: Increment Global Stat for this Surah
+                        const surahId = key.split(':')[0];
+                        try {
+                            const db = window.FirebaseExports.getDatabase();
+                            const statRef = window.FirebaseExports.ref(db, `globalStats/quran/${surahId}`);
+                            window.FirebaseExports.runTransaction(statRef, (current) => (current || 0) + 1);
+                        } catch (e) { console.warn("Stat inc failed", e); }
+                    };
                 }).catch(err => {
                     console.warn("Auto-play blocked:", err);
                     btn.textContent = '▶';
@@ -837,5 +846,1002 @@ import { auth } from './firebase.js';
     });
     const lTarget = document.getElementById('feature-library');
     if (lTarget) obs.observe(lTarget, { attributes: true, attributeFilter: ['style'] });
+
+})();
+
+// --- PERSONAL RANK & QURAN STATS MODULE ---
+(function () {
+    // 1. Personalized Rank Logic
+    async function checkUserRank() {
+        const badgeEl = document.getElementById('user-rank-badge');
+        if (!badgeEl) return;
+
+        const user = auth.currentUser;
+        if (!user) {
+            badgeEl.innerHTML = 'Sign in for Rank 🔒';
+            return;
+        }
+
+        try {
+            // Fetch Top 15 Users by XP
+            const topUsersRef = window.FirebaseExports.query(
+                window.FirebaseExports.ref(window.FirebaseExports.getDatabase(), 'users'),
+                window.FirebaseExports.orderByChild('xp'),
+                window.FirebaseExports.limitToLast(15)
+            );
+
+            const snapshot = await window.FirebaseExports.get(topUsersRef);
+            if (snapshot.exists()) {
+                const users = [];
+                snapshot.forEach(child => {
+                    users.push({ uid: child.key, xp: child.val().xp || 0 });
+                });
+                // Sort descending (highest XP first)
+                users.sort((a, b) => b.xp - a.xp);
+
+                const myRank = users.findIndex(u => u.uid === user.uid);
+
+                if (myRank !== -1) {
+                    const rank = myRank + 1;
+                    let icon = '🏅';
+                    if (rank === 1) icon = '👑';
+                    if (rank === 2) icon = '🥈';
+                    if (rank === 3) icon = '🥉';
+
+                    badgeEl.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                    badgeEl.style.border = '1px solid #34d399';
+                    badgeEl.style.boxShadow = '0 2px 10px rgba(16, 185, 129, 0.4)';
+                    badgeEl.innerHTML = `${icon} You're Top #${rank}!`;
+                } else {
+                    badgeEl.style.background = 'rgba(0,0,0,0.3)';
+                    badgeEl.style.border = '1px solid rgba(255,255,255,0.1)';
+                    badgeEl.style.boxShadow = 'none';
+                    badgeEl.innerHTML = `Keep Praying! 🚀`; // Motivational fallback
+                }
+            }
+        } catch (e) {
+            console.warn("Rank fetch failed:", e);
+            badgeEl.style.display = 'none';
+        }
+    }
+
+    // Run rank check on load and auth change
+    window.FirebaseExports.onAuthStateChanged(window.FirebaseExports.getAuth(), (user) => {
+        if (user) setTimeout(checkUserRank, 3000);
+    });
+
+
+    // 2. Quran Global Counts Logic
+    // We hook into the existing renderSurahList function by overriding it safely or adding a listener
+    // Since app2.js is modular, we can add a listener to the `surahListEl` mutation or just run this periodically.
+
+    async function updateSurahCounts() {
+        const surahListEl = document.getElementById('quran-surah-list');
+        if (!surahListEl || surahListEl.style.display === 'none') return;
+
+        // Fetch global stats for Quran
+        try {
+            const statsRef = window.FirebaseExports.ref(window.FirebaseExports.getDatabase(), 'globalStats/quran');
+            const snap = await window.FirebaseExports.get(statsRef);
+            const stats = snap.val() || {};
+
+            // Iterate over surah cards and update badges
+            // We assume the card has the Surah ID in its onclick or text content
+            // Currently app2.js renders cards with onclick="window.loadSurah(ID, ...)"
+            // maximizing usage of existing DOM structure
+
+            const cards = surahListEl.querySelectorAll('.card');
+            cards.forEach(card => {
+                const onClickAttr = card.getAttribute('onclick');
+                if (onClickAttr) {
+                    const match = onClickAttr.match(/loadSurah\((\d+),/);
+                    if (match && match[1]) {
+                        const surahId = match[1];
+                        const count = stats[surahId] || 0;
+
+                        // Check if badge already exists
+                        let badge = card.querySelector('.quran-count-badge');
+                        if (!badge) {
+                            badge = document.createElement('div');
+                            badge.className = 'quran-count-badge';
+                            badge.style = "font-size:0.7em; color:#94a3b8; margin-top:4px; display:flex; align-items:center; gap:3px;";
+                            // Insert below name
+                            const nameContainer = card.querySelector('div:first-child');
+                            if (nameContainer) nameContainer.appendChild(badge);
+                        }
+                        badge.innerHTML = `🎧 Played ${count.toLocaleString()} times`;
+                    }
+                }
+            });
+
+        } catch (e) {
+            console.warn("Quran stats update failed", e);
+        }
+    }
+
+    // Observer to trigger update when list is rendered
+    const obs = new MutationObserver((muts) => {
+        if (document.getElementById('quran-surah-list').children.length > 5) {
+            updateSurahCounts();
+        }
+    });
+    const listTarget = document.getElementById('quran-surah-list');
+    if (listTarget) obs.observe(listTarget, { childList: true });
+
+    // Hook into Play Event to increment counter
+    // We wrap the original window.playAyah if possible, or just add a global listener for audio play
+    // Since playAyah is async and defines onended, let's hook into `quranAudio` property if exposed, 
+    // BUT app2.js defines `let quranAudio` inside a closure. 
+    // Strategy: We will expose a public increment function and call it from `playAyah` by modifying app2.js source directly above.
+
+    // Actually, distinct from above, I will Use transaction directly here for simplicity
+    window.incrementQuranStat = async (surahId) => {
+        // Logic to identify Surah from Verse Key? 
+        // Verse Key format: "1:1" -> Surah 1
+        // We'll need to pass Surah ID to playAyah or parse it.
+    }
+
+})();
+
+// --- PERSONAL RANK & QURAN STATS MODULE ---
+(function () {
+    // Helper to ensure Firebase is ready (Retry Logic)
+    function waitForFirebase(callback) {
+        if (window.FirebaseExports && window.FirebaseExports.getAuth) {
+            callback();
+        } else {
+            // Retry every 500ms
+            setTimeout(() => waitForFirebase(callback), 500);
+        }
+    }
+
+    // 1. Personalized Rank Logic
+    async function checkUserRank() {
+        const badgeEl = document.getElementById('user-rank-badge');
+        if (!badgeEl) return;
+
+        if (!window.FirebaseExports) return;
+        const auth = window.FirebaseExports.getAuth();
+        const user = auth.currentUser;
+
+        if (!user) {
+            badgeEl.innerHTML = 'Sign in for Rank 🔒';
+            return;
+        }
+
+        try {
+            const db = window.FirebaseExports.getDatabase();
+            const topUsersRef = window.FirebaseExports.query(
+                window.FirebaseExports.ref(db, 'users'),
+                window.FirebaseExports.orderByChild('xp'),
+                window.FirebaseExports.limitToLast(15)
+            );
+
+            const snapshot = await window.FirebaseExports.get(topUsersRef);
+            if (snapshot.exists()) {
+                const users = [];
+                snapshot.forEach(child => {
+                    users.push({ uid: child.key, xp: child.val().xp || 0 });
+                });
+                // Sort descending
+                users.sort((a, b) => b.xp - a.xp);
+
+                const myRank = users.findIndex(u => u.uid === user.uid);
+
+                if (myRank !== -1) {
+                    const rank = myRank + 1;
+                    let icon = '🏅';
+                    if (rank === 1) icon = '👑';
+                    if (rank === 2) icon = '🥈';
+                    if (rank === 3) icon = '🥉';
+
+                    badgeEl.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                    badgeEl.style.border = '1px solid #34d399';
+                    badgeEl.innerHTML = `${icon} You're Top #${rank}!`;
+                } else {
+                    badgeEl.innerHTML = `Keep Praying! 🚀`;
+                }
+            } else {
+                badgeEl.innerHTML = `Keep Praying! 🚀`;
+            }
+        } catch (e) {
+            console.warn("Rank fetch failed:", e);
+            badgeEl.innerHTML = `Rank Unavail.`;
+        }
+    }
+
+    // 2. Quran Global Counts Logic
+    async function updateSurahCounts() {
+        const surahListEl = document.getElementById('quran-surah-list');
+        if (!surahListEl || surahListEl.style.display === 'none') return;
+
+        if (!window.FirebaseExports) return;
+
+        try {
+            const db = window.FirebaseExports.getDatabase();
+            const statsRef = window.FirebaseExports.ref(db, 'globalStats/quran');
+            const snap = await window.FirebaseExports.get(statsRef);
+            const stats = snap.val() || {};
+
+            const cards = surahListEl.querySelectorAll('.card');
+            cards.forEach(card => {
+                const onClickAttr = card.getAttribute('onclick');
+                if (onClickAttr) {
+                    const match = onClickAttr.match(/loadSurah\((\d+),/);
+                    if (match && match[1]) {
+                        const surahId = match[1];
+                        const count = stats[surahId] || 0;
+
+                        // Always try to update or add badge
+                        let badge = card.querySelector('.quran-count-badge');
+                        if (count > 0) {
+                            if (!badge) {
+                                badge = document.createElement('div');
+                                badge.className = 'quran-count-badge';
+                                badge.style = "font-size:0.75em; color:#94a3b8; margin-top:5px; display:flex; align-items:center; gap:4px; font-weight:600;";
+                                const nameContainer = card.querySelector('div:first-child');
+                                if (nameContainer) nameContainer.appendChild(badge);
+                            }
+                            badge.textContent = `🎧 Played ${count.toLocaleString()} times`;
+                        }
+                    }
+                }
+            });
+        } catch (e) {
+            console.warn("Quran stats update failed", e);
+        }
+    }
+
+    // Initialize logic when Firebase is ready
+    waitForFirebase(() => {
+        // Initial Rank Check
+        const auth = window.FirebaseExports.getAuth();
+        window.FirebaseExports.onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setTimeout(checkUserRank, 2500); // Wait for auth init
+                setInterval(checkUserRank, 30000); // Periodic refresh
+            }
+        });
+
+        // Quran Stats Observer
+        const obs = new MutationObserver((muts) => {
+            const list = document.getElementById('quran-surah-list');
+            if (list) {
+                if (window.quranStatsTimeout) clearTimeout(window.quranStatsTimeout);
+                window.quranStatsTimeout = setTimeout(updateSurahCounts, 200);
+            }
+        });
+        const listTarget = document.getElementById('quran-surah-list');
+        if (listTarget) obs.observe(listTarget, { childList: true });
+    });
+
+})();
+
+// --- PERSONAL RANK & QURAN STATS MODULE ---
+(function () {
+    function waitForFirebase(callback) {
+        if (window.FirebaseExports && window.FirebaseExports.getAuth) {
+            callback();
+        } else {
+            setTimeout(() => waitForFirebase(callback), 500);
+        }
+    }
+
+    // 1. Personalized Rank Logic
+    async function checkUserRank() {
+        const badgeEl = document.getElementById('user-rank-badge');
+        if (!badgeEl) return;
+
+        if (!window.FirebaseExports) return;
+        const auth = window.FirebaseExports.getAuth();
+        const user = auth.currentUser;
+
+        if (!user) {
+            badgeEl.innerHTML = '<span style="font-size:1.2em">🔒</span> Sign in to see Rank';
+            return;
+        }
+
+        try {
+            const db = window.FirebaseExports.getDatabase();
+            const topUsersRef = window.FirebaseExports.query(
+                window.FirebaseExports.ref(db, 'users'),
+                window.FirebaseExports.orderByChild('xp'),
+                window.FirebaseExports.limitToLast(15)
+            );
+
+            const snapshot = await window.FirebaseExports.get(topUsersRef);
+            if (snapshot.exists()) {
+                const users = [];
+                snapshot.forEach(child => {
+                    users.push({ uid: child.key, xp: child.val().xp || 0 });
+                });
+                users.sort((a, b) => b.xp - a.xp);
+
+                const myRank = users.findIndex(u => u.uid === user.uid);
+
+                if (myRank !== -1) {
+                    const rank = myRank + 1;
+                    let icon = '🏅';
+                    if (rank === 1) icon = '👑';
+                    if (rank === 2) icon = '🥈';
+                    if (rank === 3) icon = '🥉';
+
+                    badgeEl.style.background = 'linear-gradient(135deg, #065f46 0%, #047857 100%)';
+                    badgeEl.style.border = '1px solid #10b981';
+                    badgeEl.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.2)';
+                    badgeEl.innerHTML = `${icon} MashAllah! You are <b>Top #${rank}</b>`;
+                } else {
+                    badgeEl.style.background = 'rgba(30, 41, 59, 0.6)';
+                    badgeEl.style.border = '1px solid rgba(255,255,255,0.1)';
+                    badgeEl.style.boxShadow = 'none';
+                    badgeEl.innerHTML = `Keep Praying to reach Top 15! 🚀`;
+                }
+            } else {
+                badgeEl.innerHTML = `Keep Praying! 🚀`;
+            }
+        } catch (e) {
+            console.warn("Rank fetch failed:", e);
+            badgeEl.innerHTML = `Rank Unavail.`;
+        }
+    }
+
+    // 2. Quran Global Counts Logic (For Paras)
+    async function updateParaCounts() {
+        const paraListEl = document.getElementById('quran-audio-list');
+        if (!paraListEl) return;
+
+        if (!window.FirebaseExports) return;
+
+        try {
+            const db = window.FirebaseExports.getDatabase();
+            const statsRef = window.FirebaseExports.ref(db, 'globalStats/quran');
+            const snap = await window.FirebaseExports.get(statsRef);
+            const stats = snap.val() || {};
+
+            // The Para list likely contains buttons or divs with text "Para 1..."
+            const items = paraListEl.querySelectorAll('div, button, li, .card');
+
+            items.forEach(item => {
+                if (item.textContent && item.textContent.includes('Para ') && !item.querySelector('.quran-count-badge')) {
+                    const match = item.textContent.match(/Para (\d+)/);
+                    if (match && match[1]) {
+                        const paraId = match[1];
+                        const count = stats[`para_${paraId}`] || 0;
+
+                        if (count > 0) {
+                            const badge = document.createElement('span');
+                            badge.className = 'quran-count-badge';
+                            badge.style = "font-size:0.7em; color:#fff; background:#10b981; padding:2px 6px; border-radius:8px; display:inline-flex; align-items:center; margin-left:8px; font-weight:bold;";
+                            badge.innerHTML = `🎧 ${count}`;
+
+                            // Try to append to specific title container if possible, else just append
+                            if (item.tagName === 'BUTTON') {
+                                item.appendChild(badge);
+                            } else {
+                                // Look for a heading or first div
+                                const head = item.querySelector('h2, h3, h4, div');
+                                if (head) head.appendChild(badge);
+                                else item.appendChild(badge);
+                            }
+                            item.dataset.hasBadge = "true";
+                        }
+                    }
+                }
+            });
+
+        } catch (e) {
+            console.warn("Quran stats update failed", e);
+        }
+    }
+
+    // 3. Track Audio Plays
+    function trackParaUsage() {
+        const paraListEl = document.getElementById('quran-audio-list');
+        const player = document.getElementById('quran-audio-player');
+
+        if (!paraListEl || !player) return;
+
+        // Capture clicks to know which Para is playing
+        paraListEl.addEventListener('click', (e) => {
+            const target = e.target.closest('button, div');
+            if (target && target.textContent && target.textContent.includes('Para ')) {
+                const match = target.textContent.match(/Para (\d+)/);
+                if (match && match[1]) {
+                    player.setAttribute('data-current-para', match[1]);
+                }
+            }
+        });
+
+        // Hook into Ended event
+        player.onended = () => {
+            const paraId = player.getAttribute('data-current-para');
+            if (paraId && window.FirebaseExports) {
+                const db = window.FirebaseExports.getDatabase();
+                const statRef = window.FirebaseExports.ref(db, `globalStats/quran/para_${paraId}`);
+                window.FirebaseExports.runTransaction(statRef, (c) => (c || 0) + 1);
+                // UI update
+                setTimeout(updateParaCounts, 500);
+            }
+        };
+    }
+
+
+    // Initialize
+    waitForFirebase(() => {
+        // Rank
+        const auth = window.FirebaseExports.getAuth();
+        window.FirebaseExports.onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setTimeout(checkUserRank, 2500);
+                setInterval(checkUserRank, 30000);
+            }
+        });
+
+        // Quran Stats
+        // Run immediately and periodically
+        setTimeout(updateParaCounts, 1000);
+        setInterval(updateParaCounts, 5000);
+
+        // Setup Tracker
+        trackParaUsage();
+    });
+
+})();
+
+// --- PERSONAL RANK & QURAN STATS MODULE ---
+(function () {
+    function waitForFirebase(callback) {
+        if (window.FirebaseExports && window.FirebaseExports.getAuth) {
+            callback();
+        } else {
+            setTimeout(() => waitForFirebase(callback), 500);
+        }
+    }
+
+    // 1. Personalized Rank Logic
+    async function checkUserRank() {
+        const badgeEl = document.getElementById('user-rank-badge');
+        if (!badgeEl) return;
+
+        if (!window.FirebaseExports) return;
+        const auth = window.FirebaseExports.getAuth();
+        const user = auth.currentUser;
+
+        if (!user) {
+            badgeEl.innerHTML = '<span style="font-size:1.2em">🔒</span> Sign in to see Rank';
+            return;
+        }
+
+        try {
+            const db = window.FirebaseExports.getDatabase();
+            const topUsersRef = window.FirebaseExports.query(
+                window.FirebaseExports.ref(db, 'users'),
+                window.FirebaseExports.orderByChild('xp'),
+                window.FirebaseExports.limitToLast(15)
+            );
+
+            const snapshot = await window.FirebaseExports.get(topUsersRef);
+            if (snapshot.exists()) {
+                const users = [];
+                snapshot.forEach(child => {
+                    users.push({ uid: child.key, xp: child.val().xp || 0 });
+                });
+                users.sort((a, b) => b.xp - a.xp);
+
+                const myRank = users.findIndex(u => u.uid === user.uid);
+
+                if (myRank !== -1) {
+                    const rank = myRank + 1;
+                    let icon = '🏅';
+                    if (rank === 1) icon = '👑';
+                    if (rank === 2) icon = '🥈';
+                    if (rank === 3) icon = '🥉';
+
+                    badgeEl.style.background = 'linear-gradient(135deg, #065f46 0%, #047857 100%)';
+                    badgeEl.style.border = '1px solid #10b981';
+                    badgeEl.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.2)';
+                    badgeEl.innerHTML = `${icon} MashAllah! You are <b>Top #${rank}</b>`;
+                } else {
+                    badgeEl.style.background = 'rgba(30, 41, 59, 0.6)';
+                    badgeEl.style.border = '1px solid rgba(255,255,255,0.1)';
+                    badgeEl.style.boxShadow = 'none';
+                    badgeEl.innerHTML = `Keep Praying to reach Top 15! 🚀`;
+                }
+            } else {
+                badgeEl.innerHTML = `Keep Praying! 🚀`;
+            }
+        } catch (e) {
+            console.warn("Rank fetch failed:", e);
+            badgeEl.innerHTML = `Rank Unavail.`;
+        }
+    }
+
+    // 2. Quran Global Counts Logic (For Paras)
+    async function updateParaCounts() {
+        const paraListEl = document.getElementById('quran-audio-list');
+        if (!paraListEl) return;
+
+        if (!window.FirebaseExports) return;
+
+        try {
+            const db = window.FirebaseExports.getDatabase();
+            const statsRef = window.FirebaseExports.ref(db, 'globalStats/quran');
+            const snap = await window.FirebaseExports.get(statsRef);
+            const stats = snap.val() || {};
+
+            // The Para list likely contains buttons or divs with text "Para 1..."
+            const items = paraListEl.querySelectorAll('div, button, li, .card');
+
+            items.forEach(item => {
+                if (item.textContent && item.textContent.includes('Para ') && !item.querySelector('.quran-count-badge')) {
+                    const match = item.textContent.match(/Para (\d+)/);
+                    if (match && match[1]) {
+                        const paraId = match[1];
+                        const count = stats[`para_${paraId}`] || 0;
+
+                        // MODIFIED: Show even if count is 0 to verify UI
+                        if (true) {
+                            const badge = document.createElement('span');
+                            badge.className = 'quran-count-badge';
+                            badge.style = "font-size:0.7em; color:#fff; background:#10b981; padding:2px 6px; border-radius:8px; display:inline-flex; align-items:center; margin-left:8px; font-weight:bold;";
+                            badge.innerHTML = `🎧 ${count}`;
+
+                            // Try to append to specific title container if possible, else just append
+                            if (item.tagName === 'BUTTON') {
+                                item.appendChild(badge);
+                            } else {
+                                // Look for a heading or first div
+                                const head = item.querySelector('h2, h3, h4, div');
+                                if (head) head.appendChild(badge);
+                                else item.appendChild(badge);
+                            }
+                            item.dataset.hasBadge = "true";
+                        }
+                    }
+                }
+            });
+
+        } catch (e) {
+            console.warn("Quran stats update failed", e);
+        }
+    }
+
+    // 3. Track Audio Plays
+    function trackParaUsage() {
+        const paraListEl = document.getElementById('quran-audio-list');
+        const player = document.getElementById('quran-audio-player');
+
+        if (!paraListEl || !player) return;
+
+        // Capture clicks to know which Para is playing
+        paraListEl.addEventListener('click', (e) => {
+            const target = e.target.closest('button, div');
+            if (target && target.textContent && target.textContent.includes('Para ')) {
+                const match = target.textContent.match(/Para (\d+)/);
+                if (match && match[1]) {
+                    player.setAttribute('data-current-para', match[1]);
+                }
+            }
+        });
+
+        // Hook into Ended event
+        player.onended = () => {
+            const paraId = player.getAttribute('data-current-para');
+            if (paraId && window.FirebaseExports) {
+                const db = window.FirebaseExports.getDatabase();
+                const statRef = window.FirebaseExports.ref(db, `globalStats/quran/para_${paraId}`);
+                window.FirebaseExports.runTransaction(statRef, (c) => (c || 0) + 1);
+                // UI update
+                setTimeout(updateParaCounts, 500);
+            }
+        };
+    }
+
+
+    // Initialize
+    waitForFirebase(() => {
+        // Rank
+        const auth = window.FirebaseExports.getAuth();
+        window.FirebaseExports.onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setTimeout(checkUserRank, 2500);
+                setInterval(checkUserRank, 30000);
+            }
+        });
+
+        // Quran Stats
+        // Run immediately and periodically
+        setTimeout(updateParaCounts, 1000);
+        setInterval(updateParaCounts, 5000);
+
+        // Setup Tracker
+        trackParaUsage();
+    });
+
+})();
+
+// --- PERSONAL RANK & QURAN STATS MODULE ---
+(function () {
+    function waitForFirebase(callback) {
+        if (window.FirebaseExports && window.FirebaseExports.getAuth) {
+            callback();
+        } else {
+            setTimeout(() => waitForFirebase(callback), 500);
+        }
+    }
+
+    // 1. Personalized Rank Logic
+    async function checkUserRank() {
+        const badgeEl = document.getElementById('user-rank-badge');
+        if (!badgeEl) return;
+
+        if (!window.FirebaseExports) return;
+        const auth = window.FirebaseExports.getAuth();
+        const user = auth.currentUser;
+
+        if (!user) {
+            badgeEl.innerHTML = '<span style="font-size:1.2em">🔒</span> Sign in to see Rank';
+            return;
+        }
+
+        try {
+            const db = window.FirebaseExports.getDatabase();
+            const topUsersRef = window.FirebaseExports.query(
+                window.FirebaseExports.ref(db, 'users'),
+                window.FirebaseExports.orderByChild('xp'),
+                window.FirebaseExports.limitToLast(15)
+            );
+
+            const snapshot = await window.FirebaseExports.get(topUsersRef);
+            if (snapshot.exists()) {
+                const users = [];
+                snapshot.forEach(child => {
+                    users.push({ uid: child.key, xp: child.val().xp || 0 });
+                });
+                users.sort((a, b) => b.xp - a.xp);
+
+                const myRank = users.findIndex(u => u.uid === user.uid);
+
+                if (myRank !== -1) {
+                    const rank = myRank + 1;
+                    let icon = '🏅';
+                    if (rank === 1) icon = '👑';
+                    if (rank === 2) icon = '🥈';
+                    if (rank === 3) icon = '🥉';
+
+                    badgeEl.style.background = 'linear-gradient(135deg, #065f46 0%, #047857 100%)';
+                    badgeEl.style.border = '1px solid #10b981';
+                    badgeEl.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.2)';
+                    badgeEl.innerHTML = `${icon} MashAllah! You are <b>Top #${rank}</b>`;
+                } else {
+                    badgeEl.style.background = 'rgba(30, 41, 59, 0.6)';
+                    badgeEl.style.border = '1px solid rgba(255,255,255,0.1)';
+                    badgeEl.style.boxShadow = 'none';
+                    badgeEl.innerHTML = `Keep Praying to reach Top 15! 🚀`;
+                }
+            } else {
+                badgeEl.innerHTML = `Keep Praying! 🚀`;
+            }
+        } catch (e) {
+            console.warn("Rank fetch failed:", e);
+            badgeEl.innerHTML = `Rank Unavail.`;
+        }
+    }
+
+    // Capture global stats for Media Session usage
+    let globalQuranStats = {};
+
+    // 2. Quran Global Counts Logic (For Paras)
+    async function updateParaCounts() {
+        const paraListEl = document.getElementById('quran-audio-list');
+        if (!paraListEl) return;
+
+        if (!window.FirebaseExports) return;
+
+        try {
+            const db = window.FirebaseExports.getDatabase();
+            const statsRef = window.FirebaseExports.ref(db, 'globalStats/quran');
+            const snap = await window.FirebaseExports.get(statsRef);
+            globalQuranStats = snap.val() || {}; // Cache for player
+
+            // The Para list likely contains buttons or divs with text "Para 1..."
+            const items = paraListEl.querySelectorAll('div, button, li, .card');
+
+            items.forEach(item => {
+                if (item.textContent && item.textContent.includes('Para ') && !item.querySelector('.quran-count-badge')) {
+                    const match = item.textContent.match(/Para (\d+)/);
+                    if (match && match[1]) {
+                        const paraId = match[1];
+                        const count = globalQuranStats[`para_${paraId}`] || 0;
+
+                        if (true) {
+                            const badge = document.createElement('span');
+                            badge.className = 'quran-count-badge';
+                            badge.style = "font-size:0.75em; color:#fff; background:#10b981; padding:2px 8px; border-radius:10px; display:inline-flex; align-items:center; margin-left:8px; font-weight:600;";
+                            badge.innerHTML = `🎧 ${count}`;
+
+                            if (item.tagName === 'BUTTON') {
+                                item.appendChild(badge);
+                            } else {
+                                const head = item.querySelector('h2, h3, h4, div');
+                                if (head) head.appendChild(badge);
+                                else item.appendChild(badge);
+                            }
+                            item.dataset.hasBadge = "true";
+                        }
+                    }
+                } else if (item.dataset.hasBadge === "true" && item.querySelector('.quran-count-badge')) {
+                    // Update existing
+                    const match = item.textContent.match(/Para (\d+)/);
+                    if (match && match[1]) {
+                        const paraId = match[1];
+                        const count = globalQuranStats[`para_${paraId}`] || 0;
+                        item.querySelector('.quran-count-badge').innerHTML = `🎧 ${count}`;
+                    }
+                }
+            });
+
+        } catch (e) {
+            console.warn("Quran stats update failed", e);
+        }
+    }
+
+    // 3. Track Audio Plays & Media Session Override
+    function trackParaUsage() {
+        const paraListEl = document.getElementById('quran-audio-list');
+        const player = document.getElementById('quran-audio-player');
+
+        if (!paraListEl || !player) return;
+
+        // Capture clicks to know which Para is playing
+        paraListEl.addEventListener('click', (e) => {
+            const target = e.target.closest('button, div');
+            if (target && target.textContent && target.textContent.includes('Para ')) {
+                const match = target.textContent.match(/Para (\d+)/);
+                if (match && match[1]) {
+                    const paraId = match[1];
+                    player.setAttribute('data-current-para', paraId);
+
+                    // --- MEDIA SESSION OVERRIDE ---
+                    // This updates the system notification / lock screen / floating player
+                    if ('mediaSession' in navigator) {
+                        const count = globalQuranStats[`para_${paraId}`] || 0;
+                        navigator.mediaSession.metadata = new MediaMetadata({
+                            title: `Para ${paraId}`,
+                            artist: `Played ${count} times`,
+                            album: 'Salah Tracker Quran',
+                            artwork: [
+                                { src: 'assets/icon-192.png', sizes: '192x192', type: 'image/png' },
+                                { src: 'assets/icon-512.png', sizes: '512x512', type: 'image/png' }
+                            ]
+                        });
+
+                        navigator.mediaSession.setActionHandler('play', () => { player.play(); });
+                        navigator.mediaSession.setActionHandler('pause', () => { player.pause(); });
+                    }
+                }
+            }
+        });
+
+        // Hook into Ended event
+        player.onended = () => {
+            const paraId = player.getAttribute('data-current-para');
+            if (paraId && window.FirebaseExports) {
+                const db = window.FirebaseExports.getDatabase();
+                const statRef = window.FirebaseExports.ref(db, `globalStats/quran/para_${paraId}`);
+                window.FirebaseExports.runTransaction(statRef, (c) => (c || 0) + 1);
+                setTimeout(updateParaCounts, 500);
+            }
+        };
+
+        // Ensure metadata persists on play
+        player.onplay = () => {
+            const paraId = player.getAttribute('data-current-para');
+            if (paraId && 'mediaSession' in navigator) {
+                const count = globalQuranStats[`para_${paraId}`] || 0;
+                // Re-apply metadata to force override any system defaults
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: `Para ${paraId} - Urdu Translation`, // Setting clear title
+                    artist: `Played ${count} times`, // This replaces 'XP' text
+                    album: 'Salah Tracker',
+                    artwork: [
+                        { src: 'assets/icon-192.png', sizes: '192x192', type: 'image/png' }
+                    ]
+                });
+            }
+        }
+    }
+
+
+    // Initialize
+    waitForFirebase(() => {
+        // Rank
+        const auth = window.FirebaseExports.getAuth();
+        window.FirebaseExports.onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setTimeout(checkUserRank, 2500);
+                setInterval(checkUserRank, 30000);
+            }
+        });
+
+        // Quran Stats
+        setTimeout(updateParaCounts, 1000);
+        setInterval(updateParaCounts, 5000);
+
+        // Setup Tracker
+        trackParaUsage();
+    });
+
+})();
+
+// --- PERSONAL RANK & QURAN STATS MODULE ---
+(function () {
+    function waitForFirebase(callback) {
+        if (window.FirebaseExports && window.FirebaseExports.getAuth) {
+            callback();
+        } else {
+            setTimeout(() => waitForFirebase(callback), 500);
+        }
+    }
+
+    // 1. Personalized Rank Logic
+    async function checkUserRank() {
+        const badgeEl = document.getElementById('user-rank-badge');
+        if (!badgeEl) return;
+
+        if (!window.FirebaseExports) return;
+        const auth = window.FirebaseExports.getAuth();
+        const user = auth.currentUser;
+
+        if (!user) {
+            badgeEl.innerHTML = '<span style="font-size:1.2em">🔒</span> Sign in to see Rank';
+            return;
+        }
+
+        try {
+            const db = window.FirebaseExports.getDatabase();
+            const topUsersRef = window.FirebaseExports.query(
+                window.FirebaseExports.ref(db, 'users'),
+                window.FirebaseExports.orderByChild('xp'),
+                window.FirebaseExports.limitToLast(15)
+            );
+
+            const snapshot = await window.FirebaseExports.get(topUsersRef);
+            if (snapshot.exists()) {
+                const users = [];
+                snapshot.forEach(child => {
+                    users.push({ uid: child.key, xp: child.val().xp || 0 });
+                });
+                users.sort((a, b) => b.xp - a.xp);
+
+                const myRank = users.findIndex(u => u.uid === user.uid);
+
+                if (myRank !== -1) {
+                    const rank = myRank + 1;
+                    let icon = '🏅';
+                    if (rank === 1) icon = '👑';
+                    if (rank === 2) icon = '🥈';
+                    if (rank === 3) icon = '🥉';
+
+                    badgeEl.style.background = 'linear-gradient(135deg, #065f46 0%, #047857 100%)';
+                    badgeEl.style.border = '1px solid #10b981';
+                    badgeEl.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.2)';
+                    badgeEl.innerHTML = `${icon} MashAllah! You are <b>Top #${rank}</b>`;
+                } else {
+                    badgeEl.style.background = 'rgba(30, 41, 59, 0.6)';
+                    badgeEl.style.border = '1px solid rgba(255,255,255,0.1)';
+                    badgeEl.style.boxShadow = 'none';
+                    badgeEl.innerHTML = `Keep Praying to reach Top 15! 🚀`;
+                }
+            } else {
+                badgeEl.innerHTML = `Keep Praying! 🚀`;
+            }
+        } catch (e) {
+            console.warn("Rank fetch failed:", e);
+            badgeEl.innerHTML = `Rank Unavail.`;
+        }
+    }
+
+    // 2. Quran Global Counts Logic (For Paras)
+    async function updateParaCounts() {
+        const paraListEl = document.getElementById('quran-audio-list');
+        if (!paraListEl) return;
+
+        if (!window.FirebaseExports) return;
+
+        try {
+            const db = window.FirebaseExports.getDatabase();
+            const statsRef = window.FirebaseExports.ref(db, 'globalStats/quran');
+            const snap = await window.FirebaseExports.get(statsRef);
+            const stats = snap.val() || {};
+
+            // The Para list likely contains buttons or divs with text "Para 1..."
+            const items = paraListEl.querySelectorAll('div, button, li, .card');
+
+            items.forEach(item => {
+                if (item.textContent && item.textContent.includes('Para ') && !item.querySelector('.quran-count-badge')) {
+                    const match = item.textContent.match(/Para (\d+)/);
+                    if (match && match[1]) {
+                        const paraId = match[1];
+                        const count = stats[`para_${paraId}`] || 0;
+
+                        // MODIFIED: Show even if count is 0 to verify UI
+                        if (true) {
+                            const badge = document.createElement('span');
+                            badge.className = 'quran-count-badge';
+                            badge.style = "font-size:0.7em; color:#fff; background:#10b981; padding:2px 6px; border-radius:8px; display:inline-flex; align-items:center; margin-left:8px; font-weight:bold;";
+                            badge.innerHTML = `🎧 ${count}`;
+
+                            // Try to append to specific title container if possible, else just append
+                            if (item.tagName === 'BUTTON') {
+                                item.appendChild(badge);
+                            } else {
+                                // Look for a heading or first div
+                                const head = item.querySelector('h2, h3, h4, div');
+                                if (head) head.appendChild(badge);
+                                else item.appendChild(badge);
+                            }
+                            item.dataset.hasBadge = "true";
+                        }
+                    }
+                }
+            });
+
+        } catch (e) {
+            console.warn("Quran stats update failed", e);
+        }
+    }
+
+    // 3. Track Audio Plays
+    function trackParaUsage() {
+        const paraListEl = document.getElementById('quran-audio-list');
+        const player = document.getElementById('quran-audio-player');
+
+        if (!paraListEl || !player) return;
+
+        // Capture clicks to know which Para is playing
+        paraListEl.addEventListener('click', (e) => {
+            const target = e.target.closest('button, div');
+            if (target && target.textContent && target.textContent.includes('Para ')) {
+                const match = target.textContent.match(/Para (\d+)/);
+                if (match && match[1]) {
+                    player.setAttribute('data-current-para', match[1]);
+                }
+            }
+        });
+
+        // Hook into Ended event
+        player.onended = () => {
+            const paraId = player.getAttribute('data-current-para');
+            if (paraId && window.FirebaseExports) {
+                const db = window.FirebaseExports.getDatabase();
+                const statRef = window.FirebaseExports.ref(db, `globalStats/quran/para_${paraId}`);
+                window.FirebaseExports.runTransaction(statRef, (c) => (c || 0) + 1);
+                // UI update
+                setTimeout(updateParaCounts, 500);
+            }
+        };
+    }
+
+
+    // Initialize
+    waitForFirebase(() => {
+        // Rank
+        const auth = window.FirebaseExports.getAuth();
+        window.FirebaseExports.onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setTimeout(checkUserRank, 2500);
+                setInterval(checkUserRank, 30000);
+            }
+        });
+
+        // Quran Stats
+        // Run immediately and periodically
+        setTimeout(updateParaCounts, 1000);
+        setInterval(updateParaCounts, 5000);
+
+        // Setup Tracker
+        trackParaUsage();
+    });
 
 })();
