@@ -17,11 +17,11 @@
       getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut,
       GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail
     } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-    import { getDatabase, ref, set, get, onValue, update, runTransaction, push, query, limitToLast, orderByKey, goOnline, goOffline } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+    import { getDatabase, ref, set, get, onValue, update, runTransaction, push, query, limitToLast, orderByKey, orderByChild, goOnline, goOffline } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
     window.FirebaseExports = {
       initializeApp, getAnalytics, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut,
       GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail,
-      getDatabase, ref, set, get, onValue, update, runTransaction, push, query, limitToLast, orderByKey, goOnline, goOffline
+      getDatabase, ref, set, get, onValue, update, runTransaction, push, query, limitToLast, orderByKey, orderByChild, goOnline, goOffline
     };
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.6.1/jsrsasign-all-min.js"></script>
@@ -403,6 +403,14 @@
             Total</div>
         </div>
       </div>
+    </div>
+
+    <!-- NEW: Personalized Rank Badge (Standalone) -->
+    <div id="user-rank-badge"
+      style="background:rgba(30, 41, 59, 0.6); padding:10px; border-radius:12px; margin-bottom:12px; text-align:center; font-size:0.9em; color:#e2e8f0; border:1px solid rgba(255,255,255,0.1); backdrop-filter:blur(4px); display:flex; justify-content:center; align-items:center; gap:8px;">
+      <span class="loader-spinner"
+        style="width:14px; height:14px; border-width:2px; border-color:#fff transparent transparent transparent;"></span>
+      Checking Rank...
     </div>
 
     <!-- Countdown Timer -->
