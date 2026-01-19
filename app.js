@@ -1318,12 +1318,22 @@ function updateStreakGamification(currentStreak) {
 }
 
 function getLevelFromXP(xp) {
-  // Example: Level 1: 0, 2: 50, 3: 100, 4: 200, 5: 350, 6: 550, ...
-  let level = 1, next = 50;
+  // NEW LOGIC: Polynomial Curve (Quadratic)
+  // Easy start, but gets significantly harder.
+  // Lvl 1->2: 60 XP
+  // Lvl 2->3: 90 XP
+  // Lvl 5->6: ~300 XP
+  // Lvl 10->11: ~1050 XP
+  // Lvl 20->21: ~4050 XP
+
+  let level = 1;
+  let next = 60; // Initial delta for Level 1 -> 2
+
   while (xp >= next) {
     level++;
     xp -= next;
-    next = Math.floor(next * 1.5);
+    // Formula: Base 50 + (10 * level^2)
+    next = 50 + (10 * level * level);
   }
   return { level, xpToNext: next, xpInLevel: xp };
 }
@@ -2053,8 +2063,8 @@ const QURAN_PARAS = [
   { file: "Quran para's urdu/para_4.mp3", label: 'Para 4 - Urdu translation' },
   { file: "Quran para's urdu/para_5.mp3", label: 'Para 5 - Urdu translation' },
   { file: "Quran para's urdu/para_6.mp3", label: 'Para 6 - Urdu translation' },
-  { file: "Quran para's urdu/para_7.mp3", label: 'Para 7 - Urdu translation' },
-  { file: "Quran para's urdu/para_8.mp3", label: 'Para 8 - Urdu translation' },
+  { file: "Quran para's urdu/para_7.mp3", label: 'Para 1 - Urdu translation' },
+  { file: "Quran para's urdu/para_8.mp3", label: 'Para 1 - Urdu translation' },
   { file: "Quran para's urdu/para_9.mp3", label: 'Para 9 - Urdu translation' },
   { file: "Quran para's urdu/para_10.mp3", label: 'Para 10 - Urdu translation' },
   { file: "Quran para's urdu/para_11.mp3", label: 'Para 11 - Urdu translation' },
